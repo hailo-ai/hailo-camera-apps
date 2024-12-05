@@ -16,8 +16,21 @@ if compiler_version >= 9
   add_global_arguments('-fconcepts', language : 'cpp')
 endif
 
-# Include Directories
+# Pkgconfig
+pkgc = import('pkgconfig')
+
+# General Include Directories
 hailo_general_inc = [include_directories('./general')]
+general_headers = ['general/hailo_common.hpp',
+                   'general/hailo_objects.hpp', 
+                   'general/hailo_tensors.hpp',
+                   'general/json_config.hpp']
+install_headers(general_headers, subdir: 'hailo/tappas/general')
+pkgc.generate(name: 'hailo_tappas_general',
+              subdirs: 'hailo/tappas/general',
+              version: meson.project_version(),
+              description: 'Hailo Tappas General Headers',
+)
 hailo_mat_inc = [include_directories('./plugins/common/')]
 
 # Xtensor Include Directories
@@ -103,12 +116,6 @@ endif
 
 target = get_option('target')
 # Project Subdirectories
-
-if target in ['all','apps','libs']
-    cxxopts_inc_dir = get_option('libcxxopts')
-    # cxxopts Include Directories
-    cxxopts_inc = [include_directories(cxxopts_inc_dir, is_system: true)]
-endif
 
 if target in ['all','libs','unit_tests','plugins']
     rapidjson_inc_dir = get_option('librapidjson')
