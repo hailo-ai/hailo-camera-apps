@@ -27,7 +27,7 @@ typedef enum
     OVERLAY_STATUS_OK,
 
 } overlay_status_t;
-overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, float landmark_point_radius, bool show_confidence = true, bool local_gallery = false, uint mask_overlay_n_threads = 0, bool partial_landmarks = false, size_t min_landmark = 0, size_t max_landmark = 0);
+overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, std::shared_ptr<StageDebugCounters> debug_counters, float landmark_point_radius, bool show_confidence = true, bool local_gallery = false, uint mask_overlay_n_threads = 0, bool partial_landmarks = false, size_t min_landmark = 0, size_t max_landmark = 0);
 void face_blur(HailoMat &mat, HailoROIPtr roi);
 
 cv::Scalar indexToColor(size_t index);
@@ -363,7 +363,7 @@ static overlay_status_t draw_conf_class_mask(cv::Mat &image_planes, HailoConfCla
     return OVERLAY_STATUS_OK;
 }
 
-overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, float landmark_point_radius, bool show_confidence, bool local_gallery, const uint mask_overlay_n_threads,
+overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, std::shared_ptr<StageDebugCounters> debug_counters, float landmark_point_radius, bool show_confidence, bool local_gallery, const uint mask_overlay_n_threads,
                           bool partial_landmarks, size_t min_landmark, size_t max_landmark)
 {
     overlay_status_t ret = OVERLAY_STATUS_UNINITIALIZED;
@@ -382,8 +382,10 @@ overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, float landmark_point_
             if (local_gallery)
             {
                 auto global_ids = hailo_common::get_hailo_global_id(detection);
-                if (global_ids.size() > 1)
+                if (global_ids.size() > 1){
                     std::cerr << "ERROR: more than one global id in roi" << std::endl;
+                    REFERENCE_CAMERA_LOG_ERROR("ERROR: more than one global id in roi");
+                }
                 if (global_ids.size() == 1)
                     color = GLOBAL_ID_COLOR;
             }
@@ -402,8 +404,9 @@ overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, float landmark_point_
             float font_scale = TEXT_FONT_FACTOR * log(rect.width);
             hmat.draw_text(text, text_position, font_scale, color);
 
+            debug_counters->increment_extra_counter(static_cast<int>(OverlayExtraCounters::DETECTIONS));
             // Draw inner objects.
-            ret = draw_all(hmat, detection, landmark_point_radius, show_confidence, local_gallery, mask_overlay_n_threads, partial_landmarks, min_landmark, max_landmark);
+            ret = draw_all(hmat, detection, debug_counters, landmark_point_radius, show_confidence, local_gallery, mask_overlay_n_threads, partial_landmarks, min_landmark, max_landmark);
             break;
         }
         case HAILO_CLASSIFICATION:
@@ -429,6 +432,7 @@ overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, float landmark_point_
         }
         case HAILO_LANDMARKS:
         {
+            debug_counters->increment_extra_counter(static_cast<int>(OverlayExtraCounters::LANDMARKS));
             HailoLandmarksPtr landmarks = std::dynamic_pointer_cast<HailoLandmarks>(obj);
             draw_landmarks(hmat, landmarks, roi, landmark_point_radius, partial_landmarks, min_landmark, max_landmark);
             break;
@@ -437,7 +441,7 @@ overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, float landmark_point_
         {
             HailoTileROIPtr tile = std::dynamic_pointer_cast<HailoTileROI>(obj);
             draw_tile(hmat, tile);
-            draw_all(hmat, tile, landmark_point_radius, show_confidence, local_gallery, mask_overlay_n_threads, partial_landmarks, min_landmark, max_landmark);
+            draw_all(hmat, tile, debug_counters, landmark_point_radius, show_confidence, local_gallery, mask_overlay_n_threads, partial_landmarks, min_landmark, max_landmark);
             break;
         }
         case HAILO_UNIQUE_ID:

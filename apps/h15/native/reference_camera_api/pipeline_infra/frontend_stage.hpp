@@ -39,12 +39,14 @@ public:
         if (!frontend_expected.has_value())
         {
             std::cerr << "Failed to create frontend" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to create frontend");
             return AppStatus::CONFIGURATION_ERROR;
         }
         m_frontend = frontend_expected.value();
         if (m_frontend->set_config(config_string) != MEDIA_LIBRARY_SUCCESS)
         {
-            std::cerr << "Failed to create frontend" << std::endl;
+            std::cerr << "Failed to configure frontend" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to configure frontend");
             return AppStatus::CONFIGURATION_ERROR;
         }
         return subscribe_output_streams();
@@ -62,6 +64,7 @@ public:
         if (m_frontend == nullptr)
         {
             std::cerr << "Frontend " << m_stage_name << " not configured. Call configure()" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Frontend {} not configured. Call configure()", m_stage_name);
             return AppStatus::UNINITIALIZED;
         }
         // Get frontend output streams
@@ -71,6 +74,7 @@ public:
         if (!streams.has_value())
         {
             std::cout << "Failed to get stream ids" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to get stream ids");
             throw std::runtime_error("Failed to get stream ids");
         }
         for (auto s : streams.value())
@@ -102,6 +106,7 @@ public:
         if (m_frontend == nullptr)
         {
             std::cerr << "Frontend " << m_stage_name << " not configured. Call configure()" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Frontend {} not configured. Call configure()");
             return AppStatus::UNINITIALIZED;
         }
         m_frontend->start();

@@ -13,17 +13,19 @@
 #include "apps_common.hpp"
 #include "media_library/encoder.hpp"
 #include "media_library/frontend.hpp"
+#include "media_library/signal_utils.hpp"
 #include "common.hpp"
 #include "scenarios.hpp"
+#include "vision_config_changes.hpp"
 
 // ai includes
-#include "pipeline_infra/pipeline.hpp"
-#include "pipeline_infra/ai_stage.hpp"
-#include "pipeline_infra/dsp_stages.hpp"
-#include "pipeline_infra/postprocess_stage.hpp"
-#include "pipeline_infra/tracker_stage.hpp"
-#include "pipeline_infra/overlay_stage.hpp"
-#include "pipeline_infra/aggregator_stage.hpp"
+#include "hailo/tappas/reference_camera/pipeline.hpp"
+#include "hailo/tappas/reference_camera/ai_stage.hpp"
+#include "hailo/tappas/reference_camera/dsp_stages.hpp"
+#include "hailo/tappas/reference_camera/postprocess_stage.hpp"
+#include "hailo/tappas/reference_camera/tracker_stage.hpp"
+#include "hailo/tappas/reference_camera/overlay_stage.hpp"
+#include "hailo/tappas/reference_camera/aggregator_stage.hpp"
 
 #define OVERLAY_STAGE "OverLay"
 #define TRACKER_STAGE "Tracker"
@@ -79,6 +81,7 @@ std::string g_output_file_path = "/home/root/apps/stress_app/stress_video";
 std::streambuf* originalBuffer = std::cout.rdbuf(); 
 
 static bool g_pipeline_is_running = false;
+static bool g_hdr_enabled = false;
 
 struct MediaLibrary
 {
@@ -94,6 +97,8 @@ struct ParsedOptions {
     int test_time;
     bool ai_pipeline_enabled;
     bool leaky_ai_queues;
+    bool toggle_denoise;
+    bool toggle_hdr;
     int frontend_resets;
 };
 
@@ -104,6 +109,8 @@ ParsedOptions parseArguments(int argc, char* argv[]) {
         ("test-time", "how much time to run 1 iteration, time is in seconds", cxxopts::value<int>()->default_value("300"))
         ("ai-pipeline", "will the ai pipeline be added to the overall pipeline", cxxopts::value<std::string>()->default_value("true"))
         ("leaky-ai-queues", "turn the ai queues to leaky", cxxopts::value<bool>()->default_value("false"))
+        ("toggle-denoise", "when true denoise will toggle true and false every 5 seconds", cxxopts::value<bool>()->default_value("false"))
+        ("toggle-hdr", "hdr will toggle to on/off each reset if true and when toggle denoise is false", cxxopts::value<bool>()->default_value("false"))
         ("num-of-resets", "number of frontend during the test", cxxopts::value<int>()->default_value("0"));
     
     auto result = options.parse(argc, argv);
@@ -113,12 +120,21 @@ ParsedOptions parseArguments(int argc, char* argv[]) {
         exit(0);
     }
 
+
     ParsedOptions parsedOptions;
     parsedOptions.test_time = result["test-time"].as<int>();
     std::string ai_pipeline_str = result["ai-pipeline"].as<std::string>();
     parsedOptions.ai_pipeline_enabled = (ai_pipeline_str == "true" || ai_pipeline_str == "1");
     parsedOptions.leaky_ai_queues = result["leaky-ai-queues"].as<bool>();
+    parsedOptions.toggle_denoise = result["toggle-denoise"].as<bool>();
+    parsedOptions.toggle_hdr = result["toggle-hdr"].as<bool>();
     parsedOptions.frontend_resets = result["num-of-resets"].as<int>();
+
+    if (parsedOptions.toggle_denoise && parsedOptions.toggle_hdr) {
+        std::cout << "toggle-denoise and toggle-hdr cannot be true at the same time" << std::endl;
+        exit(1);
+    }
+
     return parsedOptions;
 }
 
@@ -133,22 +149,7 @@ void write_encoded_data(HailoMediaLibraryBufferPtr buffer, uint32_t size, std::o
     output_file.write(data, size);
 }
 
-void on_signal_callback(int signum)
-{
-    std::cout << "Stopping Pipeline..." << std::endl;
-    m_media_lib->frontend->stop();
-    for (const auto &entry : m_media_lib->encoders)
-    {
-        entry.second->stop();
-    }
 
-    for (auto &entry : m_media_lib->output_files)
-    {
-        entry.second.close();
-    }
-
-    exit(signum);
-}
 
 void create_pipeline(std::shared_ptr<MediaLibrary> m_media_lib, bool leaky_ai_queues)
 {
@@ -356,6 +357,23 @@ int setup(std::shared_ptr<MediaLibrary> media_lib, ParsedOptions options) {
     return 0;
 }
 
+void myFunction() {
+
+    auto config = m_media_lib->frontend->get_config().value();
+    std::cout << "denoise enabled = " << !config.denoise_config.enabled << std::endl;
+    config.denoise_config.enabled = !config.denoise_config.enabled;
+    m_media_lib->frontend->set_config(config);
+}
+
+std::atomic<bool> stopCheckerThread(false);
+
+void checkAndCallFunction() {
+    while (!stopCheckerThread.load()) {
+        myFunction();
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+    }
+}
+
 void clean(bool g_pipeline_is_running, const std::string& backup_config_file, std::streambuf* originalBuffer,
            bool ai_pipeline_enabled) {
     std::cout << "Stopping" << std::endl;
@@ -380,6 +398,13 @@ int main(int argc, char *argv[])
 {
     ParsedOptions options = parseArguments(argc, argv);
     m_media_lib = std::make_shared<MediaLibrary>();
+
+    signal_utils::register_signal_handler([options](int signal) {
+        std::cout << "Stopping Pipeline..." << std::endl;
+        clean(g_pipeline_is_running, BACKUP_FRONTEND_CONFIG_FILE, originalBuffer, options.ai_pipeline_enabled);
+        exit(0);
+    });
+
     int result = setup(m_media_lib, options);
     if (result != 0) {
         std::cout << "Failed to initialize test" << std::endl;
@@ -402,6 +427,12 @@ int main(int argc, char *argv[])
         m_media_lib->pipeline->start_pipeline();
     m_media_lib->frontend->start();
     g_pipeline_is_running = true;
+
+    std::thread checkerThread;
+    if (options.toggle_denoise)
+        checkerThread = std::thread(checkAndCallFunction);
+
+
     if (options.frontend_resets > 0)
     {
         int interval = options.test_time / options.frontend_resets;
@@ -409,12 +440,17 @@ int main(int argc, char *argv[])
         {
             std::this_thread::sleep_for(std::chrono::seconds(interval));
             m_media_lib->frontend->stop();
+            if (options.toggle_hdr)
+                change_hdr_status(g_hdr_enabled, FRONTEND_CONFIG_FILE);
             m_media_lib->frontend->start();
         }
     }
     else
         std::this_thread::sleep_for(std::chrono::seconds(options.test_time));
-
+    if (options.toggle_denoise) {
+        stopCheckerThread.store(true);
+        checkerThread.join();
+    }
     clean(g_pipeline_is_running, BACKUP_FRONTEND_CONFIG_FILE, originalBuffer, options.ai_pipeline_enabled);
     return 0;
 }

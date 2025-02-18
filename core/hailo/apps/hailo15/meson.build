@@ -7,8 +7,10 @@ media_library_encoder_dep = dependency('hailo_media_library_encoder', method : '
 media_library_api_dep = dependency('hailo_media_library_api', method : 'pkg-config')
 encoder_dep = dependency('hailo_encoder', method : 'pkg-config')
 gstmedialibrary_utils_dep = dependency('gstmedialibutils', method : 'pkg-config')
+reference_camera_dep = dependency('reference_camera_api', method : 'pkg-config')
+fmt_dep = dependency('fmt', method : 'pkg-config')
 
-dependencies_apps = plugin_deps + media_library_encoder_dep + media_library_common_dep + media_library_frontend_dep + encoder_dep + media_library_api_dep + gstmedialibrary_utils_dep
+dependencies_apps = plugin_deps + media_library_encoder_dep + media_library_common_dep + media_library_frontend_dep + encoder_dep + media_library_api_dep + gstmedialibrary_utils_dep + reference_camera_dep + fmt_dep  # Add fmt_dep here
 
 subdir('lpr')
 subdir('encoder_pipelines')

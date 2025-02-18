@@ -27,6 +27,7 @@
 #include "tracker_stage.hpp"
 #include "persist_stage.hpp"
 #include "aggregator_stage.hpp"
+#include "reference_camera_logger.hpp"
 
 // Frontend Params
 #define FRONTEND_STAGE "frontend_stage"
@@ -431,6 +432,7 @@ int main(int argc, char *argv[])
         signal_utils::register_signal_handler([app_resources](int signal)
         { 
             std::cout << "Stopping Pipeline..." << std::endl;
+            REFERENCE_CAMERA_LOG_INFO("Stopping Pipeline...");
             // Stop pipeline
             app_resources->pipeline->stop_pipeline();
             app_resources->clear();
@@ -486,16 +488,18 @@ int main(int argc, char *argv[])
 
         // Start pipeline
         std::cout << "Starting." << std::endl;
+        REFERENCE_CAMERA_LOG_INFO("Starting.");
         app_resources->pipeline->start_pipeline();
 
-        std::cout << "Using frontend config: " << app_resources->frontend_config << std::endl;
-        std::cout << "Started playing for " << timeout << " seconds." << std::endl;
+        REFERENCE_CAMERA_LOG_INFO("Using frontend config: {}", app_resources->frontend_config);
+        REFERENCE_CAMERA_LOG_INFO("Started playing for {} seconds.", timeout);
 
         // Wait
         std::this_thread::sleep_for(std::chrono::seconds(timeout));
 
         // Stop pipeline
         std::cout << "Stopping." << std::endl;
+        REFERENCE_CAMERA_LOG_INFO("Stopping.");
         app_resources->pipeline->stop_pipeline();
         app_resources->clear();
     }

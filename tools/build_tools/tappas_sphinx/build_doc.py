@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 from build_tool.abstract_sw_component import AbstractSwComponent
-from build_tool.logging_config import config_logger
+from hailo_logging import config_logger
 from build_tool.enums.mode import BuildMode
 from build_tool.utils.env_utils import set_working_dir
 from build_tool.component_installer import NoInstallationRequired
@@ -32,7 +32,7 @@ class TappasDocBuilder(AbstractSwComponent):
     FREENAS_USERNAME = "hailo"
 
     def __init__(self):
-        self.logger = config_logger('Tappas Doc Component')
+        self.logger = config_logger('TappasDocComponent', create_log_file=False)
         name = self.__class__.__name__
         self._release_version = self._get_release_version()
         super().__init__(BuildMode.DEV, self.logger, name)
@@ -86,7 +86,9 @@ class TappasDocBuilder(AbstractSwComponent):
         subprocess.run(f"make -C {self.SPHINX_ROOT} latex".split(),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-        copy_cmd = f"cp {self.SPHINX_ROOT}/_images_src/medusa.pdf {self.SPHINX_ROOT}/_images_src/logo_small.pdf \
+        copy_cmd = f"cp {self.SPHINX_ROOT}/_images_src/Hailo_dots.pdf \
+                    {self.SPHINX_ROOT}/_images_src/Hailo_logo_for_A4.pdf \
+                    {self.SPHINX_ROOT}/_images_src/logo_small.pdf \
                     {self.SPHINX_ROOT}/_build/latex "
 
         subprocess.run(copy_cmd.split(),

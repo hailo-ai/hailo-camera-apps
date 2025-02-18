@@ -95,11 +95,13 @@ public:
         hailo_vdevice_params_t vdevice_params = {0};
         hailo_init_vdevice_params(&vdevice_params);
         vdevice_params.group_id = m_group_id.c_str();
+        m_debug_counters = std::make_shared<AIStageCounters>(m_stage_name);
 
         // Create a vdevice
         auto vdevice_exp = hailort::VDevice::create(vdevice_params);
         if (!vdevice_exp) {
             std::cerr << "Failed create vdevice, Hailort status = " << vdevice_exp.status() << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed create vdevice, Hailort status = {}",  vdevice_exp.status());
             return AppStatus::HAILORT_ERROR;
         }
         m_vdevice = vdevice_exp.release();
@@ -108,6 +110,7 @@ public:
         auto infer_model_exp = m_vdevice->create_infer_model(m_hef_path.c_str());
         if (!infer_model_exp) {
             std::cerr << "Failed to create infer model, Hailort status = " << infer_model_exp.status() << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to create infer model, Hailort status = {}", infer_model_exp.status());
             return AppStatus::HAILORT_ERROR;
         }
         m_infer_model = infer_model_exp.release();
@@ -117,6 +120,7 @@ public:
         auto configured_infer_model_exp = m_infer_model->configure();
         if (!configured_infer_model_exp) {
             std::cerr << "Failed to create configured infer model, Hailort status = " << configured_infer_model_exp.status() << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to create configured infer model, Hailort status = {}", configured_infer_model_exp.status());
             return AppStatus::HAILORT_ERROR;
         }
         m_configured_infer_model = configured_infer_model_exp.release();
@@ -127,6 +131,7 @@ public:
         auto bindings = m_configured_infer_model.create_bindings();
         if (!bindings) {
             std::cerr << "Failed to create infer bindings, Hailort status = " << bindings.status() << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to create infer bindings, Hailort status = {}", bindings.status());
             return AppStatus::HAILORT_ERROR;
         }
         m_bindings = bindings.release();
@@ -147,6 +152,7 @@ public:
         auto vstream_infos = m_infer_model->hef().get_output_vstream_infos();
         if (!vstream_infos) {
             std::cerr << "Failed to get vstream info, Hailort status = " << vstream_infos.status() << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to get vstream info, Hailort status = {}", vstream_infos.status());
             return AppStatus::HAILORT_ERROR;
         }
         for (const auto &vstream_info : vstream_infos.value()) {
@@ -168,6 +174,7 @@ public:
             auto status = m_last_infer_job->wait(std::chrono::milliseconds(10000));
             if (HAILO_SUCCESS != status) {
                 std::cerr << "Failed to wait for infer to finish, status = " << status << std::endl;
+                REFERENCE_CAMERA_LOG_ERROR("Failed to wait for infer to finish, status = {}", status);
                 return AppStatus::HAILORT_ERROR;
             }
         }
@@ -207,6 +214,7 @@ public:
         auto status = m_bindings.input()->set_pix_buffer(pix_buffer);
         if (HAILO_SUCCESS != status) {
             std::cerr << "Failed to set infer input buffer, Hailort status = " << status << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to set infer input buffer, Hailort status = {}", status);
             return AppStatus::HAILORT_ERROR;
         }
 
@@ -228,14 +236,17 @@ public:
             BufferPtr tensor_buffer_ptr = std::make_shared<Buffer>(tensor_buffer);
             if (m_tensor_buffer_pools[output.name()]->acquire_buffer(tensor_buffer) != MEDIA_LIBRARY_SUCCESS)
             {
+                m_debug_counters->increment_failed_acquire_buffer();
                 if (m_pool_mode == StagePoolMode::FAIL_ON_EMPTY_POOL) {
                     return AppStatus::BUFFER_ALLOCATION_ERROR;
                 } else if (m_pool_mode == StagePoolMode::BLOCKING) {
+                    REFERENCE_CAMERA_LOG_INFO("{} acquire buffer from buffer pool failed, wait for available buffer", m_stage_name);
                     std::unique_lock<std::mutex> lock(m_buff_pool_mutex);
                     m_available_buffers_cv.wait(lock, [this, output, tensor_buffer] { return m_tensor_buffer_pools[output.name()]->acquire_buffer(tensor_buffer) == MEDIA_LIBRARY_SUCCESS; });
                 } else {
                     for (auto& buffer : tensor_buffers) {
                         buffer.second.reset();
+                        m_debug_counters->increment_dropped_frames();
                     }
                     return AppStatus::SUCCESS;
                 }
@@ -249,6 +260,7 @@ public:
             auto status = m_bindings.output(output.name())->set_buffer(hailort::MemoryView(tensor_buffer->get_plane_ptr(0), tensor_size));
             if (HAILO_SUCCESS != status) {
                 std::cerr << m_stage_name << " failed to set infer output buffer "<< output.name() << ", Hailort status = " << status << std::endl;
+                REFERENCE_CAMERA_LOG_ERROR("{} failed to set infer output buffer {} , Hailort status = ", m_stage_name, output.name(), status);
                 return AppStatus::HAILORT_ERROR;
             }
         }
@@ -269,6 +281,7 @@ public:
         auto status = m_configured_infer_model.wait_for_async_ready(std::chrono::milliseconds(1000));
         if (HAILO_SUCCESS != status) {
             std::cerr << "Failed to wait for async ready, Hailort status = " << status << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to wait for async ready, Hailort status = {}", status);
             return AppStatus::HAILORT_ERROR;
         }
 
@@ -282,11 +295,13 @@ public:
             // check infer status
             if (completion_info.status != HAILO_SUCCESS) {
                 std::cerr << "Failed to run async infer, Hailort status = " << completion_info.status << std::endl;
+                REFERENCE_CAMERA_LOG_ERROR("Failed to run async infer, Hailort status = {}", completion_info.status);
                 return AppStatus::HAILORT_ERROR;
             }
 
             // Add metadata for each output tensor buffer
             for (auto &output : m_infer_model->outputs()) {
+                m_debug_counters->increment_extra_counter(static_cast<int>(AIExtraCounters::TENSORS));
                 BufferPtr tensor_buffer = tensor_buffers.at(output.name());
                 TensorMetadataPtr tensor_metadata = std::make_shared<TensorMetadata>(tensor_buffer, output.name());
                 input_buffer->add_metadata(tensor_metadata);
@@ -305,6 +320,7 @@ public:
             // Send the input buffer to the next stage
             input_buffer->add_time_stamp(m_stage_name);
             set_duration(input_buffer);
+            m_debug_counters->increment_output_frames();
             send_to_subscribers(input_buffer);
 
             return AppStatus::SUCCESS;
@@ -313,6 +329,7 @@ public:
 
         if (!job) {
             std::cerr << "Failed to start async infer job, status = " << job.status() << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to start async infer job, status = {}", job.status());
             return AppStatus::HAILORT_ERROR;
         }
 
@@ -331,6 +348,7 @@ public:
      */
     AppStatus process(BufferPtr data)
     {
+        m_debug_counters->increment_input_frames();
         std::unique_lock<std::mutex> lock(m_active_jobs_mutex);
         m_active_jobs_cv.wait(lock, [this] { return m_active_jobs < m_jobs_limit; });
 

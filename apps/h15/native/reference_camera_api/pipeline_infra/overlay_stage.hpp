@@ -59,6 +59,7 @@ public:
         m_hailooverlay_info.local_gallery = false;
         m_hailooverlay_info.landmark_point_radius = 3;
         m_hailooverlay_info.mask_overlay_n_threads = 0;
+        m_debug_counters = std::make_shared<OverlayCounters>(m_stage_name);
         return AppStatus::SUCCESS;
     }
 
@@ -87,7 +88,7 @@ public:
             send_to_subscribers(data);
             return AppStatus::SUCCESS;
         }
-
+        m_debug_counters->increment_input_frames();
         std::shared_ptr<HailoMat> hmat = std::make_shared<HailoNV12Mat>((uint8_t*)data->get_buffer()->get_plane_ptr(0),
                                               data->get_buffer()->buffer_data->height,
                                               data->get_buffer()->buffer_data->width,
@@ -97,8 +98,15 @@ public:
                                               m_hailooverlay_info.font_thickness,
                                               (uint8_t*)data->get_buffer()->get_plane_ptr(0),
                                               (uint8_t*)data->get_buffer()->get_plane_ptr(1));
+
         if (hmat)
         {
+            auto detections_size = hailo_common::get_hailo_detections(data->get_roi()).size();
+            if (detections_size > 0)
+            {
+                REFERENCE_CAMERA_LOG_TRACE("Overlay stage: Processing frame with {} detections", detections_size);
+            }
+
             if (DmaMemoryAllocator::get_instance().dmabuf_sync_start(data->get_buffer()->get_plane_ptr(0)) != MEDIA_LIBRARY_SUCCESS)
                     return AppStatus::DMA_ERROR;
             if (DmaMemoryAllocator::get_instance().dmabuf_sync_start(data->get_buffer()->get_plane_ptr(1)) != MEDIA_LIBRARY_SUCCESS)
@@ -109,11 +117,12 @@ public:
                 face_blur(*hmat.get(), data->get_roi());
             }
             // Draw all results of the given roi on mat.
-            overlay_status_t ret = draw_all(*hmat.get(), data->get_roi(), m_hailooverlay_info.landmark_point_radius, m_hailooverlay_info.show_confidence, m_hailooverlay_info.local_gallery, m_hailooverlay_info.mask_overlay_n_threads,
+            overlay_status_t ret = draw_all(*hmat.get(), data->get_roi(), m_debug_counters,m_hailooverlay_info.landmark_point_radius, m_hailooverlay_info.show_confidence, m_hailooverlay_info.local_gallery, m_hailooverlay_info.mask_overlay_n_threads,
                                             m_partial_landmarks, m_min_landmark, m_max_landmark);
             if (ret != OVERLAY_STATUS_OK)
             {
                 std::cerr << " Overlay failure draw_all failed, status = " << ret << std::endl;
+                REFERENCE_CAMERA_LOG_ERROR("Overlay failure draw_all failed, status = {}", ret);
             }
             if (DmaMemoryAllocator::get_instance().dmabuf_sync_end(data->get_buffer()->get_plane_ptr(0)) != MEDIA_LIBRARY_SUCCESS)
                     return AppStatus::DMA_ERROR;
@@ -127,6 +136,7 @@ public:
         }
         data->add_time_stamp(m_stage_name);
         set_duration(data);
+        m_debug_counters->increment_output_frames();
         send_to_subscribers(data);
 
         return AppStatus::SUCCESS;

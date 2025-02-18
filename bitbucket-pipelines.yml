@@ -17,7 +17,7 @@ pipelines:
                 BITBUCKET_ACCESS_TOKEN: $HAILO_YOCTO_VALIDATION_TOKEN
                 REPOSITORY: 'hailo-yocto-validation'
                 REF_NAME: 'develop'
-                CUSTOM_PIPELINE_NAME: 'update_media_library_revisions_pipeline'
+                CUSTOM_PIPELINE_NAME: 'update_hml_dsp_revisions_pipeline'
                 PIPELINE_VARIABLES: >
                   [{
                     "key": "USERNAME",

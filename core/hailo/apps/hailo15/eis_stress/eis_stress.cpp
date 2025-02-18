@@ -3,6 +3,7 @@
 #include <thread>
 #include <ctime>
 #include <sstream>
+#include <tuple>
 #include <tl/expected.hpp>
 #include <signal.h>
 #include <gst/gst.h>
@@ -18,10 +19,11 @@
 #include "common_struct.hpp"
 
 // infra includes
-#include "pipeline_infra/pipeline.hpp"
-#include "pipeline_infra/ai_stage.hpp"
-#include "pipeline_infra/postprocess_stage.hpp"
-#include "pipeline_infra/overlay_stage.hpp"
+#include "hailo/tappas/reference_camera/pipeline.hpp"
+#include "hailo/tappas/reference_camera/ai_stage.hpp"
+#include "hailo/tappas/reference_camera/postprocess_stage.hpp"
+#include "hailo/tappas/reference_camera/overlay_stage.hpp"
+
 
 
 using json = nlohmann::json;
@@ -79,8 +81,6 @@ static bool g_osd_eis_status = false;
 
 static uint g_total_frame_counter = 0;
 static uint g_inside_frame_counter = 0;
-static uint g_disable_counter = 0;
-static uint g_stabilize_counter = 0;
 static std::string output_ai_stream_name;
 
 struct MediaLibrary
@@ -177,7 +177,7 @@ void setup_frontend() {
 
     // Set the next configuration as defaul
     // Dewrap off, FOV 1
-    frontend_config["dewarp"]["enabled"] = false;
+    frontend_config["dewarp"]["enabled"] = true;
     frontend_config["dewarp"]["sensor_calib_path"] = "/home/root/apps/resources/cam_intrinsics.txt";
     // EIS on, gyro on
     frontend_config["eis"]["enabled"] = true;
@@ -204,7 +204,7 @@ void setup_frontend() {
     frontend_config["flip"]["enabled"] = true;
     
     // Denoise on
-    frontend_config["denoise"]["enabled"] = true;
+    frontend_config["denoise"]["enabled"] = false;
     
     writeFileContent(EIS_TEST_CONFIG_FILE, frontend_config.dump());
 }
@@ -340,6 +340,18 @@ void clean(bool g_pipeline_is_running, bool g_encoder_is_running, std::streambuf
     std::cout.rdbuf(originalBuffer);
 }
 
+// Function to convert an integer to three boolean values
+std::tuple<bool, bool, bool> getBooleanValues(int value) {
+    // Ensure the value is within a range of 0 to 7 (3 bits)
+    value = value & 0b111; // Mask to only keep the last 3 bits
+
+    bool b1 = value & 0b001;
+    bool b2 = value & 0b010;
+    bool b3 = value & 0b100;
+
+    return {b1, b2, b3};
+}
+
 void subscribe_frontend(std::shared_ptr<MediaLibrary> m_media_lib, uint no_change_frames){
     auto streams = m_media_lib->frontend->get_outputs_streams();
     if (!streams.has_value() || streams->empty())
@@ -370,45 +382,19 @@ void subscribe_frontend(std::shared_ptr<MediaLibrary> m_media_lib, uint no_chang
                     frontend_config_t config = m_media_lib->frontend->get_config().value();
                     config.ldc_config.eis_config.enabled = !config.ldc_config.eis_config.enabled;
                     
-                    // Counter to update the gyro status
-                    if (config.ldc_config.eis_config.enabled) {
-                        g_disable_counter++;
-                    }
 
-                    // Counter to update the stabilize status
-                    if (config.ldc_config.eis_config.enabled && config.ldc_config.gyro_config.enabled) {
-                        g_stabilize_counter++;
-                    }
-
-                    // Change status of eis after doint the two permutations of eis on
-                    if (g_disable_counter % 2 == 0){
-                        config.ldc_config.eis_config.enabled = false;
-                    }
-                    else{
-                        config.ldc_config.eis_config.enabled = true;
-                    }
-
-                    // Change status of gyro after doint the two permutations of eis on
-                    if (g_disable_counter % 2 == 0){
-                        config.ldc_config.gyro_config.enabled = false;
-                    }
-                    else{
-                        config.ldc_config.gyro_config.enabled = true;
-                    }
-
-                    // Change status of gyro after doint the two permutations of eis on/off and gyro on/off
-                    if (g_stabilize_counter % 2 == 0){
-                        config.ldc_config.eis_config.stabilize = false;
-                    }
-                    else{
-                        config.ldc_config.eis_config.stabilize = true;
-                    }
+                    auto [gyro_status, eis_status, stabilize_status] = getBooleanValues(g_inside_frame_counter);
+                    config.ldc_config.gyro_config.enabled = gyro_status;
+                    config.ldc_config.eis_config.enabled = eis_status;
+                    config.ldc_config.eis_config.stabilize = stabilize_status;
+                    
                     if(m_media_lib->frontend->set_config(config) != MEDIA_LIBRARY_SUCCESS)
                     {
                         std::cout << "Error!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
                     }
                     std::cout << "Gyro status is: " << config.ldc_config.gyro_config.enabled << std::endl;
                     std::cout << "EIS status is: " << config.ldc_config.eis_config.enabled << std::endl;
+                    std::cout << "Stabilize status is: " << config.ldc_config.eis_config.stabilize << std::endl;
                 }
                 m_media_lib->encoders[s.id]->add_buffer(buffer);
             };
@@ -563,4 +549,6 @@ int main(int argc, char *argv[]){
     }
 
     clean(g_pipeline_is_running, g_encoder_is_running, std::cout.rdbuf());
+
+    return 0;
 }

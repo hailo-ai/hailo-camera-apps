@@ -208,6 +208,7 @@ latex_elements = {
         \usepackage{titlesec}
         \usepackage{xstring}
         \usepackage{etoolbox}
+        \usepackage{geometry}
         \setsansfont[Ligatures=TeX,Scale=MatchLowercase]{Exo 2}
         \setmonofont[Ligatures=TeX,Scale=MatchLowercase]{Courier}
         \setmainfont[Ligatures=TeX,Scale=MatchLowercase]{Open Sans}
@@ -292,13 +293,14 @@ latex_elements = {
 
 
     'maketitle': r'''
+        \newgeometry{left=1.9cm,right=1.9cm,top=2cm,bottom=0cm}
         \makeatletter
         \let\sphinxrestorepageanchorsetting\relax
         \ifHy@pageanchor\def\sphinxrestorepageanchorsetting{\Hy@pageanchortrue}\fi
         \hypersetup{pageanchor=false}% avoid duplicate destination warnings
         \begin{titlepage}%
             \thispagestyle{mytitle}
-            \tikz[remember picture,overlay] \node[inner sep=0pt] at (current page.center){\includegraphics{medusa.pdf}};
+            \tikz[remember picture,overlay] \node[inner sep=0pt] at (current page.center){\includegraphics{Hailo_dots.pdf}};
             \let\footnotesize\small
             \let\footnoterule\relax
             \begingroup % for PDF information dictionary
@@ -307,12 +309,14 @@ latex_elements = {
                 \hypersetup{pdfauthor={\@author}, pdftitle={\@title}}%
             \endgroup
             \sphinxlogo
-            \vfill
-            {\raggedright\fontsize{40}{50}\selectfont\titletext{\@title} \par}
             \vfill\vfill
-            {\fontsize{25}{30}\selectfont\titletext{\py@release\releaseinfo} \par}
-            {\fontsize{18}{23}\selectfont\sffamily\textcolor{DarkAqua}{\@date} \par}
-            \vfill
+            {\fontsize{28}{10}\selectfont\setmainfont{Open Sans}\textbf{\@title} \par}
+            \vspace{0.5cm}
+            {\colorbox[rgb]{0.24,0.60,0.78}{\makebox[0.66cm]{\rule{0pt}{0.01cm}}} \par}
+            \vspace{0.5cm}
+            {\fontsize{12}{3}\selectfont\setmainfont{Open Sans}{\py@release\releaseinfo} \par}
+            {\fontsize{12}{3}\selectfont\setmainfont{Open Sans}\textcolor{black}{\@date} \par}
+            \vfill\vfill\vfill\vfill
             \@thanks
         \end{titlepage}%
         \setcounter{footnote}{0}%
@@ -323,6 +327,7 @@ latex_elements = {
         \if@openright\cleardoublepage\else\clearpage\fi
         \sphinxrestorepageanchorsetting
         \makeatother
+        \restoregeometry
     ''',
 
 
@@ -356,7 +361,7 @@ latex_documents = [
      'Hailo Technologies', 'manual'),
 ]
 
-latex_logo = '../tools/build_tools/tappas_sphinx/_images_src/logo.pdf'
+latex_logo = '../tools/build_tools/tappas_sphinx/_images_src/Hailo_logo_for_A4.pdf'
 
 latex_engine = 'xelatex'
 

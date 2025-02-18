@@ -75,11 +75,13 @@ public:
      */
     AppStatus init() override
     {
+        m_debug_counters = std::make_shared<PostProcessCounters>(m_stage_name);
         // Load the give SO using dlopen.
         m_loaded_lib = dlopen(m_so_path.c_str(), RTLD_LAZY);
         if (!m_loaded_lib)
         {
             std::cerr << "Could not load lib " << dlerror() << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Could not load lib {}", m_so_path.c_str());
             return AppStatus::CONFIGURATION_ERROR;
         }
         // Reset errors
@@ -106,6 +108,7 @@ public:
         if (dlsym_error)
         {
             std::cerr << "Cannot load symbol: " << dlsym_error << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Cannot load symbol: ", dlsym_error);
             dlclose(m_loaded_lib);
             return AppStatus::CONFIGURATION_ERROR;
         }
@@ -152,6 +155,7 @@ public:
     {    
         // Get the roi from the buffer
         HailoROIPtr hailo_roi = data->get_roi();
+        m_debug_counters->increment_input_frames();
 
         // Call the handler with the roi and the params (if any)
         if (m_params != nullptr)
@@ -171,11 +175,12 @@ public:
             m_last_time = end;
         }
         
-	data->add_time_stamp(m_stage_name);
+	    data->add_time_stamp(m_stage_name);
         set_duration(data);
 
-	// Push the buffer to the next stage
+	    // Push the buffer to the next stage
         send_to_subscribers(data);
+        m_debug_counters->increment_output_frames();
         return AppStatus::SUCCESS;
     }
 };

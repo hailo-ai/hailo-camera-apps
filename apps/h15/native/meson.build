@@ -1,7 +1,7 @@
 # Project Declaration
 
 project('gst-hailo-tools', 'c', 'cpp',
-        version : '1.6.0',
+        version : '1.6.1',
         default_options : [ 'buildtype=release',
                             'c_std=c11', 'cpp_std=c++17']
        )
@@ -35,6 +35,9 @@ gst_deps = [gst_dep, gst_base_dep, gstvideo_dep, gst_app_dep]
 
 # Opencv Dependencies
 opencv_dep = dependency('opencv4', version : '>= 4.0', method : 'pkg-config')
+
+# spdlog Dependencies
+spdlog_dep = dependency('spdlog', version: '>= 1.9.2')
 
 # Library Arguments
 hailo_lib_args = get_option('libargs')
@@ -97,9 +100,11 @@ target = get_option('target')
 if target == 'all'
   subdir('reference_camera_api')
   subdir('ai_example_app')
+  subdir('webserver')
 elif target == 'api'
   subdir('reference_camera_api')
 elif target == 'apps'
   reference_camera_dep = dependency('reference_camera_api', method : 'pkg-config')
   subdir('ai_example_app')
+  subdir('webserver')
 endif

@@ -19,12 +19,12 @@
                 "font_size": 100,
                 "rgb": [
                     255,
-                    0,
-                    0
+                    255,
+                    255
                 ],
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
                 "x": 0.0,
-                "y": 0.95,
+                "y": 0.93,
                 "z-index": 3,
                 "angle": 0,
                 "rotation_policy": "CENTER"
@@ -34,7 +34,7 @@
             {
                 "id": "example_text1",
                 "label": "HailoAI",
-                "font_size": 100,
+                "font_size": 80,
                 "rgb": [
                     255,
                     255,
@@ -49,12 +49,12 @@
             },
             {
                 "id": "example_text2",
-                "label": "DemoApplication",
+                "label": "Demo Application",
                 "font_size": 100,
                 "rgb": [
-                    102,
-                    0,
-                    51
+                    255,
+                    255,
+                    255
                 ],
                 "x": 0.0,
                 "y": 0.01,
@@ -147,9 +147,9 @@
             "monitors_control": {
                 "bitrate_monitor": {
                     "enable": true,
-                    "period": 3,
+                    "period": 1,
                     "result_output_path": "bitrate.txt",
-                    "output_result_to_file": false
+                    "output_result_to_file": true
                 },
                 "cycle_monitor": {
                     "enable": true,

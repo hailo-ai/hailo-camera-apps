@@ -13,5 +13,6 @@
 #include "pipeline_infra/tracker_stage.hpp"
 #include "pipeline_infra/udp_module.hpp"
 #include "pipeline_infra/udp_stage.hpp"
+#include "pipeline_infra/reference_camera_logger.hpp"
 
 // Header consolidation file

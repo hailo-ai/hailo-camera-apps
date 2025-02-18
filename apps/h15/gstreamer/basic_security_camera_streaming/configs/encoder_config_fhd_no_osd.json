@@ -83,9 +83,9 @@
             "monitors_control": {
                 "bitrate_monitor": {
                     "enable": true,
-                    "period": 3,
+                    "period": 1,
                     "result_output_path": "bitrate.txt",
-                    "output_result_to_file": false
+                    "output_result_to_file": true
                 },
                 "cycle_monitor": {
                     "enable": true,

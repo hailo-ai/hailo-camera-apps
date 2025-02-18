@@ -14,6 +14,7 @@
 #include "media_library/encoder.hpp"
 #include "media_library/frontend.hpp"
 #include "utils/vision_config_changes.hpp"
+#include "media_library/signal_utils.hpp"
 #include "utils/common.hpp"
 #include "utils/scenarios.hpp"
 
@@ -22,14 +23,14 @@
 #define AI_SINK "sink3" // The streamid from frontend to AI
 
 // ai includes
-#include "pipeline_infra/pipeline.hpp"
-#include "pipeline_infra/ai_stage.hpp"
-#include "pipeline_infra/dsp_stages.hpp"
-#include "pipeline_infra/postprocess_stage.hpp"
-#include "pipeline_infra/overlay_stage.hpp"
-#include "pipeline_infra/udp_stage.hpp"
-#include "pipeline_infra/tracker_stage.hpp"
-#include "pipeline_infra/aggregator_stage.hpp"
+#include "hailo/tappas/reference_camera/pipeline.hpp"
+#include "hailo/tappas/reference_camera/ai_stage.hpp"
+#include "hailo/tappas/reference_camera/dsp_stages.hpp"
+#include "hailo/tappas/reference_camera/postprocess_stage.hpp"
+#include "hailo/tappas/reference_camera/overlay_stage.hpp"
+#include "hailo/tappas/reference_camera/udp_stage.hpp"
+#include "hailo/tappas/reference_camera/tracker_stage.hpp"
+#include "hailo/tappas/reference_camera/aggregator_stage.hpp"
 
 #define OVERLAY_STAGE "OverLay"
 #define TRACKER_STAGE "Tracker"
@@ -114,7 +115,7 @@ ParsedOptions parseArguments(int argc, char* argv[]) {
         ("test-time", "how much time to run 1 iteration, time is in seconds", cxxopts::value<int>()->default_value("300"))
         ("loop-test", "how many iterations of the test to run", cxxopts::value<int>()->default_value("1"))
         ("frames-to-skip", "Number of frames that the pipeline will not make dynamic changes between each change", cxxopts::value<int>()->default_value("10"))
-        ("number-of-resets", "Number of frontend resets and HDR flips", cxxopts::value<int>()->default_value("4"))
+        ("number-of-resets", "Number of frontend resets and HDR flips", cxxopts::value<int>()->default_value("0"))
         ("encoding-format", "Encoding format", cxxopts::value<std::string>()->default_value("h264"))
         ("disable-rotate-90", "Disabling rotate 90, the output file will be valid this way", cxxopts::value<std::string>()->default_value("false"))
         ("ai-pipeline", "will the ai pipeline be added to the overall pipeline", cxxopts::value<std::string>()->default_value("true"));
@@ -143,7 +144,6 @@ std::string get_output_paths(int id, ParsedOptions options)
 {
     if ((options.encoding_format == "mjpeg") && (id == 1)) {
         return g_output_file_path + std::to_string(id) + ".jpeg";
-      return g_output_file_path + std::to_string(id) + ".jpegenc";
     }
     else if ((options.encoding_format == "h264") or (id != 1)) {
         return g_output_file_path + std::to_string(id) + ".h264";
@@ -177,22 +177,6 @@ void write_encoded_data(HailoMediaLibraryBufferPtr buffer, uint32_t size, std::o
     output_file.write(data, size);
 }
 
-void on_signal_callback(int signum)
-{
-    std::cout << "Stopping Pipeline..." << std::endl;
-    m_media_lib->frontend->stop();
-    for (const auto &entry : m_media_lib->encoders)
-    {
-        entry.second->stop();
-    }
-
-    for (auto &entry : m_media_lib->output_files)
-    {
-        entry.second.close();
-    }
-
-    exit(signum);
-}
 
 void create_ai_pipeline(std::shared_ptr<MediaLibrary> m_media_lib)
 {
@@ -427,6 +411,7 @@ void clean(bool g_pipeline_is_running, const std::string& backup_config_file, st
     if (g_pipeline_is_running) {
         std::cout << "Stopping" << std::endl;
         m_media_lib->frontend->stop();
+        g_pipeline_is_running = false;
     }
     start_or_stop_all_encoders(m_media_lib, false);
 
@@ -443,6 +428,7 @@ void clean(bool g_pipeline_is_running, const std::string& backup_config_file, st
     std::cout.rdbuf(originalBuffer);
 }
 
+
 int main(int argc, char *argv[])
 {
     ParsedOptions options = parseArguments(argc, argv);
@@ -453,6 +439,11 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    signal_utils::register_signal_handler([options](int signal) {
+        std::cout << "Stopping Pipeline..." << std::endl;
+        clean(g_pipeline_is_running, BACKUP_FRONTEND_CONFIG_FILE, originalBuffer);
+        exit(0);
+    });
     //output resolutions to switch every frontend restart
     //for (const auto& entry : resolutionMap) {
     //    output_resolution.push_back(entry.second);

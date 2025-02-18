@@ -111,6 +111,7 @@ UdpModule::UdpModule(std::string name, std::string host, std::string port, Encod
     if (!m_pipeline)
     {
         std::cerr << "Failed create UDP pipeline" << std::endl;
+        REFERENCE_CAMERA_LOG_ERROR("Failed create UDP pipeline");
         status = AppStatus::CONFIGURATION_ERROR;
         return;
     }
@@ -136,6 +137,7 @@ AppStatus UdpModule::start()
     if (ret == GST_STATE_CHANGE_FAILURE)
     {
         std::cerr << "Failed to start UDP pipeline" << std::endl;
+        REFERENCE_CAMERA_LOG_ERROR("Failed to start UDP pipeline");
         return AppStatus::PIPELINE_ERROR;
     }
     m_main_loop_thread = std::make_shared<std::thread>(
@@ -151,6 +153,7 @@ AppStatus UdpModule::stop()
     if (!ret)
     {
         std::cerr << "Failed to stop the UDP pipeline" << std::endl;
+        REFERENCE_CAMERA_LOG_ERROR("Failed to stop the UDP pipeline");
         return AppStatus::PIPELINE_ERROR;
     }
 
@@ -208,6 +211,7 @@ std::string UdpModule::create_pipeline_string()
             "text-overlay=false sync=true video-sink=fakesink ";
 
     std::cout << "Pipeline: " << pipeline << std::endl;
+    REFERENCE_CAMERA_LOG_INFO("Pipeline: {}", pipeline);
 
     return pipeline;
 }
@@ -268,6 +272,7 @@ gboolean UdpModule::on_bus_call(GstBus *bus, GstMessage *msg)
 
         gst_message_parse_error(msg, &err, &debug);
         std::cerr << "Received an error message from the UDP pipeline: " << err->message << std::endl;
+        REFERENCE_CAMERA_LOG_ERROR("Received an error message from the UDP pipeline: {}", err->message);
         g_error_free(err);
         g_free(debug);
         gst_element_set_state(m_pipeline, GST_STATE_NULL);

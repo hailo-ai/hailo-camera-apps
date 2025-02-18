@@ -1,12 +1,12 @@
 ################################################
 # Infra API Libs
 ################################################
-reference_camera_infra_src = 'reference_camera_infra.cpp'
+reference_camera_infra_src = ['reference_camera_infra.cpp','reference_camera_logger.cpp']
 
 reference_camera_infra_lib = shared_library('hailo_reference_camera',
   reference_camera_infra_src,
   cpp_args : hailo_lib_args,
-  dependencies : dependencies_apps + [libhailort_dep, opencv_dep, tracker_dep, tappas_general_dep, image_dep],
+  dependencies : dependencies_apps + [libhailort_dep, opencv_dep, tracker_dep, tappas_general_dep, image_dep, spdlog_dep],
   gnu_symbol_visibility : 'default',
   version: meson.project_version(),
   install: true,
@@ -15,7 +15,7 @@ reference_camera_infra_lib = shared_library('hailo_reference_camera',
 
 reference_camera_dep = declare_dependency(
   include_directories: [include_directories('pipeline_infra')],
-  dependencies : [opencv_dep, tracker_dep],
+  dependencies : [opencv_dep, tracker_dep, spdlog_dep],
   link_with : reference_camera_infra_lib)
 
 pkgc.generate(
@@ -24,7 +24,7 @@ pkgc.generate(
     subdirs : 'hailo/tappas/reference_camera',
     version : meson.project_version(),
     description : 'Hailo Tappas Reference Camera API',
-    requires: ['opencv4', 'hailo_tracker'],
+    requires: ['opencv4', 'hailo_tracker', 'spdlog'],
 )
 
 install_subdir('pipeline_infra', strip_directory: true, install_dir: get_option('includedir') + '/hailo/tappas/reference_camera')

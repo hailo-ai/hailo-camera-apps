@@ -163,11 +163,12 @@ public:
     void loop() override
     {
         init();
-
+        
         while (!m_end_of_stream)
         {
             // the first queue (first to subscribe) is the one that is condisidered the "main stream"
             BufferPtr main_buffer = m_queues[0]->pop();
+            m_debug_counters->increment_input_frames();
             if (main_buffer == nullptr && m_end_of_stream)
             {
                 break;
@@ -191,6 +192,7 @@ public:
                 {
                     main_buffer->add_time_stamp(m_stage_name);
                     set_duration(main_buffer);
+                    m_debug_counters->increment_output_frames();
                     send_to_subscribers(main_buffer);
                     continue;
                 }
@@ -203,6 +205,7 @@ public:
                 for (int i = 0; i < num_subframes; i++)
                 {
                     subframes.push_back(m_queues[1]->pop());
+                    m_debug_counters->increment_extra_counter(static_cast<int>(AggregatorExtraCounters::SUB_FRAMES));
                     if (subframes[i] == nullptr && m_end_of_stream)
                     {
                         deinit();
@@ -218,6 +221,7 @@ public:
                     for (int i = 0; i < num_subframes; i++)
                     {
                         subframes.push_back(m_queues[1]->pop());
+                        m_debug_counters->increment_extra_counter(static_cast<int>(AggregatorExtraCounters::SUB_FRAMES));
                         if (subframes[i] == nullptr && m_end_of_stream)
                         {
                             deinit();
@@ -228,6 +232,7 @@ public:
                     // if not blocking and not enough subframes, then continue
                     main_buffer->add_time_stamp(m_stage_name);
                     set_duration(main_buffer);
+                    m_debug_counters->increment_output_frames();
                     send_to_subscribers(main_buffer);
                     continue;
                 }
@@ -262,6 +267,7 @@ public:
             main_buffer->add_time_stamp(m_stage_name);
             // pass the main_buffer to the subscribers
             set_duration(main_buffer);
+            m_debug_counters->increment_output_frames();
             send_to_subscribers(main_buffer);
 
             if (m_print_fps)
@@ -274,6 +280,11 @@ public:
         deinit();
     }
 
+    AppStatus init() override
+    {
+        m_debug_counters = std::make_shared<AggregatorCounters>(m_stage_name);
+        return AppStatus::SUCCESS;
+    }
     /**
      * @brief Deinitialize the post-processing stage loaded library.
      * 

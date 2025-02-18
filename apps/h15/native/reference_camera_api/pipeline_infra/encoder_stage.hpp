@@ -31,12 +31,14 @@ public:
         if (!encoder_expected.has_value())
         {
             std::cerr << "Failed to create encoder osd" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to create encoder osd");
             return AppStatus::CONFIGURATION_ERROR;
         }
         m_encoder = encoder_expected.value();
         if (m_encoder->set_config(config_string) != MEDIA_LIBRARY_SUCCESS)
         {
             std::cerr << "Failed to configure encoder osd" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to configure encoder osd");
             return AppStatus::CONFIGURATION_ERROR;
         }
         m_encoder->subscribe(
@@ -57,6 +59,7 @@ public:
         if (m_encoder == nullptr)
         {
             std::cerr << "Encoder " << m_stage_name << " not configured. Call configure()" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Encoder {} not configured. Call configure()", m_stage_name);
             return AppStatus::UNINITIALIZED;
         }
         m_encoder->start();
@@ -85,6 +88,7 @@ public:
         if (m_encoder == nullptr)
         {
             std::cerr << "Encoder " << m_stage_name << " not initialized" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Encoder {} not initialized", m_stage_name);
             return AppStatus::UNINITIALIZED;
         }
         m_encoder->add_buffer(data->get_buffer());

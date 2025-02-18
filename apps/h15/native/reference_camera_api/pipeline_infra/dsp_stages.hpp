@@ -134,10 +134,14 @@ public:
         std::vector<dsp_crop_api_t> crop_resize_dims;
         std::vector<HailoMediaLibraryBufferPtr> cropped_buffers;
         std::vector<hailo_dsp_buffer_data_t> output_dsp_buffers;
+        m_debug_counters->increment_input_frames();
         prepare_crops(data, crop_resize_dims);
 
         std::size_t num_crops_allowed = std::min(crop_resize_dims.size(), (std::size_t)m_buffer_pool->get_available_buffers_count());
-
+        if (num_crops_allowed < crop_resize_dims.size()) {
+            int num_drops = (crop_resize_dims.size() - num_crops_allowed);
+            m_debug_counters->increment_by_val_extra_counter(num_drops, static_cast<int>(CropsExtraCounters::DROPPED));
+        }
         crops_params.reserve(num_crops_allowed);
         output_dsp_buffers.reserve(num_crops_allowed);
 
@@ -148,9 +152,11 @@ public:
             HailoMediaLibraryBufferPtr cropped_buffer = std::make_shared<hailo_media_library_buffer>();
             if (m_buffer_pool->acquire_buffer(cropped_buffer) != MEDIA_LIBRARY_SUCCESS)
             {
+                m_debug_counters->increment_failed_acquire_buffer();
                 if (m_pool_mode == StagePoolMode::FAIL_ON_EMPTY_POOL) {
                     for (auto& buffer : cropped_buffers) {
                         buffer.reset();
+                        m_debug_counters->increment_extra_counter(static_cast<int>(CropsExtraCounters::DROPPED));
                     }
                     return AppStatus::BUFFER_ALLOCATION_ERROR;
                 } else if (m_pool_mode == StagePoolMode::BLOCKING) {
@@ -160,6 +166,7 @@ public:
                     /* Leaky */
                     for (auto& buffer : cropped_buffers) {
                         buffer.reset();
+                        m_debug_counters->increment_extra_counter(static_cast<int>(CropsExtraCounters::DROPPED));
                     }
                     return AppStatus::SUCCESS;
                 }
@@ -188,6 +195,7 @@ public:
         if (status != DSP_SUCCESS) 
         {
             std::cerr << "Failed to perform dsp multi resize" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Failed to perform dsp multi resize");
             return AppStatus::DSP_OPERATION_ERROR;
         }
 
@@ -197,6 +205,7 @@ public:
         data->add_time_stamp(m_stage_name);
         set_duration(data);
         send_to_specific_subsciber(m_main_subscriber, data);
+        m_debug_counters->increment_output_frames();
 
         for (std::size_t i = 0; i < cropped_buffers.size(); ++i)
         {
@@ -214,6 +223,7 @@ public:
         post_crop(data);
         
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        m_debug_counters->increment_by_val_extra_counter(crop_resize_dims.size(), static_cast<int>(CropsExtraCounters::CROPS));
 
         if (m_print_fps)
         {
@@ -266,7 +276,7 @@ public:
         auto bytes_per_line = dsp_utils::get_dsp_desired_stride_from_width(m_output_width);
         m_buffer_pool = std::make_shared<MediaLibraryBufferPool>(m_output_width, m_output_hight, HAILO_FORMAT_NV12,
                                                                  m_output_pool_size, HAILO_MEMORY_TYPE_DMABUF, bytes_per_line, "tilling_buffer_pool");
-           
+        m_debug_counters = std::make_shared<CropsCounters>(m_stage_name);
         if (m_buffer_pool->init() != MEDIA_LIBRARY_SUCCESS)
         {
             return AppStatus::DSP_OPERATION_ERROR;
@@ -308,6 +318,7 @@ public:
             return m_fhd_tiles.at(index)->get_bbox();
         } catch (const std::out_of_range& e) {
              std::cerr << "Tilling index " << index << " is out of bounds: " << e.what() << std::endl;
+             REFERENCE_CAMERA_LOG_ERROR("Tilling index {} is out of bounds: ", index, e.what());
              throw;
         }
     }
@@ -357,7 +368,7 @@ public:
         auto bytes_per_line = dsp_utils::get_dsp_desired_stride_from_width(m_output_width);
         m_buffer_pool = std::make_shared<MediaLibraryBufferPool>(m_output_width, m_output_hight, HAILO_FORMAT_NV12,
                                                                  m_output_pool_size, HAILO_MEMORY_TYPE_DMABUF, bytes_per_line, "detection_buffer_pool");
-           
+        m_debug_counters = std::make_shared<CropsCounters>(m_stage_name);
         if (m_buffer_pool->init() != MEDIA_LIBRARY_SUCCESS)
         {
             return AppStatus::DSP_OPERATION_ERROR;
@@ -401,6 +412,7 @@ public:
             return m_detection_crops_bbox.at(index);
         } catch (const std::out_of_range& e) {
             std::cerr << "Cropped index " << index << " is out of bounds: " << e.what() << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Cropped index {} is out of bounds:{} ", index, e.what()); 
             throw;
         }
     }
@@ -416,6 +428,7 @@ public:
             return m_detection_rois.at(index);
         } catch (const std::out_of_range& e) {
             std::cerr << "ROI index " << index << " is out of bounds: " << e.what() << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("ROI index {} is out of bounds: {}", index, e.what());
             throw;
         }
     }

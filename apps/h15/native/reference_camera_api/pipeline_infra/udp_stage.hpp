@@ -51,6 +51,7 @@ public:
         if (m_udp == nullptr)
         {
             std::cerr << "Udp " << m_stage_name << " not configured. Call configure()" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Udp  {} not configured. Call configure()", m_stage_name);
             return AppStatus::UNINITIALIZED;
         }
         m_udp->start();
@@ -79,6 +80,7 @@ public:
         if (m_udp == nullptr)
         {
             std::cerr << "Udp " << m_stage_name << " not configured. Call configure()" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Udp {} not configured. Call configure()", m_stage_name);
             return AppStatus::UNINITIALIZED;
         }
 
@@ -86,6 +88,7 @@ public:
         if (metadata.size() <= 0)
         {
             std::cerr << "Udp " << m_stage_name << " got buffer of unknown size, add SizeMeta" << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Udp {} got buffer of unknown size, add SizeMeta");
             return AppStatus::PIPELINE_ERROR;
         }
         SizeMetadataPtr size_metadata = std::dynamic_pointer_cast<SizeMetadata>(metadata[0]);

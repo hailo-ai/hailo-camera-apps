@@ -1,5 +1,3 @@
-default_language_version:
-  python: python3.6
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v1.3.0
@@ -12,11 +10,6 @@ repos:
       - id: debug-statements
         stages: [push]
         # exclude:
-      - id: flake8
-        language_version: python3.6
-        name: flake8 (Python 3.6)
-        # Ignoring many style related errors args
-        args: ["--ignore=W2,W3,W5,E1,E2,E3,E402,E501,E722"]
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.1.6
     hooks:

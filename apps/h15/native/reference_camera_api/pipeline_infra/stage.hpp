@@ -21,6 +21,7 @@
 // Infra includes
 #include "buffer.hpp"
 #include "queue.hpp"
+#include "stage_debug.hpp"
 
 enum class AppStatus
 {
@@ -64,6 +65,7 @@ protected:
     int m_counter = 0;
 
 public:
+    std::shared_ptr<StageDebugCounters> m_debug_counters;
     Stage(std::string name, bool print_fps) : m_stage_name(name), m_print_fps(print_fps) {}
 
     virtual ~Stage() = default;
