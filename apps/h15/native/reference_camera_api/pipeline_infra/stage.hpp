@@ -1,6 +1,7 @@
 #pragma once
 
 // General includes
+#include <atomic>
 #include <queue>
 #include <mutex>
 #include <thread>
@@ -52,7 +53,7 @@ enum class StagePoolMode
 class Stage
 {
 protected:
-    bool m_end_of_stream = false;
+    std::atomic<bool> m_end_of_stream = false;
     std::string m_stage_name;
     std::thread m_thread;
 
@@ -188,7 +189,7 @@ public:
         }
     }
 
-    void set_end_of_stream(bool end_of_stream)
+    void set_end_of_stream(bool end_of_stream) override
     {
         m_end_of_stream = end_of_stream;
         if (end_of_stream)
@@ -268,6 +269,8 @@ public:
         data->add_time_stamp(m_stage_name);
         set_duration(data);
 
+        send_to_subscribers(data);
+
         return AppStatus::SUCCESS;
     }
 
@@ -277,3 +280,22 @@ public:
     }
 };
 using CallbackStagePtr = std::shared_ptr<CallbackStage>;
+
+class TeeStage : public ConnectedStage
+{
+public:
+    TeeStage(std::string name, size_t queue_size, bool leaky=false, bool print_fps=false) :
+        ConnectedStage(name, queue_size, leaky, print_fps) {}
+
+    AppStatus process(BufferPtr data) override
+    {
+        for (auto &subscriber : m_subscribers)
+        {
+            BufferPtr new_buffer = std::make_shared<Buffer>(data->get_buffer());
+            subscriber->push(new_buffer, m_stage_name);
+        }
+
+        return AppStatus::SUCCESS;
+    }
+};
+using TeeStagePtr = std::shared_ptr<TeeStage>;

@@ -1,10 +1,11 @@
-
 #pragma once
 #include <nlohmann/json.hpp>
 #include <memory>
 #include <vector>
 #include <string>
 #include <functional>
+#include <stdexcept>
+
 namespace webserver
 {
     namespace resources
@@ -99,32 +100,38 @@ namespace webserver
             bool rotate_enabled;
             std::vector<Resolution> resolutions;
 
-            StreamConfigResourceState() = default;
-
-            StreamConfigResourceState(std::vector<Resolution> resolutions, const std::string &rotation, bool rotate_enabled)
-                : rotate_enabled(rotate_enabled), resolutions(std::move(resolutions))
+            static rotation_t string_to_enum(const std::string &rotation)
             {
                 if (rotation == "ROTATION_ANGLE_0")
                 {
-                    this->rotation = ROTATION_0;
+                    return ROTATION_0;
                 }
                 else if (rotation == "ROTATION_ANGLE_90")
                 {
-                    this->rotation = ROTATION_90;
+                    return ROTATION_90;
                 }
                 else if (rotation == "ROTATION_ANGLE_180")
                 {
-                    this->rotation = ROTATION_180;
+                    return ROTATION_180;
                 }
                 else if (rotation == "ROTATION_ANGLE_270")
                 {
-                    this->rotation = ROTATION_270;
+                    return ROTATION_270;
                 }
                 else
                 {
                     throw std::invalid_argument("Invalid rotation angle: " + rotation);
                 }
             }
+
+            StreamConfigResourceState() = default;
+
+            StreamConfigResourceState(std::vector<Resolution> resolutions, const std::string &rotation, bool rotate_enabled)
+                : rotate_enabled(rotate_enabled), resolutions(std::move(resolutions))
+            {
+                    this->rotation = string_to_enum(rotation);
+            }
+
         };
 
         using ResourceChangeCallback = std::function<void(ResourceStateChangeNotification)>;

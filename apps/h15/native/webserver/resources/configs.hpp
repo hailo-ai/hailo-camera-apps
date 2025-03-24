@@ -20,6 +20,7 @@ namespace webserver
                 nlohmann::json get_frontend_default_config();
                 nlohmann::json get_encoder_default_config();
                 nlohmann::json get_osd_default_config();
+                nlohmann::json get_osd_and_encoder_default_config();
                 nlohmann::json get_hdr_default_config();
                 nlohmann::json get_denoise_default_config();
             };

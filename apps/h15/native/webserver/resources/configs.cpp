@@ -71,6 +71,15 @@ nlohmann::json webserver::resources::ConfigResource::get_osd_default_config()
     return m_encoder_osd_default_config["osd"];
 }
 
+nlohmann::json webserver::resources::ConfigResource::get_osd_and_encoder_default_config()
+{
+    if (m_encoder_osd_default_config.empty())
+    {
+        throw std::runtime_error("Failed to get default osd config");
+    }
+    return m_encoder_osd_default_config;
+}
+
 nlohmann::json webserver::resources::ConfigResource::get_hdr_default_config()
 {
     if (m_frontend_default_config["hdr"].empty())

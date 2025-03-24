@@ -134,7 +134,7 @@ public:
     {
         init();
         std::unique_lock<std::mutex> lock(m_running_mutex);
-        m_running_cv.wait(lock, [this] { return m_end_of_stream; });
+        m_running_cv.wait(lock, [this] { return m_end_of_stream == true; });
         deinit();
     }
 

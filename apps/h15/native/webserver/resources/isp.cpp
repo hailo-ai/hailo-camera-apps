@@ -1,11 +1,15 @@
 #include "isp.hpp"
+
 #include "common/common.hpp"
-#include <iostream>
+#include "common/v4l2_ctrl.hpp"
 #include <functional>
+#include <sys/ioctl.h>
+#include <linux/videodev2.h>
 
 using namespace webserver::resources;
 using namespace webserver::common;
-using namespace isp_utils::ctrl;
+using namespace webserver;
+
 
 // not all gain values are valid in ISP, ISP rounds down to the nearest valid value, so we need to round up so we get the value we want
 #define ROUND_GAIN_GET_U16(gain) (uint16_t)((gain - (gain % 1024)) / 1024 + 1 * !!(gain % 1024))
@@ -13,7 +17,6 @@ using namespace isp_utils::ctrl;
 
 IspResource::IspResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<AiResource> ai_res, std::shared_ptr<ConfigResource> config_res) : Resource(event_bus), m_baseline_stream_params(0, 0, 0, 0, 0), m_baseline_wdr_params(0), m_baseline_backlight_params(0, 0)
 {
-    m_v4l2 = std::make_unique<isp_utils::ctrl::v4l2Control>(V4L2_DEVICE_NAME);
     m_hdr_config = config_res->get_hdr_default_config();
     m_ai_resource = ai_res;
     subscribe_callback(CHANGED_RESOURCE_AI, [this](ResourceStateChangeNotification notification)
@@ -52,6 +55,11 @@ void IspResource::on_ai_state_change(std::shared_ptr<AiResource::AiResourceState
     };
     on_resource_change(EventType::CHANGED_RESOURCE_ISP, std::make_shared<ResourceState>(IspResource::IspResourceState(true)));
 
+    if (denoise_disabled)
+    {
+        WEBSERVER_LOG_DEBUG("ISP: denoise is disabled, resetting ISP");
+        this->init();
+    }
     // Sleep before sending any ioctl is required
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 }
@@ -73,28 +81,68 @@ void IspResource::init(bool set_auto_wb)
     {
         // set auto white balance
         WEBSERVER_LOG_DEBUG("ISP: Setting auto white balance to auto");
-        this->m_v4l2->v4l2_ext_ctrl_set<uint16_t>(V4L2_CTRL_AWB_MODE, 1);
+        v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::AWB_MODE, 1);
     }
 
+    m_isp_converge = false;
     WEBSERVER_LOG_DEBUG("ISP: enable 3a config");
     update_3a_config(true);
 
-    // sleep 1 second to let values settle
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    wait_isp_converge(50, 600);
 
-    // disable to control values manually
     WEBSERVER_LOG_DEBUG("ISP: disable 3a config");
     update_3a_config(false);
 
-    this->m_v4l2->v4l2_ext_ctrl_get<uint16_t>(V4L2_CTRL_SHARPNESS_DOWN, m_baseline_stream_params.sharpness_down);
-    this->m_v4l2->v4l2_ext_ctrl_get<uint16_t>(V4L2_CTRL_SHARPNESS_UP, m_baseline_stream_params.sharpness_up);
-    this->m_v4l2->v4l2_ctrl_get<int32_t>(V4L2_CTRL_BRIGHTNESS, m_baseline_stream_params.brightness);
-    this->m_v4l2->v4l2_ctrl_get<int32_t>(V4L2_CTRL_SATURATION, m_baseline_stream_params.saturation);
-    this->m_v4l2->v4l2_ctrl_get<int32_t>(V4L2_CTRL_CONTRAST, m_baseline_stream_params.contrast);
-    this->m_v4l2->v4l2_ctrl_get<int16_t>(V4L2_CTRL_WDR_CONTRAST, m_baseline_wdr_params);
+    uint16_t* sharpness_down = &m_baseline_stream_params.sharpness_down;
+    uint16_t* sharpness_up = &m_baseline_stream_params.sharpness_up;
+    v4l2_ctrl::get<uint16_t*>(v4l2_ctrl::Video0Ctrl::SHARPNESS_DOWN, sharpness_down);
+    v4l2_ctrl::get<uint16_t*>(v4l2_ctrl::Video0Ctrl::SHARPNESS_UP, sharpness_up);
+    v4l2_ctrl::get<int32_t>(v4l2_ctrl::Video0Ctrl::BRIGHTNESS, m_baseline_stream_params.brightness);
+    v4l2_ctrl::get<int32_t>(v4l2_ctrl::Video0Ctrl::SATURATION, m_baseline_stream_params.saturation);
+    v4l2_ctrl::get<int32_t>(v4l2_ctrl::Video0Ctrl::CONTRAST, m_baseline_stream_params.contrast);
+    v4l2_ctrl::get<int16_t>(v4l2_ctrl::Video0Ctrl::WDR_CONTRAST, m_baseline_wdr_params);
 
     WEBSERVER_LOG_DEBUG("ISP: Baseline stream params: \n\tSharpness Down: {}\n\tSharpness Up: {}\n\tSaturation: {}\n\tBrightness: {}\n\tContrast: {}\n\tWDR: {}", m_baseline_stream_params.sharpness_down, m_baseline_stream_params.sharpness_up, m_baseline_stream_params.saturation, m_baseline_stream_params.brightness, m_baseline_stream_params.contrast, m_baseline_wdr_params);
     WEBSERVER_LOG_DEBUG("ISP: Baseline backlight params: \n\tmax: {}, \tmin: {}", m_baseline_backlight_params.max, m_baseline_backlight_params.min);
+}
+
+bool IspResource::get_isp_converge(){
+    int converged = 0;
+    bool ret = v4l2_ctrl::get<int>(v4l2_ctrl::Video0Ctrl::AE_CONVERGED, converged);
+    if (!ret)
+    {
+        WEBSERVER_LOG_ERROR("Failed to get AE converged");
+        throw std::runtime_error("Failed to get AE converged");
+    }
+    WEBSERVER_LOG_DEBUG("Got AE converged: {}",converged);
+    if (converged != 1 && converged != 0)
+    {
+        WEBSERVER_LOG_ERROR("Invalid AE converged value");
+        throw std::runtime_error("Invalid AE converged value");
+    }
+    return converged == 1;
+}
+
+void IspResource::wait_isp_converge(int polling_interval, int delay_after_polling){
+    int watchdog_timeout = 2000;
+    while (!get_isp_converge()){
+        watchdog_timeout -= polling_interval;
+        std::this_thread::sleep_for(std::chrono::milliseconds(polling_interval));
+        if (watchdog_timeout <= 0)
+        {
+            WEBSERVER_LOG_WARN("ISP: AE did not converge");
+            break;
+        }
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(delay_after_polling));
+}
+
+void IspResource::wait_safe_to_pull(){
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if(!m_isp_converge){
+        this->init();
+        m_isp_converge = true;
+    }
 }
 
 void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
@@ -114,7 +162,7 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
                 }
 
                 WEBSERVER_LOG_DEBUG("Setting powerline frequency to: {}",freq);
-                ret = m_v4l2->v4l2_ctrl_set<int>(V4L2_CTRL_POWERLINE_FREQUENCY, (uint16_t)freq);
+                ret = v4l2_ctrl::set<int>(v4l2_ctrl::Video0Ctrl::POWERLINE_FREQUENCY, (uint16_t)freq);
                 if (!ret)
                 {
                     WEBSERVER_LOG_ERROR("Failed to set powerline frequency");
@@ -126,8 +174,9 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
 
     srv->Get("/isp/powerline_frequency", std::function<nlohmann::json()>([this]()
                                                                          {
+                wait_safe_to_pull();
                 int val;
-                bool ret = m_v4l2->v4l2_ctrl_get<int>(V4L2_CTRL_POWERLINE_FREQUENCY, val);
+                bool ret = v4l2_ctrl::get<int>(v4l2_ctrl::Video0Ctrl::POWERLINE_FREQUENCY, val);
                 if (!ret)
                 {
                     WEBSERVER_LOG_ERROR("Failed to get powerline frequency");
@@ -155,7 +204,7 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
                     throw std::runtime_error("Invalid noise reduction value");
                 }
                 WEBSERVER_LOG_DEBUG("Setting noise reduction to: {}",nr);
-                ret = m_v4l2->v4l2_ctrl_set<int>(V4L2_CTRL_NOISE_REDUCTION, nr);
+                ret = v4l2_ctrl::set<int>(v4l2_ctrl::Video0Ctrl::NOISE_REDUCTION, nr);
                 if (!ret)
                 {
                     WEBSERVER_LOG_ERROR("Failed to set noise reduction");
@@ -165,9 +214,9 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
     srv->Post("/isp/wdr", std::function<nlohmann::json(const nlohmann::json &)>([this](const nlohmann::json &j_body)
                                                                                 {
                 wide_dynamic_range_t wdr = j_body.get<wide_dynamic_range_t>();
-                auto val = v4l2ControlHelper::calculate_value_from_precentage<int32_t>(wdr.value, V4L2_CTRL_WDR_CONTRAST, m_baseline_wdr_params);
+                auto val = v4l2_ctrl::calculate_value_from_precentage<int32_t>(wdr.value, v4l2_ctrl::Video0Ctrl::WDR_CONTRAST, m_baseline_wdr_params);
                 WEBSERVER_LOG_INFO("Setting WDR to: {}",val);
-                bool ret = m_v4l2->v4l2_ext_ctrl_set<int16_t>(V4L2_CTRL_WDR_CONTRAST, val);
+                bool ret = v4l2_ctrl::set<int16_t>(v4l2_ctrl::Video0Ctrl::WDR_CONTRAST, val);
                 if (!ret)
                 {
                     WEBSERVER_LOG_ERROR("Failed to set WDR");
@@ -177,15 +226,16 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
 
     srv->Get("/isp/wdr", std::function<nlohmann::json()>([this]()
                                                          {
+                wait_safe_to_pull();
                 wide_dynamic_range_t wdr;
                 int32_t val;
-                bool ret = m_v4l2->v4l2_ctrl_get<int32_t>(V4L2_CTRL_WDR_CONTRAST, val);
+                bool ret = v4l2_ctrl::get<int32_t>(v4l2_ctrl::Video0Ctrl::WDR_CONTRAST, val);
                 if (!ret)
                 {
                     WEBSERVER_LOG_ERROR("Failed to get WDR");
                     throw std::runtime_error("Failed to get WDR");
                 }
-                wdr.value = v4l2ControlHelper::calculate_precentage_from_value<int32_t>(val, V4L2_CTRL_WDR_CONTRAST, m_baseline_wdr_params);
+                wdr.value = v4l2_ctrl::calculate_precentage_from_value<int32_t>(val, v4l2_ctrl::Video0Ctrl::WDR_CONTRAST, m_baseline_wdr_params);
                 WEBSERVER_LOG_INFO("Got WDR value: {}",wdr.value);
                 nlohmann::json j_out = wdr;
                 return j_out; }));
@@ -206,13 +256,13 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
                 if (awb.value == AUTO_WHITE_BALANCE_PROFILE_AUTO)
                 {
                     WEBSERVER_LOG_DEBUG("Setting AWB to auto");
-                    m_v4l2->v4l2_ext_ctrl_set<uint16_t>(V4L2_CTRL_AWB_MODE, 1);
+                    v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::AWB_MODE, 1);
                 }
                 else
                 {
                     WEBSERVER_LOG_DEBUG("Setting AWB to manual with profile: {}",awb.value);
-                    m_v4l2->v4l2_ext_ctrl_set<uint16_t>(V4L2_CTRL_AWB_MODE, 0);
-                    m_v4l2->v4l2_ext_ctrl_set<uint16_t>(V4L2_CTRL_AWB_ILLUM_INDEX, awb.value);
+                    v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::AWB_MODE, 0);
+                    v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::AWB_ILLUM_INDEX, awb.value);
                 }
 
                 nlohmann::json j_out = awb;
@@ -220,8 +270,9 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
 
     srv->Get("/isp/awb", std::function<nlohmann::json()>([this]()
                                                          {
+                wait_safe_to_pull();
                 int32_t val;
-                bool ret = m_v4l2->v4l2_ctrl_get<int32_t>(V4L2_CTRL_AWB_MODE, val);
+                bool ret = v4l2_ctrl::get<int32_t>(v4l2_ctrl::Video0Ctrl::AWB_MODE, val);
                 if (!ret)
                 {
                     WEBSERVER_LOG_ERROR("Failed to get AWB mode");
@@ -229,7 +280,7 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
                 }
                 if (val != 1) // manual mode, get profile
                 {
-                    ret = m_v4l2->v4l2_ctrl_get<int32_t>(V4L2_CTRL_AWB_ILLUM_INDEX, val);
+                    ret = v4l2_ctrl::get<int32_t>(v4l2_ctrl::Video0Ctrl::AWB_ILLUM_INDEX, val);
                     if (!ret)
                     {
                         WEBSERVER_LOG_ERROR("Failed to get AWB profile");
@@ -246,13 +297,15 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
 
     srv->Get("/isp/stream_params", std::function<nlohmann::json()>([this]()
                                                                    {
+                wait_safe_to_pull();
                 stream_isp_params_t p(0, 0, 0, 0, 0);
-                this->m_v4l2->v4l2_ext_ctrl_get<uint16_t>(V4L2_CTRL_SHARPNESS_DOWN, p.sharpness_down);
-                this->m_v4l2->v4l2_ext_ctrl_get<uint16_t>(V4L2_CTRL_SHARPNESS_UP, p.sharpness_up);
-                this->m_v4l2->v4l2_ctrl_get<int32_t>(V4L2_CTRL_BRIGHTNESS, p.brightness);
-                this->m_v4l2->v4l2_ctrl_get<int32_t>(V4L2_CTRL_SATURATION, p.saturation);
-                this->m_v4l2->v4l2_ctrl_get<int32_t>(V4L2_CTRL_CONTRAST, p.contrast);
-
+                uint16_t* sharpness_down = &p.sharpness_down;
+                uint16_t* sharpness_up = &p.sharpness_up;
+                v4l2_ctrl::get<uint16_t*>(v4l2_ctrl::Video0Ctrl::SHARPNESS_DOWN, sharpness_down);
+                v4l2_ctrl::get<uint16_t*>(v4l2_ctrl::Video0Ctrl::SHARPNESS_UP, sharpness_up);
+                v4l2_ctrl::get<int32_t>(v4l2_ctrl::Video0Ctrl::BRIGHTNESS, p.brightness);
+                v4l2_ctrl::get<int32_t>(v4l2_ctrl::Video0Ctrl::SATURATION, p.saturation);
+                v4l2_ctrl::get<int32_t>(v4l2_ctrl::Video0Ctrl::CONTRAST, p.contrast);
                 nlohmann::json j_out = m_baseline_stream_params.to_stream_params(p);
                 WEBSERVER_LOG_INFO("Got stream params: {}", j_out.dump());
                 return j_out; }));
@@ -271,16 +324,16 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
                 }
                 auto isp_params = m_baseline_stream_params.from_stream_params(stream_params);
 
-                this->m_v4l2->v4l2_ext_ctrl_set<int32_t>(V4L2_CTRL_SATURATION, isp_params.saturation);
-                this->m_v4l2->v4l2_ext_ctrl_set<int32_t>(V4L2_CTRL_BRIGHTNESS, static_cast<int8_t>(isp_params.brightness));
-                this->m_v4l2->v4l2_ext_ctrl_set<int32_t>(V4L2_CTRL_CONTRAST, isp_params.contrast);
+                v4l2_ctrl::set<int32_t>(v4l2_ctrl::Video0Ctrl::SATURATION, isp_params.saturation);
+                v4l2_ctrl::set<int32_t>(v4l2_ctrl::Video0Ctrl::BRIGHTNESS, static_cast<int8_t>(isp_params.brightness));
+                v4l2_ctrl::set<int32_t>(v4l2_ctrl::Video0Ctrl::CONTRAST, isp_params.contrast);
 
-                this->m_v4l2->v4l2_ext_ctrl_set<uint16_t>(V4L2_CTRL_EE_ENABLE, 0);
+                v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::EE_ENABLE, 0);
 
-                this->m_v4l2->v4l2_ext_ctrl_set2<uint16_t>(V4L2_CTRL_SHARPNESS_DOWN, isp_params.sharpness_down);
-                this->m_v4l2->v4l2_ext_ctrl_set2<uint16_t>(V4L2_CTRL_SHARPNESS_UP, isp_params.sharpness_up);
+                v4l2_ctrl::set<uint16_t*>(v4l2_ctrl::Video0Ctrl::SHARPNESS_DOWN, &isp_params.sharpness_down);
+                v4l2_ctrl::set<uint16_t*>(v4l2_ctrl::Video0Ctrl::SHARPNESS_UP, &isp_params.sharpness_up);
 
-                this->m_v4l2->v4l2_ext_ctrl_set<uint16_t>(V4L2_CTRL_EE_ENABLE, 1);
+                v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::EE_ENABLE, 1);
 
                 // cast out to json
                 nlohmann::json j_out = stream_params;
@@ -298,8 +351,16 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
 
     srv->Get("/isp/auto_exposure", std::function<nlohmann::json()>([this]()
                                                                    {
+                wait_safe_to_pull();
                 auto params = this->get_auto_exposure();
                 nlohmann::json j_out = params;
+                return j_out; }));
+    
+    srv->Get("/isp/safe_to_pull", std::function<nlohmann::json()>([this]()
+                                                                     {
+                nlohmann::json j_out;
+                j_out["safe_to_pull"] = get_isp_converge();
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 return j_out; }));
 
     srv->Get("/isp/hdr", std::function<nlohmann::json()>([this]()
@@ -333,9 +394,9 @@ auto_exposure_t IspResource::get_auto_exposure()
     uint16_t enabled = 0;
     uint16_t integration_time = 0;
     uint32_t gain = 0;
-    m_v4l2->v4l2_ctrl_get<uint16_t>(V4L2_CTRL_AE_ENABLE, enabled);
-    m_v4l2->v4l2_ctrl_get<uint32_t>(V4L2_CTRL_AE_GAIN, gain);
-    m_v4l2->v4l2_ctrl_get<uint16_t>(V4L2_CTRL_AE_INTEGRATION_TIME, integration_time);
+    v4l2_ctrl::get<uint16_t>(v4l2_ctrl::Video0Ctrl::AE_ENABLE, enabled);
+    v4l2_ctrl::get<uint32_t>(v4l2_ctrl::Video0Ctrl::AE_GAIN, gain);
+    v4l2_ctrl::get<uint16_t>(v4l2_ctrl::Video0Ctrl::AE_INTEGRATION_TIME, integration_time);
 
     WEBSERVER_LOG_DEBUG("Got auto exposure: enabled: {}, gain: {}, integration_time: {}", enabled, gain, integration_time);
 
@@ -373,7 +434,7 @@ bool IspResource::set_auto_exposure(auto_exposure_t &ae)
 {
     uint32_t gain = (uint32_t)ae.gain * 1024;
     WEBSERVER_LOG_DEBUG("Setting auto exposure enabled: {}", ae.enabled);
-    m_v4l2->v4l2_ext_ctrl_set<uint16_t>(V4L2_CTRL_AE_ENABLE, ae.enabled);
+    v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::AE_ENABLE, ae.enabled);
     if (ae.enabled)
     {
         // sleep so auto exposure values will be updated
@@ -394,12 +455,12 @@ bool IspResource::set_auto_exposure(auto_exposure_t &ae)
     else
     {
         WEBSERVER_LOG_DEBUG("AutoExposure is on manual mode, setting gain {} and integration time {}", gain, ae.integration_time);
-        bool ret = m_v4l2->v4l2_ext_ctrl_set<uint32_t>(V4L2_CTRL_AE_GAIN, gain);
+        bool ret = v4l2_ctrl::set<uint32_t>(v4l2_ctrl::Video0Ctrl::AE_GAIN, gain);
         if (!ret)
         {
             return false;
         }
-        ret = m_v4l2->v4l2_ext_ctrl_set<uint16_t>(V4L2_CTRL_AE_INTEGRATION_TIME, ae.integration_time);
+        ret = v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::AE_INTEGRATION_TIME, ae.integration_time);
         if (!ret)
         {
             return false;

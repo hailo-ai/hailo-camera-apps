@@ -1,33 +1,47 @@
 #include "privacy_mask.hpp"
 #include <iostream>
+#include <cmath> // For sin, cos
 
 using namespace webserver::resources;
 
-PrivacyMaskResource::PrivacyMaskResource(std::shared_ptr<EventBus> event_bus) : Resource(event_bus)
+PrivacyMaskResource::PrivacyMaskResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::ConfigResource> configs) : Resource(event_bus)
 {
     m_privacy_masks = {};
+    m_original_privacy_masks = {};
     m_config = nlohmann::json::parse("{}");
-    m_rotation = StreamConfigResourceState::ROTATION_0; // TODO think what to do when the stream start rotated. mybie take this from config resource
+    nlohmann::json frontend_conf = configs->get_frontend_default_config();
+    m_rotation = StreamConfigResourceState::string_to_enum(frontend_conf["rotation"]["angle"]);
+    m_global_enable = frontend_conf["rotation"]["enabled"];
     WEBSERVER_LOG_INFO("PrivacyMaskResource initialized with default values");
 
     subscribe_callback(STREAM_CONFIG, [this](ResourceStateChangeNotification notification)
                         {
         WEBSERVER_LOG_INFO("Received STREAM_CONFIG notification");
         auto state = std::static_pointer_cast<StreamConfigResourceState>(notification.resource_state);
-        if (!state->rotate_enabled)
+
+        if (!state->rotate_enabled && !m_global_enable)
         {
             WEBSERVER_LOG_INFO("Rotation not enabled, returning");
             return;
         }
-        auto old_rotation = m_rotation;
-        m_rotation = state->rotation;
-        WEBSERVER_LOG_INFO("Rotation changed from {} to {}", old_rotation, m_rotation);
-        for (auto& [key, poly] : m_privacy_masks)
+        // auto old_rotation = m_rotation;
+        state->rotate_enabled ? m_rotation = state->rotation : m_rotation = StreamConfigResourceState::ROTATION_0;
+        WEBSERVER_LOG_INFO("Applying absolute rotation: {}", m_rotation);
+        
+        uint32_t new_width = state->resolutions[0].width;
+        uint32_t new_height = state->resolutions[0].height;
+
+        m_privacy_masks.clear();
+        for (auto& [key, poly] : m_original_privacy_masks)
         {
+            polygon rotated_poly;
+            rotated_poly.id = poly.id;
             for (auto& point : poly.vertices)
             {
-                point = point_rotation(point, state->resolutions[0].width, state->resolutions[0].height, old_rotation, m_rotation);
+                vertex rotated_point = rotate_point(point, new_width, new_height, m_rotation);
+                rotated_poly.vertices.push_back(rotated_point);
             }
+            m_privacy_masks[key] = rotated_poly;
         }
         for (auto& mask : m_config["masks"]) {
             for (size_t i = 0; i < mask["Polygon"].size(); ++i) {
@@ -42,11 +56,11 @@ PrivacyMaskResource::PrivacyMaskResource(std::shared_ptr<EventBus> event_bus) : 
                         {
         WEBSERVER_LOG_INFO("Received STREAM_CONFIG notification with LOW priority");
         auto state = std::static_pointer_cast<StreamConfigResourceState>(notification.resource_state);
-        if (state->rotate_enabled || state->resolutions[0].stream_size_changed)
+        if (state->rotate_enabled || state->resolutions[0].stream_size_changed || (m_global_enable && !state->rotate_enabled))
         {
             renable_masks();
         }
-        
+        m_global_enable = state->rotate_enabled;
     });
 
     subscribe_callback(EventType::CODEC_CHANGE, EventPriority::LOW, [this](ResourceStateChangeNotification notification)
@@ -61,29 +75,28 @@ void PrivacyMaskResource::reset_config(){
     renable_masks();
 }
 
-vertex PrivacyMaskResource::point_rotation(vertex &point, uint32_t width, uint32_t height, StreamConfigResourceState::rotation_t from_rotation, StreamConfigResourceState::rotation_t to_rotation){
-    int angle_diff = to_rotation - from_rotation;
+
+vertex PrivacyMaskResource::rotate_point(const vertex &original_point, uint32_t new_width, uint32_t new_height, int angle_deg)
+{
     WEBSERVER_LOG_INFO("Rotating point ");
-    if (angle_diff == 0){
-        return point;
-    }
     privacy_mask_types::vertex rotated_point(0, 0);
-    switch (angle_diff)
+    switch (angle_deg)
     {
+    case 0:
+        rotated_point.x = original_point.x;
+        rotated_point.y = original_point.y;
+        break;
     case 90:
-    case -270:
-        rotated_point.x = height - point.y; // TODO check if need to switch width and high
-        rotated_point.y = point.x;
+        rotated_point.x = new_height - original_point.y;
+        rotated_point.y = original_point.x;
         break;
     case 180:
-    case -180:
-        rotated_point.x = width - point.x;
-        rotated_point.y = height - point.y;
+        rotated_point.x = new_width - original_point.x;
+        rotated_point.y = new_height - original_point.y;
         break;  
     case 270:
-    case -90:
-        rotated_point.x = point.y;
-        rotated_point.y = width - point.x;
+        rotated_point.x = original_point.y;
+        rotated_point.y = new_width - original_point.x;
         break;
     default:
         WEBSERVER_LOG_ERROR("Invalid rotation angle");
@@ -131,6 +144,8 @@ std::shared_ptr<PrivacyMaskResource::PrivacyMaskResourceState> PrivacyMaskResour
         if (entry["op"] == "remove")
         {
             state->polygon_to_delete.push_back(entry["path"].get<std::string>());
+            m_privacy_masks.erase(entry["path"].get<std::string>());
+            m_original_privacy_masks.erase(entry["path"].get<std::string>());
         }
     }
     return state;
@@ -164,11 +179,12 @@ void PrivacyMaskResource::parse_polygon(nlohmann::json j){
             }
 
             m_privacy_masks[poly.id] = poly;
+            m_original_privacy_masks[poly.id] = poly;
         }
     }
     catch (const std::exception& e)
     {
-        WEBSERVER_LOG_ERROR("Failed to parse json body for privacy mask, no change have been made: {}", e.what());
+        WEBSERVER_LOG_ERROR("Failed to parse json body for privacy mask, no change has been made: {}", e.what());
     }
 }
 

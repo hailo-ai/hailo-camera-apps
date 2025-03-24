@@ -46,7 +46,19 @@ namespace webserver
             void reset_config() override;
             nlohmann::json map_paths(nlohmann::json config);
             nlohmann::json unmap_paths(nlohmann::json config);
+            int relative_font_size_to_absolut(float font_size, uint32_t width);
+            float absolut_font_size_to_relative(int font_size, uint32_t width);
+            nlohmann::json relative_font_size_to_absolut(nlohmann::json osd_entry, uint32_t width);
+            nlohmann::json absolut_font_size_to_relative(nlohmann::json osd_entry, uint32_t width);
+            nlohmann::json map_overlays(nlohmann::json config, std::function<nlohmann::json(nlohmann::json)> transform_osd);
 
+            struct resolution_conf_t
+            {
+                uint32_t width;
+                uint32_t height;
+            };
+
+            resolution_conf_t m_resolution_conf;
         };
     }
 }

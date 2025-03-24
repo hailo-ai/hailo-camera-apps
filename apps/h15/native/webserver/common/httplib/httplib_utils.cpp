@@ -209,7 +209,7 @@ void HTTPServer::Impl::set_cors()
     m_server.set_pre_routing_handler([](const httplib::Request &req, httplib::Response &res) {
         // Add CORS headers to all responses
         res.set_header("Access-Control-Allow-Origin", "*"); // Allow all origins
-        res.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        res.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
         res.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
         res.set_header("Access-Control-Allow-Credentials", "true");
 

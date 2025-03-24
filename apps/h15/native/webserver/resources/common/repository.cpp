@@ -10,7 +10,7 @@ WebserverResourceRepository webserver::resources::ResourceRepository::create(std
     auto isp_resource = std::make_shared<webserver::resources::IspResource>(event_bus, ai_resource, config_resource);
     auto frontend_resource = std::make_shared<webserver::resources::FrontendResource>(event_bus, ai_resource, isp_resource, config_resource);
     auto encoder_resource = std::make_shared<webserver::resources::EncoderResource>(event_bus, config_resource);
-    auto privacy_mask_resource = std::make_shared<webserver::resources::PrivacyMaskResource>(event_bus);
+    auto privacy_mask_resource = std::make_shared<webserver::resources::PrivacyMaskResource>(event_bus, config_resource);
     auto webpage_resource = std::make_shared<webserver::resources::WebpageResource>(event_bus);
     auto webrtc_resource = std::make_shared<webserver::resources::WebRtcResource>(event_bus, config_resource);
     resources_vec.push_back(config_resource);

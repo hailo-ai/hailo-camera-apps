@@ -166,11 +166,11 @@ void create_pipeline(std::shared_ptr<MediaLibrary> m_media_lib, bool leaky_ai_qu
     //
     std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, "", 5, leaky_ai_queues, false);
     // adds the squares found in detection stange to the 4k stream
-    std::shared_ptr<AggregatorStage> agg_stage = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE, false, 
-                                                                                   AI_VISION_SINK, 2, 
-                                                                                   POST_STAGE, 10, 
+    std::shared_ptr<AggregatorStage> agg_stage = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE, false, 5,
+                                                                                   AI_VISION_SINK, 2, leaky_ai_queues,
+                                                                                   POST_STAGE, 10, leaky_ai_queues,
                                                                                    true, 0.3, 0.1,
-                                                                                   leaky_ai_queues, false);
+                                                                                   false);
     // Tracker stage which tracks the squares around the people and faces in case there is movement (using ids)
     std::shared_ptr<TrackerStage> tracker_stage = std::make_shared<TrackerStage>(TRACKER_STAGE, 1, leaky_ai_queues, -1, false);
     //crops the image in the right size for the next stage input resolution
@@ -182,10 +182,10 @@ void create_pipeline(std::shared_ptr<MediaLibrary> m_media_lib, bool leaky_ai_qu
     std::shared_ptr<PostprocessStage> landmarks_post_stage = std::make_shared<PostprocessStage>(LANDMARKS_POST_STAGE, LANDMARKS_POST_SO, LANDMARKS_FUNC_NAME, "", 50, leaky_ai_queues, false);
     // similar to agg_stage but for the 4k stream
     std::shared_ptr<AggregatorStage> agg_stage_2 = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE_2, false, 
-                                                                                     BBOX_CROP_STAGE, 2, 
-                                                                                     LANDMARKS_POST_STAGE, 30,
+                                                                                     BBOX_CROP_STAGE, 2, true,
+                                                                                     LANDMARKS_POST_STAGE, 30, true,
                                                                                      false, 0.3, 0.1,
-                                                                                     true, false);
+                                                                                     false);
     // adds the squares found in detection stange to the 4k stream
     std::shared_ptr<OverlayStage> overlay_stage = std::make_shared<OverlayStage>(OVERLAY_STAGE, 1, true, false);
     // will be used as a callback for the next frame

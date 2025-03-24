@@ -48,8 +48,8 @@
 #define DETECTION_AI_STAGE "yolo_detection"
 // Detection Postprocess Params
 #define POST_STAGE "yolo_post"
-#define YOLO_POST_SO "/usr/lib/hailo-post-processes/libyolo_hailortpp_post.so"
-#define YOLO_FUNC_NAME "yolov5s_personface"
+#define YOLO_POST_SO "/usr/lib/hailo-post-processes/libdebug.so"
+#define YOLO_FUNC_NAME "generate_fixed_detections"
 // Aggregator Params
 #define RESULTS_AGGREGATOR_STAGE "results_aggregator"
 #define AGGREGATOR_STAGE "aggregator"
@@ -85,6 +85,9 @@ std::vector<HailoBBox> TILES = {{0.0,0.0,0.6,0.6},  {0.4,0,0.6,0.6},
 // Whitelist landmarks range
 #define LANDMARKS_RANGE_MIN 36
 #define LANDMARKS_RANGE_MAX 47
+
+// Fake Detections
+#define FAKE_DETECTIONS_STAGE "fake_detections"
 
 // Macro that turns coverts stream ids to port #s
 #define PORT_FROM_ID(id) std::to_string(5000 + std::stoi(id.substr(4)) * 2)
@@ -346,6 +349,37 @@ void configure_frontend_and_encoders(std::shared_ptr<AppResources> app_resources
     }
 }
 
+void generate_fifty_detections(BufferPtr input_buffer)
+{
+    HailoROIPtr roi = input_buffer->get_roi();
+    // Get the bounding limits for the new boxes
+    HailoBBox bbox_limit = roi->get_bbox();
+    float xmin_limit = bbox_limit.xmin();
+    float ymin_limit = bbox_limit.ymin();
+    // Calculate fixed dimensions for each detection
+    float r_confidence = 1.0;
+    int num_rows = 5;
+    int num_cols = 10;
+    float detection_width = bbox_limit.width() / num_cols;
+    float detection_height = bbox_limit.height() / num_rows;
+    for (int i = 0; i < num_rows; i++)
+    {
+        for (int j=0; j < num_cols; j++)
+        {
+            // add a person
+            float r_xmin = xmin_limit + (j * detection_width);  // Arrange in 10 columns
+            float r_ymin = ymin_limit + (i * detection_height); // Arrange in 5 rows
+            HailoBBox person_bbox = HailoBBox(r_xmin, r_ymin, detection_width * 0.9, detection_height * 0.9);
+            hailo_common::add_detection(roi, person_bbox, "person", r_confidence);
+
+            // add a face
+            HailoBBox face_bbox = HailoBBox(r_xmin + (detection_width * 0.25), r_ymin + (detection_height * 0.2),
+                                            detection_width * 0.5, detection_height * 0.3);
+            hailo_common::add_detection(roi, face_bbox, "face", r_confidence);
+        }
+    }
+}
+
 /**
  * @brief Create and configure the application's processing pipeline.
  *
@@ -362,22 +396,18 @@ void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
     std::shared_ptr<TeeStage> tee_stage = std::make_shared<TeeStage>(TEE_STAGE, 2, false, app_resources->print_fps);
     std::shared_ptr<TillingCropStage> tilling_stage = std::make_shared<TillingCropStage>(TILLING_STAGE,50, TILLING_INPUT_WIDTH, TILLING_INPUT_HEIGHT,
                                                                                         TILLING_OUTPUT_WIDTH, TILLING_OUTPUT_HEIGHT,
-                                                                                        "", DETECTION_AI_STAGE, TILES,
+                                                                                        "", AGGREGATOR_STAGE, TILES,
                                                                                         5, true, app_resources->print_fps, StagePoolMode::BLOCKING);
-    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50 ,"device0", 5, 10, 5, 
-                                                                                             std::chrono::milliseconds(100), app_resources->print_fps, StagePoolMode::BLOCKING);
-    std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, "", 5, false, app_resources->print_fps);
     std::shared_ptr<AggregatorStage> agg_stage = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE, false, 5,
                                                                                    TEE_STAGE, 2, true,
-                                                                                   POST_STAGE, 5, false,
+                                                                                   TILLING_STAGE, 15, false,
                                                                                    true, 0.3, 0.1,
                                                                                    app_resources->print_fps);
+    std::shared_ptr<CallbackStage> fake_detection_stage = std::make_shared<CallbackStage>(FAKE_DETECTIONS_STAGE, 3, false, generate_fifty_detections, app_resources->print_fps);
     std::shared_ptr<BBoxCropStage> bbox_crop_stage = std::make_shared<BBoxCropStage>(BBOX_CROP_STAGE, 150, BBOX_CROP_INPUT_WIDTH, BBOX_CROP_INPUT_HEIGHT,
                                                                                     BBOX_CROP_OUTPUT_WIDTH, BBOX_CROP_OUTPUT_HEIGHT,
-                                                                                    AGGREGATOR_STAGE_2, LANDMARKS_AI_STAGE, BBOX_CROP_LABEL, 1, false, 
+                                                                                    AGGREGATOR_STAGE_2, LANDMARKS_POST_STAGE, BBOX_CROP_LABEL, 1, false, 
                                                                                     app_resources->print_fps, StagePoolMode::BLOCKING);
-    std::shared_ptr<HailortAsyncStage> landmarks_stage = std::make_shared<HailortAsyncStage>(LANDMARKS_AI_STAGE, LANDMARKS_HEF_FILE, 100, 201 ,"device0", 1, 50, 1, 
-                                                                                             std::chrono::milliseconds(100), app_resources->print_fps, StagePoolMode::BLOCKING);
     std::shared_ptr<PostprocessStage> landmarks_post_stage = std::make_shared<PostprocessStage>(LANDMARKS_POST_STAGE, LANDMARKS_POST_SO, LANDMARKS_FUNC_NAME, "", 100, false, app_resources->print_fps);
     std::shared_ptr<AggregatorStage> agg_stage_2 = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE_2, true, 
                                                                                      BBOX_CROP_STAGE, 3, false,
@@ -401,23 +431,19 @@ void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
     
     app_resources->pipeline->add_stage(agg_stage);
     app_resources->pipeline->add_stage(tilling_stage);
-    app_resources->pipeline->add_stage(detection_stage);
-    app_resources->pipeline->add_stage(detection_post_stage);
+    app_resources->pipeline->add_stage(fake_detection_stage);
     app_resources->pipeline->add_stage(bbox_crop_stage);
-    app_resources->pipeline->add_stage(landmarks_stage);
     app_resources->pipeline->add_stage(landmarks_post_stage);
     app_resources->pipeline->add_stage(agg_stage_2);
 
     // Subscribe stages to each other  
     // AI Pipeline stages  
     tee_stage->add_subscriber(agg_stage);
-    tilling_stage->add_subscriber(detection_stage);
-    detection_stage->add_subscriber(detection_post_stage);
-    detection_post_stage->add_subscriber(agg_stage);
-    agg_stage->add_subscriber(bbox_crop_stage);
+    tilling_stage->add_subscriber(agg_stage);
+    agg_stage->add_subscriber(fake_detection_stage);
+    fake_detection_stage->add_subscriber(bbox_crop_stage);
     bbox_crop_stage->add_subscriber(agg_stage_2);
-    bbox_crop_stage->add_subscriber(landmarks_stage);
-    landmarks_stage->add_subscriber(landmarks_post_stage);
+    bbox_crop_stage->add_subscriber(landmarks_post_stage);
     landmarks_post_stage->add_subscriber(agg_stage_2);
     agg_stage_2->add_subscriber(results_agg_stage);
 

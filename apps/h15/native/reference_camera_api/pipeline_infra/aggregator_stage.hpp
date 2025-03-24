@@ -20,30 +20,30 @@ protected:
 
 public:
     AggregatorStage(std::string name, bool blocking, 
-                    std::string main_inlet_name, size_t main_queue_size, 
-                    std::string sub_inlet_name, size_t sub_queue_size,
+                    std::string main_inlet_name, size_t main_queue_size, bool main_queue_leaky,
+                    std::string sub_inlet_name, size_t sub_queue_size, bool sub_queue_leaky,
                     bool multi_scale=false, float iou_threshold=0.3, float m_border_threshold=0.1,
-                    bool leaky=false, bool print_fps=false) : 
-        ConnectedStage(name, main_queue_size, leaky, print_fps), m_blocking(blocking), 
+                    bool print_fps=false) : 
+        ConnectedStage(name, main_queue_size, main_queue_leaky, print_fps), m_blocking(blocking), 
         m_main_inlet_name(main_inlet_name), m_main_queue_size(main_queue_size), 
         m_sub_inlet_name(sub_inlet_name), m_sub_queue_size(sub_queue_size), m_static_sub_frames(-1),
         m_multi_scale(multi_scale), m_iou_threshold(iou_threshold), m_border_threshold(m_border_threshold)
         {
-            m_queues.push_back(std::make_shared<Queue>(m_main_inlet_name, m_main_queue_size, leaky));
-            m_queues.push_back(std::make_shared<Queue>(m_sub_inlet_name, m_sub_queue_size, leaky));
+            m_queues.push_back(std::make_shared<Queue>(m_main_inlet_name, m_main_queue_size, main_queue_leaky));
+            m_queues.push_back(std::make_shared<Queue>(m_sub_inlet_name, m_sub_queue_size, sub_queue_leaky));
         }
-    AggregatorStage(std::string name, bool blocking, 
-                    std::string main_inlet_name, size_t main_queue_size, 
-                    std::string sub_inlet_name, size_t sub_queue_size, int static_sub_frames,
+    AggregatorStage(std::string name, bool blocking, int static_sub_frames,
+                    std::string main_inlet_name, size_t main_queue_size, bool main_queue_leaky,
+                    std::string sub_inlet_name, size_t sub_queue_size, bool sub_queue_leaky, 
                     bool multi_scale=false, float iou_threshold=0.3, float m_border_threshold=0.1,
-                    bool leaky=false, bool print_fps=false) : 
-        ConnectedStage(name, main_queue_size, leaky, print_fps), m_blocking(blocking), 
+                    bool print_fps=false) : 
+        ConnectedStage(name, main_queue_size, main_queue_leaky, print_fps), m_blocking(blocking), 
         m_main_inlet_name(main_inlet_name), m_main_queue_size(main_queue_size), 
         m_sub_inlet_name(sub_inlet_name), m_sub_queue_size(sub_queue_size), m_static_sub_frames(static_sub_frames),
         m_multi_scale(multi_scale), m_iou_threshold(iou_threshold), m_border_threshold(m_border_threshold)
         {
-            m_queues.push_back(std::make_shared<Queue>(m_main_inlet_name, m_main_queue_size, leaky));
-            m_queues.push_back(std::make_shared<Queue>(m_sub_inlet_name, m_sub_queue_size, leaky));
+            m_queues.push_back(std::make_shared<Queue>(m_main_inlet_name, m_main_queue_size, main_queue_leaky));
+            m_queues.push_back(std::make_shared<Queue>(m_sub_inlet_name, m_sub_queue_size, sub_queue_leaky));
         }
 
     void add_queue(std::string name) override {}
