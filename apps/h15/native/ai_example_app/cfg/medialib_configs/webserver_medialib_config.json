@@ -1,0 +1,22 @@
+{
+	"version": "1.0.0",
+	"override_parameters": {
+		"override_file": "/usr/etc/cfg/IMX_678/LENS_XXX/shared/override_parameters.json",
+		"discard_on_profile_change": false
+	},
+	"default_profile": "Daylight",
+	"profiles": [
+		{
+			"name": "Daylight",
+			"config_file": "/etc/imaging/cfg/imx678/theia_sl410m/4k/profiles/daylight/webserver_daylight_profile.json"
+		},
+		{
+			"name": "High_Dynamic_Range",
+			"config_file": "/etc/imaging/cfg/imx678/theia_sl410m/4k/profiles/HDR/webserver_HDR_profile.json"
+		},
+		{
+			"name": "Lowlight",
+			"config_file": "/etc/imaging/cfg/imx678/theia_sl410m/4k/profiles/lowlight/webserver_lowlight_profile.json"
+		}
+	]
+}

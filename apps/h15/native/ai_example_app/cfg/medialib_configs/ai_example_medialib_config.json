@@ -1,0 +1,39 @@
+{
+	"version": "1.0.0",
+	"override_parameters": {
+		"override_file": "/usr/etc/cfg/IMX_678/LENS_XXX/shared/override_parameters.json",
+		"discard_on_profile_change": false
+	},
+	"default_profile": "Daylight",
+	"profiles": [
+		{
+			"name": "Daylight",
+			"config_file": "/etc/imaging/cfg/imx678/theia_sl410m/4k/profiles/daylight/daylight_profile.json"
+		},
+		{
+			"name": "High_Dynamic_Range",
+			"config_file": "/etc/imaging/cfg/imx678/theia_sl410m/4k/profiles/HDR/HDR_profile.json"
+		},
+		{
+			"name": "Lowlight",
+			"config_file": "/etc/imaging/cfg/imx678/theia_sl410m/4k/profiles/lowlight/lowlight_r0225c8_profile.json"
+		},
+		{
+			"name": "Lowlight_m_r0225c5",
+			"config_file": "/etc/imaging/cfg/imx678/theia_sl410m/4k/profiles/lowlight/lowlight_r0225c5_profile.json"
+		},
+		{
+			"name": "Lowlight_m_r0724c15",
+			"config_file": "/etc/imaging/cfg/imx678/theia_sl410m/4k/profiles/lowlight_r0724c15/lowlight_r0724c15_profile.json"
+		},
+		{
+			"name": "Lowlight_s",
+			"config_file": "/etc/imaging/cfg/imx678/theia_sl410m/4k/profiles/lowlight/lowlight_small_profile.json"
+		},
+		{
+			"name": "Infrared",
+			"config_file": "/etc/imaging/cfg/imx678/theia_sl410m/4k/profiles/IR/IR_profile.json"
+		}
+	]
+
+}

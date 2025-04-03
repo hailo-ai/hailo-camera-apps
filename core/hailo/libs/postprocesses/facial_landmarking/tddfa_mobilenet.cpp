@@ -50,15 +50,20 @@ std::string get_post_proc_data_dir()
 {
     // check if post processes exists in rootfs under /usr/lib
     std::string post_proc_data_dir = "/usr/lib/hailo-post-processes/post_processes_data";
-    if(is_path_exists(post_proc_data_dir))
-        return post_proc_data_dir;
-
-    // if not - they should exist in the workspace (x86 structure) - take it from the environment variable
-    std::string tappas_path = std::getenv("TAPPAS_WORKSPACE");
-    if (tappas_path == "")
-        throw std::invalid_argument("TAPPAS_WORKSPACE environment variable is not set, cannot find post_processes_data directory");
-
-    return tappas_path + "/apps/h8/gstreamer/libs/post_processes/post_processes_data";
+    std::string w_exp_base = "/usr/lib/hailo-post-processes/post_processes_data/w_exp_base.npy";
+    std::string w_shp_base = "/usr/lib/hailo-post-processes/post_processes_data/w_shp_base.npy";
+    if(!is_path_exists(post_proc_data_dir))
+        throw std::invalid_argument("WARNING: Missing ppost-process data path, please create folder: /usr/lib/hailo-post-processes/post_processes_data");
+    if (!is_path_exists(w_exp_base))
+        throw std::invalid_argument("ERROR: Missing file required for tddfa_mobilenet post process: w_exp_base.npy "
+                                    "Copy the file to /usr/lib/hailo-post-processes/post_processes_data/w_exp_base.npy \n"
+                                    "Please contact Hailo Support on how to obtain the file.");
+    if (!is_path_exists(w_shp_base))
+        throw std::invalid_argument("ERROR: Missing file required for tddfa_mobilenet post process: w_shp_base.npy "
+                                    "Copy the file to /usr/lib/hailo-post-processes/post_processes_data/w_shp_base.npy \n"
+                                    "Please contact Hailo Support on how to obtain the file.");
+    
+    return post_proc_data_dir;
 }
 
 std::string post_proc_data_dir = get_post_proc_data_dir();

@@ -22,7 +22,7 @@ namespace webserver
                 std::vector<AiApplications> disabled;
             };
 
-            AiResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::ConfigResource> configs);
+            AiResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::ConfigResourceBase> configs);
             void http_register(std::shared_ptr<HTTPServer> srv) override;
             std::string name() override { return "ai"; }
             ResourceType get_type() override { return ResourceType::RESOURCE_AI; }

@@ -35,9 +35,7 @@
 
 std::shared_ptr<spdlog::logger> _webserver_logger;
 
-// this is a macro that calls the function
-// below on library load (before program
-// starts)
+// this is a macro that calls the function below on library load (before program starts)
 COMPAT__INITIALIZER(libmedialib_initialize_logger)
 {
     // Init logger
@@ -51,8 +49,10 @@ COMPAT__INITIALIZER(libmedialib_initialize_logger)
     auto spdlog_console_level =
         get_level(log_level_console_c_str, spdlog::level::level_enum::warn);
 
-    auto setup = MediaLibLoggerSetup(spdlog_console_level, spdlog_file_level,
-                                     spdlog_file_level, LOGGER_NAME, LOGGER_FILENAME, false);
-
-    _webserver_logger = setup.get_logger();
+    _webserver_logger = media_lib_logger_setup::create_logger(LOGGER_NAME, spdlog_file_level, spdlog_console_level,
+                                                              LOGGER_FILENAME);
+    if (_webserver_logger == nullptr)
+    {
+        throw std::runtime_error("Failed to create webserver logger");
+    }
 }

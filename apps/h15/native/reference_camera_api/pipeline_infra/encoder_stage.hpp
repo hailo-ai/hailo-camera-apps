@@ -25,22 +25,9 @@ public:
         m_encoder = nullptr;
     }
 
-    AppStatus create(std::string config_string)
+    AppStatus create(MediaLibraryEncoderPtr encoder)
     {
-        tl::expected<MediaLibraryEncoderPtr, media_library_return> encoder_expected = MediaLibraryEncoder::create(m_stage_name);
-        if (!encoder_expected.has_value())
-        {
-            std::cerr << "Failed to create encoder osd" << std::endl;
-            REFERENCE_CAMERA_LOG_ERROR("Failed to create encoder osd");
-            return AppStatus::CONFIGURATION_ERROR;
-        }
-        m_encoder = encoder_expected.value();
-        if (m_encoder->set_config(config_string) != MEDIA_LIBRARY_SUCCESS)
-        {
-            std::cerr << "Failed to configure encoder osd" << std::endl;
-            REFERENCE_CAMERA_LOG_ERROR("Failed to configure encoder osd");
-            return AppStatus::CONFIGURATION_ERROR;
-        }
+        m_encoder = encoder;//TODO because the encoder not created in the stage i cant control its name
         m_encoder->subscribe(
             [this](HailoMediaLibraryBufferPtr buffer, size_t size)
             {
@@ -72,15 +59,15 @@ public:
         return AppStatus::SUCCESS;
     }
 
-    AppStatus configure(std::string config_string)
+    AppStatus configure(MediaLibraryEncoderPtr encoder)
     {
         if (m_encoder == nullptr)
         {
-            return create(config_string);
+            return create(encoder);
         }
         m_encoder->stop();
         m_encoder = nullptr;
-        return create(config_string);
+        return create(encoder);
     }
 
     AppStatus process(BufferPtr data)

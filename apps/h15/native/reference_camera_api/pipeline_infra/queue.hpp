@@ -1,6 +1,8 @@
 #pragma once
 
 // General includes
+#include <atomic>
+#include <optional>
 #include <queue>
 #include <mutex>
 #include <thread>
@@ -17,7 +19,7 @@ private:
     bool m_leaky;
     bool m_print_level;
     std::string m_name;
-    bool m_flushing;
+    std::atomic<bool> m_flushing;
     std::unique_ptr<std::condition_variable> m_condvar;
     std::shared_ptr<std::mutex> m_mutex;
     uint64_t m_drop_count = 0, m_push_count = 0;
@@ -52,6 +54,10 @@ public:
     void push(BufferPtr buffer)
     {
         std::unique_lock<std::mutex> lock(*(m_mutex));
+        if (m_flushing)
+        {
+            return;
+        }
         if (!m_leaky)
         {
             // if not leaky, then wait until there is space in the queue
@@ -81,16 +87,42 @@ public:
         std::unique_lock<std::mutex> lock(*(m_mutex));
         // wait for there to be something in the queue to pull
         m_condvar->wait(lock, [this]
-                            { return !m_queue.empty() || m_flushing; });
+                            { return !m_queue.empty() || m_flushing == true; });
         if (m_queue.empty())
         {
-            // if we reachied here, then the queue is empty and we are flushing
+            // if we reached here, then the queue is empty and we are flushing
             return nullptr;
         }
         BufferPtr buffer = m_queue.front();
         m_queue.pop();
         m_condvar->notify_one();
         return buffer;
+    }
+
+    // Get the timestamp of the first (oldest) buffer in the queue, or 0 if the queue is flushing
+    // Note this call is blocking
+    uint64_t check_timestamp(std::optional<std::chrono::milliseconds> timeout=std::nullopt)
+    {
+        std::unique_lock<std::mutex> lock(*(m_mutex));
+        // wait for there to be something in the queue to check
+        if (timeout.has_value())
+        {
+            if (m_condvar->wait_for(lock, timeout.value(), [this]
+                                { return !m_queue.empty() || m_flushing == true; }) == false)
+            {
+                // if we reached here, then we timed out
+                return 0;
+            }
+        } else {
+            m_condvar->wait(lock, [this]
+                                { return !m_queue.empty() || m_flushing == true; });
+        }
+        if (m_queue.empty())
+        {
+            // if we reached here, then the queue is empty and we are flushing
+            return 0;
+        }
+        return m_queue.front()->get_buffer()->isp_timestamp_ns;
     }
 
     void flush()

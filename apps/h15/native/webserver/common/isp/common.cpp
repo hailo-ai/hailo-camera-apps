@@ -3,26 +3,20 @@
 #include <stdio.h>
 #include "common/logger_macros.hpp"
 
+#include "resources/common/v4l2_ctrl.hpp"
 
 using namespace webserver::common;
-using namespace isp_utils::ctrl;
+static constexpr const char *TRIPLE_A_CONFIG_PATH = "/usr/bin/3aconfig.json";
+static constexpr const char *TRIPLE_A_CONFIG_PATH_SIM_LIMK = "/usr/bin/isp_3aconfig_0";
 
-std::unordered_map<v4l2_ctrl_id, v4l2ControlHelper::min_max_isp_params> v4l2ControlHelper::m_min_max_isp_params = {
-    {v4l2_ctrl_id::V4L2_CTRL_SHARPNESS_DOWN, {0, 65535, v4l2_ctrl_id::V4L2_CTRL_SHARPNESS_DOWN}},
-    {v4l2_ctrl_id::V4L2_CTRL_SHARPNESS_UP, {0, 30000, v4l2_ctrl_id::V4L2_CTRL_SHARPNESS_UP}},
-    {v4l2_ctrl_id::V4L2_CTRL_BRIGHTNESS, {-128, 127, v4l2_ctrl_id::V4L2_CTRL_BRIGHTNESS}},
-    {v4l2_ctrl_id::V4L2_CTRL_CONTRAST, {30, 199, v4l2_ctrl_id::V4L2_CTRL_CONTRAST}},
-    {v4l2_ctrl_id::V4L2_CTRL_SATURATION, {0, 199, v4l2_ctrl_id::V4L2_CTRL_SATURATION}},
-    {v4l2_ctrl_id::V4L2_CTRL_WDR_CONTRAST, {-1023, 1023, v4l2_ctrl_id::V4L2_CTRL_WDR_CONTRAST}},
-    {v4l2_ctrl_id::V4L2_CTRL_AE_GAIN, {0, 3890 * 1024, v4l2_ctrl_id::V4L2_CTRL_AE_GAIN}},
-    {v4l2_ctrl_id::V4L2_CTRL_AE_INTEGRATION_TIME, {8, 33000, v4l2_ctrl_id::V4L2_CTRL_AE_INTEGRATION_TIME}},
-    {v4l2_ctrl_id::V4L2_CTRL_AE_WDR_VALUES, {0, 255, v4l2_ctrl_id::V4L2_CTRL_AE_WDR_VALUES}},
-};
+static const char* get_triple_a_config_path() {
+    return (global_api_type == ApiType::CPP) ? TRIPLE_A_CONFIG_PATH_SIM_LIMK : TRIPLE_A_CONFIG_PATH;
+}
 
 void webserver::common::update_3a_config(bool enabled)
 {
     // Read JSON file
-    std::ifstream file(TRIPLE_A_CONFIG_PATH);
+    std::ifstream file(get_triple_a_config_path());
     if (!file.is_open())
     {
         WEBSERVER_LOG_ERROR("Failed to open JSON file");
@@ -46,7 +40,7 @@ void webserver::common::update_3a_config(bool enabled)
     }
 
     // Write updated JSON back to file
-    std::ofstream outFile(TRIPLE_A_CONFIG_PATH);
+    std::ofstream outFile(get_triple_a_config_path());
     if (!outFile.is_open())
     {
         WEBSERVER_LOG_ERROR("Failed to open output file");
@@ -55,13 +49,12 @@ void webserver::common::update_3a_config(bool enabled)
 
     outFile << config.dump();
     outFile.close();
-
 }
 
 void webserver::common::update_3a_config(nlohmann::json config)
 {
     // Write updated JSON back to file
-    std::ofstream outFile(TRIPLE_A_CONFIG_PATH);
+    std::ofstream outFile(get_triple_a_config_path());
     if (!outFile.is_open())
     {
         WEBSERVER_LOG_ERROR("Failed to open output file");
@@ -76,7 +69,7 @@ nlohmann::json webserver::common::get_3a_config()
 {
     nlohmann::json config;
     // Read JSON file
-    std::ifstream file(TRIPLE_A_CONFIG_PATH);
+    std::ifstream file(get_triple_a_config_path());
     if (!file.is_open())
     {
         WEBSERVER_LOG_ERROR("Failed to open JSON file");
@@ -166,4 +159,60 @@ void webserver::common::from_json(const nlohmann::json &json, webserver::common:
 void webserver::common::to_json(nlohmann::json &json, const webserver::common::tuning_t &params)
 {
     json = nlohmann::json{{"value", params.value}};
+}
+
+stream_isp_params_t::stream_isp_params_t(int32_t saturation, int32_t brightness, int32_t contrast, uint16_t sharpness_down, uint16_t sharpness_up) : saturation(saturation), brightness(brightness), contrast(contrast), sharpness_down(sharpness_down), sharpness_up(sharpness_up) {}
+
+stream_isp_params_t stream_isp_params_t::from_stream_params(const stream_params_t &params)
+{
+    int32_t v_brightness = v4l2_ctrl::calculate_value_from_precentage<int32_t>(params.brightness, v4l2_ctrl::Video0Ctrl::BRIGHTNESS, brightness);
+    int32_t v_contrast = v4l2_ctrl::calculate_value_from_precentage<int32_t>(params.contrast, v4l2_ctrl::Video0Ctrl::CONTRAST, contrast);
+    int32_t v_saturation = v4l2_ctrl::calculate_value_from_precentage<int32_t>(params.saturation, v4l2_ctrl::Video0Ctrl::SATURATION, saturation);
+    int32_t v_sharpness_down = v4l2_ctrl::calculate_value_from_precentage<int32_t>(params.sharpness, v4l2_ctrl::Video0Ctrl::SHARPNESS_DOWN, sharpness_down);
+    int32_t v_sharpness_up = v4l2_ctrl::calculate_value_from_precentage<int32_t>(params.sharpness, v4l2_ctrl::Video0Ctrl::SHARPNESS_UP, sharpness_up);
+
+    return stream_isp_params_t(v_saturation, v_brightness, v_contrast, v_sharpness_down, v_sharpness_up);
+}
+
+stream_params_t stream_isp_params_t::to_stream_params(const stream_isp_params_t &params)
+{
+    uint16_t p_brightness = v4l2_ctrl::calculate_precentage_from_value<int32_t>(params.brightness, v4l2_ctrl::Video0Ctrl::BRIGHTNESS, brightness);
+    uint16_t p_contrast = v4l2_ctrl::calculate_precentage_from_value<int32_t>(params.contrast, v4l2_ctrl::Video0Ctrl::CONTRAST, contrast);
+    uint16_t p_saturation = v4l2_ctrl::calculate_precentage_from_value<int32_t>(params.saturation, v4l2_ctrl::Video0Ctrl::SATURATION, saturation);
+    uint16_t p_sharpness = v4l2_ctrl::calculate_precentage_from_value<uint16_t>(params.sharpness_down, v4l2_ctrl::Video0Ctrl::SHARPNESS_DOWN, sharpness_down);
+
+    return stream_params_t{p_saturation, p_brightness, p_contrast, p_sharpness};
+}
+
+backlight_filter_t::backlight_filter_t(uint16_t max, uint16_t min) : max(max), min(min) {}
+
+backlight_filter_t backlight_filter_t::from_precentage(uint16_t precentage)
+{
+    auto new_max = v4l2_ctrl::calculate_value_from_precentage<int32_t>(precentage, v4l2_ctrl::Video0Ctrl::AE_WDR_VALUES, max);
+    auto new_min = v4l2_ctrl::calculate_value_from_precentage<int32_t>(precentage, v4l2_ctrl::Video0Ctrl::AE_WDR_VALUES, min);
+    return backlight_filter_t(new_max, new_min);
+}
+
+uint16_t backlight_filter_t::to_precentage(const backlight_filter_t &filter)
+{
+    return v4l2_ctrl::calculate_precentage_from_value<int32_t>(filter.max, v4l2_ctrl::Video0Ctrl::AE_WDR_VALUES, max);
+}
+
+backlight_filter_t backlight_filter_t::get_from_json()
+{
+    uint16_t max;
+    uint16_t min;
+    nlohmann::json config = get_3a_config();
+
+    auto root = config["root"];
+    for (auto &obj : config["root"])
+    {
+        if (obj["classname"] == "AdaptiveAe")
+        {
+            max = obj["wdrContrast.max"];
+            min = obj["wdrContrast.min"];
+            return backlight_filter_t(max, min);
+        }
+    }
+    return backlight_filter_t(0, 0);
 }

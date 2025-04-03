@@ -1,9 +1,8 @@
 {
-    "output_video": {
+    "application_input_streams": {
         "method": "INTERPOLATION_TYPE_BILINEAR",
         "format": "IMAGE_FORMAT_NV12",
         "grayscale": false,
-        "keep_aspect_ratio": false,
         "resolutions": [
             {
                 "width": 3840,

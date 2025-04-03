@@ -30,7 +30,7 @@ namespace webserver
                     void reset_config() override;
 
                 public:
-                    WebRtcResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<ConfigResource> configs);
+                    WebRtcResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<ConfigResourceBase> configs);
                     void send_rtp_packet(GstSample *sample);
                     void remove_inactive_sessions();
                     void close_all_connections();

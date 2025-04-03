@@ -1,0 +1,18 @@
+{
+	"override_parameters": {
+		"override_file": "/usr/etc/cfg/IMX_678/LENS_XXX/shared/override_parameters.json",
+		"discard_on_profile_change": false
+	},
+	"default_profile": "Indoor",
+	"profiles": [
+		{
+			"name": "Indoor",
+			"config_file": "/home/root/apps/webserver/resources/configs/profile.json"
+		},
+		{
+			"name": "Outdoor",
+			"config_file": "/home/root/apps/webserver/resources/configs/profile2.json"
+		}
+	],
+	"checksum": "7cd9ae3fddcbf0d349c20b18066140a8"
+}
