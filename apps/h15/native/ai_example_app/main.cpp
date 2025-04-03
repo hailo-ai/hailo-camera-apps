@@ -11,6 +11,7 @@
 #include <cxxopts/cxxopts.hpp>
 
 // medialibrary includes
+#include "media_library/media_library.hpp"
 #include "media_library/encoder.hpp"
 #include "media_library/frontend.hpp"
 #include "media_library/signal_utils.hpp"
@@ -31,14 +32,13 @@
 
 // Frontend Params
 #define FRONTEND_STAGE "frontend_stage"
-#define FRONTEND_CONFIG_FILE "/home/root/apps/ai_example_app/resources/configs/frontend_config.json"
-#define ENCODER_OSD_CONFIG_FILE(id) get_encoder_osd_config_file(id)
-#define OUTPUT_FILE(id) get_output_file(id)
 
 #define OVERLAY_STAGE "overlay"
 #define TRACKER_STAGE "tracker"
 #define UDP_0_STAGE "udp_0"
 #define HOST_IP "10.0.0.2"
+
+#define MEDIALIB_CONFIG_PATH "/home/root/apps/ai_example_app/resources/configs/medialib_config.json"
 
 // AI Pipeline Params
 #define AI_VISION_SINK "sink0" // The streamid from frontend to 4K stream that shows vision results 
@@ -51,10 +51,12 @@
 #define YOLO_POST_SO "/usr/lib/hailo-post-processes/libyolo_hailortpp_post.so"
 #define YOLO_FUNC_NAME "yolov5s_personface"
 // Aggregator Params
+#define RESULTS_AGGREGATOR_STAGE "results_aggregator"
+#define TILING_AGGREGATOR_STAGE "tiling_aggregator"
 #define AGGREGATOR_STAGE "aggregator"
 #define AGGREGATOR_STAGE_2 "aggregator2"
-// Callback Params
-#define AI_CALLBACK_STAGE "ai_to_encoder"
+// Tee Params
+#define TEE_STAGE "vision_tee"
 
 // Tilling Params
 #define TILLING_STAGE "tilling"
@@ -95,7 +97,7 @@ enum class ArgumentType {
     Timeout,
     Config,
     SkipDrawing,
-    PartialLandmarks,
+    FullLandmarks,
     Error
 };
 
@@ -107,13 +109,13 @@ cxxopts::Options build_arg_parser()
 {
   cxxopts::Options options("AI pipeline app");
   options.add_options()
-  ("h,help", "Show this help")
-  ("t,timeout", "Time to run", cxxopts::value<int>()->default_value("60"))
-  ("f,print-fps", "Print FPS",  cxxopts::value<bool>()->default_value("false"))
+  ("h, help", "Show this help")
+  ("t, timeout", "Time to run", cxxopts::value<int>()->default_value("60"))
+  ("p, print-fps", "Print FPS",  cxxopts::value<bool>()->default_value("false"))
   ("l, print-latency", "Print Latency", cxxopts::value<bool>()->default_value("false"))
-  ("c, config-file-path", "Frontend Configuration Path", cxxopts::value<std::string>()->default_value(FRONTEND_CONFIG_FILE))
+  ("c, config-file-path", "media library Configuration Path", cxxopts::value<std::string>()->default_value(MEDIALIB_CONFIG_PATH))
   ("s, skip-drawing", "Skip drawing", cxxopts::value<bool>()->default_value("false"))
-  ("p, partial-landmarks", "Draw only eyes for face landmarks", cxxopts::value<bool>()->default_value("false"));
+  ("f, full-landmarks", "Draw all landmarks (default draws only eyes for face landmarks)", cxxopts::value<bool>()->default_value("false"));
   return options;
 }
 
@@ -145,8 +147,8 @@ std::vector<ArgumentType> handle_arguments(const cxxopts::ParseResult &result, c
         arguments.push_back(ArgumentType::SkipDrawing);
     }
 
-    if (result.count("partial-landmarks")) {
-        arguments.push_back(ArgumentType::PartialLandmarks);
+    if (result.count("full-landmarks")) {
+        arguments.push_back(ArgumentType::FullLandmarks);
     }
 
     // Handle unrecognized options
@@ -167,6 +169,7 @@ std::vector<ArgumentType> handle_arguments(const cxxopts::ParseResult &result, c
  */
 struct AppResources
 {
+    std::shared_ptr<MediaLibrary> media_library;
     std::shared_ptr<FrontendStage> frontend;
     std::map<output_stream_id_t, std::shared_ptr<EncoderStage>> encoders;
     std::map<output_stream_id_t, std::shared_ptr<UdpStage>> udp_outputs;
@@ -174,8 +177,8 @@ struct AppResources
     bool print_fps;
     bool print_latency;
     bool skip_drawing;
-    bool partial_landmarks;
-    std::string frontend_config;
+    bool full_landmarks;
+    std::string medialib_config_path;
 
     void clear()
     {
@@ -186,8 +189,8 @@ struct AppResources
         print_fps = false;
         print_latency = false;
         skip_drawing = false;
-        partial_landmarks = false;
-        frontend_config = "";
+        full_landmarks = false;
+        medialib_config_path = "";
     }
 
     ~AppResources()
@@ -196,17 +199,12 @@ struct AppResources
     }
 };
 
-inline std::string get_encoder_osd_config_file(const std::string &id)
-{
-    return "/home/root/apps/ai_example_app/resources/configs/encoder_osd_" + id + ".json";
-}
-
 std::string read_string_from_file(const char *file_path)
 {
     std::ifstream file_to_read;
     file_to_read.open(file_path);
     if (!file_to_read.is_open())
-        throw std::runtime_error("config path is not valid");
+        throw std::runtime_error(std::string("config path (") + file_path + ") is not valid");
     std::string file_string((std::istreambuf_iterator<char>(file_to_read)),
                             std::istreambuf_iterator<char>());
     file_to_read.close();
@@ -249,7 +247,7 @@ void subscribe_to_frontend(std::shared_ptr<AppResources> app_resources)
             std::cout << "subscribing to frontend for '" << s.id << "'" << std::endl;
             // Subscribe tiling aggregator to frontend
             app_resources->frontend->subscribe_to_stream(s.id, 
-                std::static_pointer_cast<ConnectedStage>(app_resources->pipeline->get_stage_by_name(AGGREGATOR_STAGE)));
+                std::static_pointer_cast<ConnectedStage>(app_resources->pipeline->get_stage_by_name(TEE_STAGE)));
         }
         else
         {
@@ -274,10 +272,9 @@ void create_encoder_and_udp(const std::string& id, std::shared_ptr<AppResources>
     // Create and configure encoder
     std::string enc_name = "enc_" + id;
     std::cout << "Creating encoder " << enc_name << std::endl;
-    std::string encoderosd_config_string = read_string_from_file(ENCODER_OSD_CONFIG_FILE(id).c_str());
     std::shared_ptr<EncoderStage> encoder_stage = std::make_shared<EncoderStage>(enc_name);
     app_resources->encoders[id] = encoder_stage;
-    AppStatus enc_config_status = encoder_stage->configure(encoderosd_config_string);
+    AppStatus enc_config_status = encoder_stage->configure(app_resources->media_library->m_encoders[id]);
     if (enc_config_status != AppStatus::SUCCESS)
     {
         std::cerr << "Failed to configure encoder " << enc_name << std::endl;
@@ -314,11 +311,17 @@ void create_encoder_and_udp(const std::string& id, std::shared_ptr<AppResources>
  */
 void configure_frontend_and_encoders(std::shared_ptr<AppResources> app_resources)
 {
+    std::string medialib_config_string = read_string_from_file(app_resources->medialib_config_path.c_str());
+    app_resources->media_library = std::make_shared<MediaLibrary>();
+    if (app_resources->media_library->initialize(medialib_config_string) != media_library_return::MEDIA_LIBRARY_SUCCESS)
+    {
+        std::cout << "Failed to initialize media library" << std::endl;
+        return;
+    }
     // Create and configure frontend
-    std::string frontend_config_string = read_string_from_file(app_resources->frontend_config.c_str());
     app_resources->frontend = std::make_shared<FrontendStage>(FRONTEND_STAGE);
     app_resources->pipeline->add_stage(app_resources->frontend, StageType::SOURCE);
-    AppStatus frontend_config_status = app_resources->frontend->configure(frontend_config_string);
+    AppStatus frontend_config_status = app_resources->frontend->configure(app_resources->media_library->m_frontend);
     if (frontend_config_status != AppStatus::SUCCESS)
     {
         std::cerr << "Failed to configure frontend " << FRONTEND_STAGE << std::endl;
@@ -358,55 +361,102 @@ void configure_frontend_and_encoders(std::shared_ptr<AppResources> app_resources
 void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
 {
     // AI Pipeline Stages
+    /*
+        +-------+    +------------+    +---------+    +---------+
+        |  tee  | -> | aggregator | -> | tracker | -> | overlay |
+        +-------+    +------------+    +---------+    +---------+
+        +-------+________/      
+        |  ai   |
+        +-------+       
+    */  
+    std::shared_ptr<TeeStage> tee_stage = std::make_shared<TeeStage>(TEE_STAGE, 5, true, app_resources->print_fps);    
+    std::shared_ptr<AggregatorStage> results_agg_stage = std::make_shared<AggregatorStage>(RESULTS_AGGREGATOR_STAGE, true, 1,
+                                                                                    TEE_STAGE, 10, false,
+                                                                                    AGGREGATOR_STAGE_2, 5, false,
+                                                                                    false, true, 0.3, 0.1,
+                                                                                    app_resources->print_fps, std::chrono::milliseconds(33));
+    std::shared_ptr<PersistStage> tracker_stage = std::make_shared<PersistStage>(TRACKER_STAGE, 3, 1, false, app_resources->print_fps);
+    std::shared_ptr<OverlayStage> overlay_stage = std::make_shared<OverlayStage>(OVERLAY_STAGE, app_resources->skip_drawing, !app_resources->full_landmarks, LANDMARKS_RANGE_MIN, LANDMARKS_RANGE_MAX, 1, false, app_resources->print_fps);
+
+    /*
+             _____________________________________
+            /                                     \
+        +--------+    +------+    +------+    +------------+
+        | tiling | -> | yolo | -> | post | -> | aggregator |
+        +--------+    +------+    +------+    +------------+
+    */  
     std::shared_ptr<TillingCropStage> tilling_stage = std::make_shared<TillingCropStage>(TILLING_STAGE,50, TILLING_INPUT_WIDTH, TILLING_INPUT_HEIGHT,
                                                                                         TILLING_OUTPUT_WIDTH, TILLING_OUTPUT_HEIGHT,
-                                                                                        "", DETECTION_AI_STAGE, TILES,
+                                                                                        TILING_AGGREGATOR_STAGE, DETECTION_AI_STAGE, TILES,
                                                                                         5, true, app_resources->print_fps, StagePoolMode::BLOCKING);
-    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50 ,"device0", 5, 10, 5, 
+    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50 ,"device0", 5, 10, 5, false,
                                                                                              std::chrono::milliseconds(100), app_resources->print_fps, StagePoolMode::BLOCKING);
     std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, "", 5, false, app_resources->print_fps);
-    std::shared_ptr<AggregatorStage> agg_stage = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE, false, 
-                                                                                   AI_VISION_SINK, 2, 
-                                                                                   POST_STAGE, 5, 5,
-                                                                                   true, 0.3, 0.1,
-                                                                                   false, app_resources->print_fps);
+    std::shared_ptr<AggregatorStage> tiling_agg_stage = std::make_shared<AggregatorStage>(TILING_AGGREGATOR_STAGE, true, 5,
+                                                                                          TILLING_STAGE, 2, false,
+                                                                                          POST_STAGE, 5, false,
+                                                                                          true, false, 0.3, 0.1,
+                                                                                          app_resources->print_fps);
+    std::shared_ptr<AggregatorStage> agg_stage = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE, true, 1,
+                                                                                   TEE_STAGE, 10, false,
+                                                                                   TILING_AGGREGATOR_STAGE, 3, false,
+                                                                                   false, true, 0.3, 0.1,
+                                                                                   app_resources->print_fps);
+
+    /*
+             __________________________________________
+            /                                          \  
+        +--------+    +-----------+    +------+    +------------+
+        |  crop  | -> | mobilenet | -> | post | -> | aggregator |
+        +--------+    +-----------+    +------+    +------------+
+    */                                                                                 
     std::shared_ptr<BBoxCropStage> bbox_crop_stage = std::make_shared<BBoxCropStage>(BBOX_CROP_STAGE, 150, BBOX_CROP_INPUT_WIDTH, BBOX_CROP_INPUT_HEIGHT,
                                                                                     BBOX_CROP_OUTPUT_WIDTH, BBOX_CROP_OUTPUT_HEIGHT,
-                                                                                    AGGREGATOR_STAGE_2, LANDMARKS_AI_STAGE, BBOX_CROP_LABEL, 1, false, 
+                                                                                    AGGREGATOR_STAGE_2, LANDMARKS_AI_STAGE, BBOX_CROP_LABEL, 10, false, 
                                                                                     app_resources->print_fps, StagePoolMode::BLOCKING);
-    std::shared_ptr<HailortAsyncStage> landmarks_stage = std::make_shared<HailortAsyncStage>(LANDMARKS_AI_STAGE, LANDMARKS_HEF_FILE, 100, 201 ,"device0", 1, 50, 1, 
+    std::shared_ptr<HailortAsyncStage> landmarks_stage = std::make_shared<HailortAsyncStage>(LANDMARKS_AI_STAGE, LANDMARKS_HEF_FILE, 100, 201 ,"device0", 50, 60, 50, true,
                                                                                              std::chrono::milliseconds(100), app_resources->print_fps, StagePoolMode::BLOCKING);
     std::shared_ptr<PostprocessStage> landmarks_post_stage = std::make_shared<PostprocessStage>(LANDMARKS_POST_STAGE, LANDMARKS_POST_SO, LANDMARKS_FUNC_NAME, "", 100, false, app_resources->print_fps);
     std::shared_ptr<AggregatorStage> agg_stage_2 = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE_2, true, 
-                                                                                     BBOX_CROP_STAGE, 3, 
-                                                                                     LANDMARKS_POST_STAGE, 100,
-                                                                                     false, 0.3, 0.1,
-                                                                                     false, app_resources->print_fps);
-    std::shared_ptr<PersistStage> tracker_stage = std::make_shared<PersistStage>(TRACKER_STAGE, 5, 1, false, app_resources->print_fps);
-    std::shared_ptr<OverlayStage> overlay_stage = std::make_shared<OverlayStage>(OVERLAY_STAGE, app_resources->skip_drawing, app_resources->partial_landmarks, LANDMARKS_RANGE_MIN, LANDMARKS_RANGE_MAX, 1, false, app_resources->print_fps);
-    
+                                                                                     BBOX_CROP_STAGE, 3, false,
+                                                                                     LANDMARKS_POST_STAGE, 100, false,
+                                                                                     false, false, 0.3, 0.1,
+                                                                                     app_resources->print_fps);
+                                                                          
     // Add stages to pipeline
+    app_resources->pipeline->add_stage(tee_stage);
+    app_resources->pipeline->add_stage(results_agg_stage);
+    app_resources->pipeline->add_stage(tracker_stage);
+    app_resources->pipeline->add_stage(overlay_stage);
+    
+    app_resources->pipeline->add_stage(agg_stage);
     app_resources->pipeline->add_stage(tilling_stage);
     app_resources->pipeline->add_stage(detection_stage);
     app_resources->pipeline->add_stage(detection_post_stage);
-    app_resources->pipeline->add_stage(agg_stage);
+    app_resources->pipeline->add_stage(tiling_agg_stage);
     app_resources->pipeline->add_stage(bbox_crop_stage);
     app_resources->pipeline->add_stage(landmarks_stage);
     app_resources->pipeline->add_stage(landmarks_post_stage);
     app_resources->pipeline->add_stage(agg_stage_2);
-    app_resources->pipeline->add_stage(tracker_stage);
-    app_resources->pipeline->add_stage(overlay_stage);
 
-    // Subscribe stages to each other
+    // Subscribe stages to each other  
+    // AI Pipeline stages  
+    tee_stage->add_subscriber(agg_stage);
+    tilling_stage->add_subscriber(tiling_agg_stage);
     tilling_stage->add_subscriber(detection_stage);
     detection_stage->add_subscriber(detection_post_stage);
-    detection_post_stage->add_subscriber(agg_stage);
+    detection_post_stage->add_subscriber(tiling_agg_stage);
+    tiling_agg_stage->add_subscriber(agg_stage);
     agg_stage->add_subscriber(bbox_crop_stage);
     bbox_crop_stage->add_subscriber(agg_stage_2);
     bbox_crop_stage->add_subscriber(landmarks_stage);
     landmarks_stage->add_subscriber(landmarks_post_stage);
     landmarks_post_stage->add_subscriber(agg_stage_2);
-    agg_stage_2->add_subscriber(tracker_stage);
+    agg_stage_2->add_subscriber(results_agg_stage);
+
+    // Vision Pipeline stages
+    tee_stage->add_subscriber(results_agg_stage);
+    results_agg_stage->add_subscriber(tracker_stage);
     tracker_stage->add_subscriber(overlay_stage);
     overlay_stage->add_subscriber(app_resources->encoders[AI_VISION_SINK]);
 }
@@ -426,7 +476,7 @@ int main(int argc, char *argv[])
     {
         // App resources 
         std::shared_ptr<AppResources> app_resources = std::make_shared<AppResources>();
-        app_resources->frontend_config = FRONTEND_CONFIG_FILE;
+        app_resources->medialib_config_path = MEDIALIB_CONFIG_PATH;
 
         // register signal SIGINT and signal handler
         signal_utils::register_signal_handler([app_resources](int signal)
@@ -461,13 +511,13 @@ int main(int argc, char *argv[])
                 app_resources->print_latency = true;
                 break;
             case ArgumentType::Config:
-                app_resources->frontend_config = result["config-file-path"].as<std::string>();
+                app_resources->medialib_config_path = result["config-file-path"].as<std::string>();
                 break;
             case ArgumentType::SkipDrawing:
                 app_resources->skip_drawing = true;
                 break;
-            case ArgumentType::PartialLandmarks:
-                app_resources->partial_landmarks = true;
+            case ArgumentType::FullLandmarks:
+                app_resources->full_landmarks = true;
                 break;
             case ArgumentType::Error:
                 return 1;
@@ -491,7 +541,6 @@ int main(int argc, char *argv[])
         REFERENCE_CAMERA_LOG_INFO("Starting.");
         app_resources->pipeline->start_pipeline();
 
-        REFERENCE_CAMERA_LOG_INFO("Using frontend config: {}", app_resources->frontend_config);
         REFERENCE_CAMERA_LOG_INFO("Started playing for {} seconds.", timeout);
 
         // Wait

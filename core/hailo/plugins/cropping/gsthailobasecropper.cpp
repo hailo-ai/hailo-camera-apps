@@ -667,9 +667,9 @@ static gboolean dsp_crop_and_resize(GstHailoBaseCropper *hailo_basecropper, cv::
 
     // Perform the crop and resize
     dsp_status result = dsp_utils::perform_crop_and_resize(input_buffer_data.get(), output_buffer_data.get(),
-                                                            crop_resize_dims,
-                                                            get_dsp_interpolation_type_from_cv(hailo_basecropper, cv::InterpolationFlags::INTER_LINEAR),
-                                                            std::nullopt);
+                                                           crop_resize_dims,
+                                                           get_dsp_interpolation_type_from_cv(hailo_basecropper, cv::InterpolationFlags::INTER_LINEAR),
+                                                           std::nullopt);
 
     // Free resources
     gst_video_frame_unmap(&input_video_frame);
@@ -747,7 +747,8 @@ static GstBuffer *handle_one_crop(GstHailoBaseCropper *hailo_basecropper, GstBuf
     const gchar *out_format = gst_structure_get_string(out_structure, "format");
 
     // Compare the formats
-    if (g_strcmp0(in_format, out_format) != 0) {
+    if (g_strcmp0(in_format, out_format) != 0)
+    {
         GST_ERROR_OBJECT(hailo_basecropper, "Input and output caps have different formats");
         std::cerr << "ERROR: Hailo Cropper Input and output caps have different formats" << std::endl;
         gst_caps_unref(incaps);

@@ -23,7 +23,7 @@
 #pragma once
 
 #ifndef SPDLOG_ACTIVE_LEVEL
-#define SPDLOG_ACTIVE_LEVEL (SPDLOG_LEVEL_DEBUG)
+#define SPDLOG_ACTIVE_LEVEL (SPDLOG_LEVEL_TRACE)
 #endif
 
 #include <spdlog/fmt/ostr.h>

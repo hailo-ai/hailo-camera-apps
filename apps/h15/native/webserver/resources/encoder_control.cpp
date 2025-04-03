@@ -14,7 +14,7 @@ void EncoderResource::encoder_control_t::from_encoder_element_config(hailo_encod
         || !encoder_config.rate_control.quantization.qp_max.has_value()
         || !encoder_config.rate_control.quantization.qp_min.has_value())
     {
-        WEBSERVER_LOG_ERROR("Encoder config does not have intra_qp_delta or fixed_intra_qp");
+        WEBSERVER_LOG_ERROR("Encoder config does not have intra_qp_delta or fixed_intra_qp or qp_max or qp_min");
     }
     if (quantization.rc_mode == bitrate_control_t::CQP)
     {
@@ -59,6 +59,12 @@ std::string EncoderResource::encoder_control_t::to_string()
     str += "B frame QP delta: " + std::to_string(b_frames.b_frame_qp_delta) + "\n";
     return str;
 }
+
+void EncoderResource::fill_encoder_element_config(hailo_encoder_config_t &encoder_config)
+{
+    m_encoder_control.fill_encoder_element_config(encoder_config);
+}
+
 void EncoderResource::encoder_control_t::fill_encoder_element_config(hailo_encoder_config_t& encoder_config)
 {
     if (!width.has_value() || !height.has_value() || !framerate.has_value())

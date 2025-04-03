@@ -121,11 +121,12 @@ namespace webserver
                 EncoderResourceState(encoder_control_t control) : control(control) {}
             };
 
-            EncoderResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::ConfigResource> configs);
+            EncoderResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::ConfigResourceBase> configs);
             void http_register(std::shared_ptr<HTTPServer> srv) override;
             std::string name() override { return "encoder"; }
             ResourceType get_type() override { return ResourceType::RESOURCE_ENCODER; }
             void set_encoder_query(std::function<hailo_encoder_config_t()> get_encoder_config);
+            void fill_encoder_element_config(hailo_encoder_config_t &encoder_config);
 
         private:
             encoder_control_t m_encoder_control;

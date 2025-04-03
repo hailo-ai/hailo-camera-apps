@@ -13,6 +13,7 @@
 #include "hailo_common.hpp"
 
 // Infra includes
+#include "media_library/media_library.hpp"
 #include "media_library/media_library_types.hpp"
 #include "stage.hpp"
 #include "buffer.hpp"
@@ -33,22 +34,9 @@ public:
         m_stream_subscribers.clear();
     }
 
-    AppStatus create(std::string config_string)
+    AppStatus create(MediaLibraryFrontendPtr frontend)
     {
-        tl::expected<MediaLibraryFrontendPtr, media_library_return> frontend_expected = MediaLibraryFrontend::create();
-        if (!frontend_expected.has_value())
-        {
-            std::cerr << "Failed to create frontend" << std::endl;
-            REFERENCE_CAMERA_LOG_ERROR("Failed to create frontend");
-            return AppStatus::CONFIGURATION_ERROR;
-        }
-        m_frontend = frontend_expected.value();
-        if (m_frontend->set_config(config_string) != MEDIA_LIBRARY_SUCCESS)
-        {
-            std::cerr << "Failed to configure frontend" << std::endl;
-            REFERENCE_CAMERA_LOG_ERROR("Failed to configure frontend");
-            return AppStatus::CONFIGURATION_ERROR;
-        }
+        m_frontend = frontend;
         return subscribe_output_streams();
     }
 
@@ -119,22 +107,22 @@ public:
         return AppStatus::SUCCESS;
     }
 
-    AppStatus configure(std::string config_string)
+    AppStatus configure(MediaLibraryFrontendPtr frontend)
     {
         if (m_frontend == nullptr)
         {
-            return create(config_string);
+            return create(frontend);
         }
         m_frontend->stop();
         m_frontend = nullptr;
-        return create(config_string);
+        return create(frontend);
     }
 
     void loop() override
     {
         init();
         std::unique_lock<std::mutex> lock(m_running_mutex);
-        m_running_cv.wait(lock, [this] { return m_end_of_stream; });
+        m_running_cv.wait(lock, [this] { return m_end_of_stream == true; });
         deinit();
     }
 

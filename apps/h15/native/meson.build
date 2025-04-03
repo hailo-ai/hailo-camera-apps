@@ -1,7 +1,7 @@
 # Project Declaration
 
 project('gst-hailo-tools', 'c', 'cpp',
-        version : '1.6.1',
+        version : '1.7.0',
         default_options : [ 'buildtype=release',
                             'c_std=c11', 'cpp_std=c++17']
        )
@@ -101,10 +101,12 @@ if target == 'all'
   subdir('reference_camera_api')
   subdir('ai_example_app')
   subdir('webserver')
+  subdir('internals')
 elif target == 'api'
   subdir('reference_camera_api')
 elif target == 'apps'
   reference_camera_dep = dependency('reference_camera_api', method : 'pkg-config')
   subdir('ai_example_app')
   subdir('webserver')
+  subdir('internals')
 endif

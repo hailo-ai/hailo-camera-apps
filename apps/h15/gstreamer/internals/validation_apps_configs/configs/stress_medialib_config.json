@@ -1,0 +1,18 @@
+{
+	"override_parameters": {
+		"override_file": "/usr/etc/cfg/IMX_678/LENS_XXX/shared/override_parameters.json",
+		"discard_on_profile_change": false
+	},
+	"default_profile": "sdr",
+	"profiles": [
+		{
+			"name": "sdr",
+			"config_file": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_profile.json"
+		},
+        {
+			"name": "hdr",
+			"config_file": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_profile_hdr.json"
+		}
+	],
+	"checksum": "7cd9ae3fddcbf0d349c20b18066140a8"
+}

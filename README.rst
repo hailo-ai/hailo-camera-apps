@@ -22,7 +22,7 @@ Hailo TAPPAS - Optimized Execution of Video-Processing Pipelines
   :width: 20
   :align: middle
 
-.. image:: ./resources/github_Tappas_Mar24.jpg
+.. image:: ./resources/github_Camera_App.png
   :height: 300
   :width: 600
   :align: center

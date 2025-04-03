@@ -1,10 +1,12 @@
-
 #pragma once
 #include <nlohmann/json.hpp>
 #include <memory>
 #include <vector>
 #include <string>
 #include <functional>
+#include <stdexcept>
+#include "media_library/media_library_types.hpp"
+
 namespace webserver
 {
     namespace resources
@@ -30,6 +32,7 @@ namespace webserver
             RESTART_FRONTEND,
             CODEC_CHANGE,
             RESET_CONFIG,
+            SWITCH_PROFILE,
         };
 
         NLOHMANN_JSON_SERIALIZE_ENUM(EventType, {{CHANGED_RESOURCE_WEBPAGE, "webpage"},
@@ -44,7 +47,8 @@ namespace webserver
                                                     {STREAM_CONFIG, "stream_config"},
                                                     {RESTART_FRONTEND, "restart_frontend"},
                                                     {CODEC_CHANGE, "codec_change"},
-                                                    {RESET_CONFIG, "reset_config"}});
+                                                    {RESET_CONFIG, "reset_config"},
+                                                    {SWITCH_PROFILE, "switch_profile"}});
 
         class ResourceState
         {
@@ -78,14 +82,6 @@ namespace webserver
         class StreamConfigResourceState : public ResourceState
         {
         public:
-            enum rotation_t
-            {
-                ROTATION_0 = 0,
-                ROTATION_90 = 90,
-                ROTATION_180 = 180,
-                ROTATION_270 = 270
-            };
-
             struct Resolution
             {
                 uint32_t width;
@@ -95,36 +91,83 @@ namespace webserver
                 bool stream_size_changed;
             };
 
-            rotation_t rotation;
+            bool flip_state_changed;
+            flip_direction_t flip;
+            bool flip_enabled;
+            bool rotate_state_changed;
+            rotation_angle_t rotation;
             bool rotate_enabled;
+            bool dewarp_state_changed;
+            bool dewarp_enabled;
             std::vector<Resolution> resolutions;
 
-            StreamConfigResourceState() = default;
+            static flip_direction_t flip_string_to_enum(const std::string &flip)
+            {
+                if (flip == "FLIP_DIRECTION_NONE")
+                {
+                    return FLIP_DIRECTION_NONE;
+                }
+                else if (flip == "FLIP_DIRECTION_HORIZONTAL")
+                {
+                    return FLIP_DIRECTION_HORIZONTAL;
+                }
+                else if (flip == "FLIP_DIRECTION_VERTICAL")
+                {
+                    return FLIP_DIRECTION_VERTICAL;
+                }
+                else if (flip == "FLIP_DIRECTION_BOTH")
+                {
+                    return FLIP_DIRECTION_BOTH;
+                }
+                else
+                {
+                    throw std::invalid_argument("Invalid flip direction: " + flip);
+                }
+            }
 
-            StreamConfigResourceState(std::vector<Resolution> resolutions, const std::string &rotation, bool rotate_enabled)
-                : rotate_enabled(rotate_enabled), resolutions(std::move(resolutions))
+            static rotation_angle_t rotation_string_to_enum(const std::string &rotation)
             {
                 if (rotation == "ROTATION_ANGLE_0")
                 {
-                    this->rotation = ROTATION_0;
+                    return ROTATION_ANGLE_0;
                 }
                 else if (rotation == "ROTATION_ANGLE_90")
                 {
-                    this->rotation = ROTATION_90;
+                    return ROTATION_ANGLE_90;
                 }
                 else if (rotation == "ROTATION_ANGLE_180")
                 {
-                    this->rotation = ROTATION_180;
+                    return ROTATION_ANGLE_180;
                 }
                 else if (rotation == "ROTATION_ANGLE_270")
                 {
-                    this->rotation = ROTATION_270;
+                    return ROTATION_ANGLE_270;
                 }
                 else
                 {
                     throw std::invalid_argument("Invalid rotation angle: " + rotation);
                 }
             }
+
+            StreamConfigResourceState() = default;
+
+            StreamConfigResourceState(
+                std::vector<Resolution> resolutions,
+                bool flip_state_changed, const std::string &flip, bool flip_enabled,
+                bool rotate_state_changed, const std::string &rotation, bool rotate_enabled,
+                bool dewarp_state_changed, bool dewarp_enabled)
+                : 
+                  flip_state_changed(flip_state_changed),
+                  flip(flip_string_to_enum(flip)),
+                  flip_enabled(flip_enabled),
+                  rotate_state_changed(rotate_state_changed),
+                  rotation(rotation_string_to_enum(rotation)),
+                  rotate_enabled(rotate_enabled),
+                  dewarp_state_changed(dewarp_state_changed),
+                  dewarp_enabled(dewarp_enabled),
+                  resolutions(std::move(resolutions))
+            { }
+
         };
 
         using ResourceChangeCallback = std::function<void(ResourceStateChangeNotification)>;

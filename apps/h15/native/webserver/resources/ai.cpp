@@ -51,7 +51,7 @@ inline std::string get_denoise_network_from_path(std::string net_path)
     }
 }
 
-webserver::resources::AiResource::AiResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::ConfigResource> configs) : Resource(event_bus)
+webserver::resources::AiResource::AiResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::ConfigResourceBase> configs) : Resource(event_bus)
 {
     m_denoise_config = configs->get_denoise_default_config();
     nlohmann::json default_config_json = {
@@ -67,7 +67,7 @@ webserver::resources::AiResource::AiResource(std::shared_ptr<EventBus> event_bus
     subscribe_callback(STREAM_CONFIG, [this](ResourceStateChangeNotification notification)
                         {
         auto state = std::static_pointer_cast<StreamConfigResourceState>(notification.resource_state);
-        if (state->rotate_enabled && (state->rotation == StreamConfigResourceState::ROTATION_90 || state->rotation == StreamConfigResourceState::ROTATION_270)){
+        if (state->rotate_enabled && (state->rotation == ROTATION_ANGLE_90 || state->rotation == ROTATION_ANGLE_270)){
             WEBSERVER_LOG_INFO("Pipeline: Rotation angle is 90 or 270, turning off the detection");
             set_detection_enabled(false);
         }
