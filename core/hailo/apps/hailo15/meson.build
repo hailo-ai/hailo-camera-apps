@@ -12,7 +12,6 @@ fmt_dep = dependency('fmt', method : 'pkg-config')
 
 dependencies_apps = plugin_deps + media_library_encoder_dep + media_library_common_dep + media_library_frontend_dep + encoder_dep + media_library_api_dep + gstmedialibrary_utils_dep + reference_camera_dep + fmt_dep  # Add fmt_dep here
 
-subdir('lpr')
 subdir('encoder_pipelines')
 subdir('encoder_pipelines_new_api')
 subdir('vision_preproc_applications')

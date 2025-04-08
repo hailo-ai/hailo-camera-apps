@@ -19,6 +19,7 @@ enum class MetadataType
     TENSOR,
     EXPECTED_CROPS,
     SIZE,
+    BATCH,
 };
 
 class Metadata 
@@ -52,6 +53,25 @@ public:
     }
 };
 using CroppingMetadataPtr = std::shared_ptr<CroppingMetadata>;
+
+class BatchMetadata : public Metadata 
+{
+private:
+    size_t m_total_size;
+    size_t m_index;
+public:
+    BatchMetadata(size_t total_size, size_t index) : Metadata(MetadataType::BATCH), m_total_size(total_size), m_index(index)
+    {}
+    size_t get_total_size()
+    {
+        return m_total_size;
+    }
+    size_t get_index()
+    {
+        return m_index;
+    }
+};
+using BatchMetadataPtr = std::shared_ptr<BatchMetadata>;
 
 class BufferMetadata : public Metadata
 {
@@ -145,6 +165,33 @@ public:
         m_timestamps.push_back(time_stamp);
     }
 
+    Buffer(Buffer &other) {
+        if (this != &other) {  // prevent self-assignment
+            m_buffer = other.m_buffer;
+            m_roi = std::make_shared<HailoROI>(*other.m_roi);
+            //deep copy of metadata
+            m_metadata.clear();
+            for (const auto &metadata : other.m_metadata) {
+                if (metadata->get_type() == MetadataType::TENSOR) {
+                    auto tensor_metadata = std::dynamic_pointer_cast<TensorMetadata>(metadata);
+                    m_metadata.push_back(std::make_shared<TensorMetadata>(*tensor_metadata));
+                } else if (metadata->get_type() == MetadataType::EXPECTED_CROPS) {
+                    auto cropping_metadata = std::dynamic_pointer_cast<CroppingMetadata>(metadata);
+                    m_metadata.push_back(std::make_shared<CroppingMetadata>(*cropping_metadata));
+                } else if (metadata->get_type() == MetadataType::SIZE) {
+                    auto size_metadata = std::dynamic_pointer_cast<SizeMetadata>(metadata);
+                    m_metadata.push_back(std::make_shared<SizeMetadata>(*size_metadata));
+                } else {
+                    m_metadata.push_back(std::make_shared<Metadata>(*metadata));
+                }
+            }
+            //deep copy of timestamps
+            m_timestamps.clear();
+            for (const auto &timestamp : other.m_timestamps) {
+                m_timestamps.push_back(std::make_shared<TimeStamp>(*timestamp));
+            }
+        }
+    }
 
     Buffer(HailoMediaLibraryBufferPtr buffer, HailoROIPtr roi)
         : m_buffer(buffer) 
@@ -193,7 +240,7 @@ public:
           }
           std::cout  <<  std::endl;
     }
-        
+
     void add_metadata(MetadataPtr metadata) {
         m_metadata.push_back(metadata);
     }

@@ -1,0 +1,17 @@
+{
+    "b_frames": {
+        "b_frame_qp_delta": 0,
+        "num_b_frames": 1
+    },
+    "codec": "CODEC_TYPE_H264",
+    "intra_pic_rate": 60,
+    "quantization": {
+        "bitrate": 16000000,
+        "fixed_intra_qp": 0,
+        "intra_qp_delta": -5,
+        "qp_hdr": -1,
+        "qp_max": 46,
+        "qp_min": 5,
+        "rc_mode": "VBR"
+    }
+}

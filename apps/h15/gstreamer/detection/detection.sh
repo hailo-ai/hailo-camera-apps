@@ -105,6 +105,12 @@ PIPELINE="gst-launch-1.0 \
         fpsdisplaysink fps-update-interval=2000 video-sink=fakesink name=hailo_display sync=$sync_pipeline text-overlay=false \
     ${additional_parameters}"
 
+/home/root/apps/clean_symlinks_config_isp.sh
+if [ $? -ne 0 ]; then
+    echo "Failed to clean symlinks and copy ISP configuration files."
+    exit 1
+fi
+
 echo "Running $network_name"
 echo ${PIPELINE}
 

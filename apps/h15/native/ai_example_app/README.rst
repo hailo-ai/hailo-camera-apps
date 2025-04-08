@@ -61,25 +61,26 @@ Some extra flags are available to run the application with different configurati
 
             -h, --help                  Show this help
             -t, --timeout arg           Time to run (default: 60)
-            -f, --print-fps             Print FPS
+            -p, --print-fps             Print FPS
             -l, --print-latency         Print Latency
-            -c, --config-file-path arg  Frontend Configuration Path (default: 
-                                        /home/root/apps/ai_example_app/resources/configs/frontend_config.json)
+            -c, --config-file-path arg  media library Configuration Path (default: 
+                                        /home/root/apps/ai_example_app/resources/configs/medialib_config.json)
             -s, --skip-drawing          Skip drawing
-            -p, --partial-landmarks     Draw partial landmarks
+            -f, --full-landmarks        Draw all landmarks (default draws only eyes for face landmarks)
 
 Some of the flags control basic pipeline functionality (timeout / print-fps), in particular the **--skip-drawing** 
-and **--partial-landmarks** flags can be used to control the drawing behavior of the pipeline. Drawing bounding boxes and face landmarks
+and **--full-landmarks** flags can be used to control the drawing behavior of the pipeline. Drawing bounding boxes and face landmarks
 can be compute heavy at large quantities and may impact performance. The **--skip-drawing** flag will disable all drawing, 
-while the **--partial-landmarks** flag will only draw the landmarks of the eyes. For running the application
-on large crowds, it is recommended to use these flags.
+while the **--full-landmarks** flag will draw to full set of landmarks. For running the application
+on large crowds, it is recommended to leave the default flag or skip drawing entirely.
 
 Note that you have the option to change the configuration file path for the vision pipeline configurations: **--config-file-path**. 
-A second json is provided with the default that can be used to enable low-light enhancement (denoising).
+A second json is provided with the default that can be used to enable low-light enhancement (denoising), and a third
+is provided for high-dynamic range (HDR).
 
     .. note:: 
-        In the current configuration, the application does not automatically change 3AConfig when enabling low-light enhancement. If you
-        choose to run with this configuration, you will need ot adjust the 3AConfig manually.
+        In the current configuration, the application does not automatically change 3AConfig when enabling low-light enhancement or HDR. If you
+        choose to run with this configuration, you will need to adjust the 3AConfig manually.
 
     If you do need to change the 3AConfig, you can copy the one provided in **/usr/lib/medialib/sensors/** (note that imx678 is chosen as the sensor type here): 
     
@@ -108,15 +109,15 @@ Application at a Glance
 Now that you are able to run the application, let's discuss what you are seeing.
 Below you can see the pipeline that the application is running:
 
-.. image:: docs/readme_resources/pipeline.png
+.. image:: docs/readme_resources/ai_example_simplified_pipeline.png
     :alt: Application Pipeline
     :align: center
 
-This may look like a lot at first, so we will break it down into smaller peices later. For now the key takeways are:
+This is a simplified view of the full pipeline, but we will break it down into smaller peices later. For now the key takeways are:
 
-- The pipeline outputs 2 streams: one of just video (HD), and a third (4K) with the inference overlay.
+- The pipeline outputs 2 vision streams: one of just video (HD), and a second (4K) with the inference overlay.
 - The AI pipeline is comprised of two stages:
-    - The first stage performs yolo object detection (person and face classes) on a tiled stream
+    - The first stage performs yolo object detection (person and face classes) on a tiled FHD stream
         - Netwrork: yolov5s_personface_nv12
         - Input: 640x640 NV12
         - Classes: Person, Face

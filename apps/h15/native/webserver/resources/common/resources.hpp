@@ -8,6 +8,7 @@
 #include "common/logger_macros.hpp"
 #include "event_bus.hpp"
 #include "media_library/gyro_device.hpp"
+#include "common/common.hpp"
 
 
 namespace webserver

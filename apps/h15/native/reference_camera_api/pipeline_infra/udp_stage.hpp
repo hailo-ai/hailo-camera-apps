@@ -23,12 +23,12 @@ private:
     UdpModulePtr m_udp;
     
 public:
-    UdpStage(std::string name, size_t queue_size=1, bool leaky=false, bool print_fps=false) : 
+    inline UdpStage(std::string name, size_t queue_size = 1, bool leaky = false, bool print_fps = false) : 
         ConnectedStage(name, queue_size, leaky, print_fps)
     {
     }
 
-    AppStatus create(std::string host, std::string port, EncodingType type)
+    inline AppStatus create(std::string host, std::string port, EncodingType type)
     {
         if (m_udp == nullptr)
         {
@@ -46,7 +46,7 @@ public:
         return AppStatus::SUCCESS;
     }
 
-    AppStatus init() override
+    inline AppStatus init() override
     {
         if (m_udp == nullptr)
         {
@@ -58,13 +58,13 @@ public:
         return AppStatus::SUCCESS;
     }
 
-    AppStatus deinit() override
+    inline AppStatus deinit() override
     {
         m_udp->stop();
         return AppStatus::SUCCESS;
     }
 
-    AppStatus configure(std::string host, std::string port, EncodingType type)
+    inline AppStatus configure(std::string host, std::string port, EncodingType type)
     {
         if (m_udp == nullptr)
         {
@@ -75,7 +75,7 @@ public:
         return create(host, port, type);
     }
 
-    AppStatus process(BufferPtr data)
+    inline AppStatus process(BufferPtr data)
     {
         if (m_udp == nullptr)
         {

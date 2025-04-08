@@ -23,6 +23,7 @@ namespace webserver
         public:
             std::shared_ptr<EventBus> m_event_bus;
 
+            static std::shared_ptr<webserver::resources::ResourceRepository> create(std::shared_ptr<HTTPServer> srv, std::string config_path);
             static std::shared_ptr<webserver::resources::ResourceRepository> create(std::shared_ptr<HTTPServer> srv);
             ResourceRepository(std::vector<WebserverResource> resources, std::shared_ptr<EventBus> event_bus, std::shared_ptr<HTTPServer> srv);
             void register_resources(std::shared_ptr<HTTPServer> srv);

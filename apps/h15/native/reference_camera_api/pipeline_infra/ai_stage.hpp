@@ -50,6 +50,7 @@ private:
     std::string m_group_id; ///< Group ID for the HailoRT device.
     int m_batch_size;   ///< Batch size for inference.
     int m_scheduler_threshold; ///< Threshold for the scheduler.
+    bool m_dynamic_threshold; ///< Whether to use dynamic thresholding.
     std::chrono::milliseconds m_scheduler_timeout; ///< Timeout for the scheduler.
 
     std::atomic<size_t> m_active_jobs;  ///< Number of active inference jobs.
@@ -76,10 +77,10 @@ public:
      * @param print_fps Whether to print frames per second information.
      */
     HailortAsyncStage(std::string name, std::string hef_path, size_t queue_size, int output_pool_size, std::string group_id, int batch_size, size_t job_limit,
-                      int scheduler_threshold = 4, std::chrono::milliseconds scheduler_timeout = std::chrono::milliseconds(100), bool print_fps=false,
+                      int scheduler_threshold = 4, bool dynamic_threshold = false, std::chrono::milliseconds scheduler_timeout = std::chrono::milliseconds(100), bool print_fps=false,
                       StagePoolMode pool_mode=StagePoolMode::FAIL_ON_EMPTY_POOL) :
         ConnectedStage(name, queue_size, false, print_fps), m_output_pool_size(output_pool_size), m_hef_path(hef_path), m_group_id(group_id), m_batch_size(batch_size),
-        m_scheduler_threshold(scheduler_threshold), m_scheduler_timeout(scheduler_timeout), m_jobs_limit(job_limit), m_pool_mode(pool_mode)
+        m_scheduler_threshold(scheduler_threshold), m_dynamic_threshold(dynamic_threshold), m_scheduler_timeout(scheduler_timeout), m_jobs_limit(job_limit), m_pool_mode(pool_mode)
     {
         m_last_infer_job = nullptr;
         m_active_jobs = 0;
@@ -299,6 +300,9 @@ public:
                 return AppStatus::HAILORT_ERROR;
             }
 
+            if (m_end_of_stream)
+                return AppStatus::SUCCESS;
+
             // Add metadata for each output tensor buffer
             for (auto &output : m_infer_model->outputs()) {
                 m_debug_counters->increment_extra_counter(static_cast<int>(AIExtraCounters::TENSORS));
@@ -349,6 +353,28 @@ public:
     AppStatus process(BufferPtr data)
     {
         m_debug_counters->increment_input_frames();
+        // Wait and set scheduler threshold if dynamic thresholding used
+        if (m_dynamic_threshold)
+        {
+            std::vector<MetadataPtr> metadata = data->get_metadata_of_type(MetadataType::BATCH);
+            if (metadata.size() > 0)
+            {
+                BatchMetadataPtr batch_metadata = std::dynamic_pointer_cast<BatchMetadata>(metadata[0]);
+                
+                // if this is the start of a new batch, wait for the last infer job to finish
+                if (batch_metadata->get_index() == 0)
+                {
+                    // wait for acttive jobs to finish
+                    std::unique_lock<std::mutex> lock(m_active_jobs_mutex);
+                    m_active_jobs_cv.wait(lock, [this] { return m_active_jobs == 0 || m_end_of_stream; });
+                    if (m_end_of_stream)
+                        return AppStatus::SUCCESS;
+                    m_configured_infer_model.set_scheduler_threshold(batch_metadata->get_total_size());
+                }
+            }
+        }
+        
+        // wait for available jobs
         std::unique_lock<std::mutex> lock(m_active_jobs_mutex);
         m_active_jobs_cv.wait(lock, [this] { return m_active_jobs < m_jobs_limit; });
 

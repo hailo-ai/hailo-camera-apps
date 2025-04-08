@@ -1,56 +1,74 @@
 #include "privacy_mask.hpp"
 #include <iostream>
+#include <cmath> // For sin, cos
 
 using namespace webserver::resources;
 
-PrivacyMaskResource::PrivacyMaskResource(std::shared_ptr<EventBus> event_bus) : Resource(event_bus)
+PrivacyMaskResource::PrivacyMaskResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::ConfigResourceBase> configs) 
+    : Resource(event_bus),
+      m_privacy_masks{},
+      m_original_privacy_masks{}
 {
-    m_privacy_masks = {};
     m_config = nlohmann::json::parse("{}");
-    m_rotation = StreamConfigResourceState::ROTATION_0; // TODO think what to do when the stream start rotated. mybie take this from config resource
+    nlohmann::json frontend_conf = configs->get_frontend_default_config();
+    m_flip = StreamConfigResourceState::flip_string_to_enum(frontend_conf["flip"]["direction"]);
+    m_rotation = StreamConfigResourceState::rotation_string_to_enum(frontend_conf["rotation"]["angle"]);
+    m_dewarp = frontend_conf["dewarp"]["enabled"];
+    m_frame.width = frontend_conf["input_video"]["resolution"]["width"];
+    m_frame.height = frontend_conf["input_video"]["resolution"]["height"];
+
     WEBSERVER_LOG_INFO("PrivacyMaskResource initialized with default values");
 
-    subscribe_callback(STREAM_CONFIG, [this](ResourceStateChangeNotification notification)
-                        {
+    subscribe_callback(EventType::STREAM_CONFIG, [this](ResourceStateChangeNotification notification) {
         WEBSERVER_LOG_INFO("Received STREAM_CONFIG notification");
         auto state = std::static_pointer_cast<StreamConfigResourceState>(notification.resource_state);
-        if (!state->rotate_enabled)
+
+        m_flip = state->flip_enabled ? state->flip : FLIP_DIRECTION_NONE;
+        m_rotation = state->rotate_enabled ? state->rotation : ROTATION_ANGLE_0;
+        m_dewarp = state->dewarp_enabled;
+        m_frame = state->resolutions[0];
+
+        m_privacy_masks.clear();
+        for (auto& [key, original_polygon] : m_original_privacy_masks)
         {
-            WEBSERVER_LOG_INFO("Rotation not enabled, returning");
-            return;
-        }
-        auto old_rotation = m_rotation;
-        m_rotation = state->rotation;
-        WEBSERVER_LOG_INFO("Rotation changed from {} to {}", old_rotation, m_rotation);
-        for (auto& [key, poly] : m_privacy_masks)
-        {
-            for (auto& point : poly.vertices)
+            polygon flip_rotated_polygon;
+            flip_rotated_polygon.id = original_polygon.id;
+            for (auto& vertex : original_polygon.vertices)
             {
-                point = point_rotation(point, state->resolutions[0].width, state->resolutions[0].height, old_rotation, m_rotation);
+                if (m_dewarp) {
+                    // privacy mask is applied on a transformed (post-dewarp) frame
+                    // so we need to adjust the polygon vertices accordingly
+                    flip_rotated_polygon.vertices.push_back(flip_rotate_point(vertex));
+                } else {
+                    // otherwise, privacy mask is applied on the original frame
+                    // and only after the frame is trasnformed in the multi resize operation
+                    // so we don't need to adjust the polygon
+                    flip_rotated_polygon.vertices.push_back(vertex);
+                }
             }
+            m_privacy_masks[key] = flip_rotated_polygon;
         }
+
         for (auto& mask : m_config["masks"]) {
             for (size_t i = 0; i < mask["Polygon"].size(); ++i) {
                 mask["Polygon"][i]["x"] = m_privacy_masks[mask["id"].get<std::string>()].vertices[i].x;
                 mask["Polygon"][i]["y"] = m_privacy_masks[mask["id"].get<std::string>()].vertices[i].y;
             }
         }
+
         on_resource_change(EventType::CHANGED_RESOURCE_PRIVACY_MASK, update_all_vertices_state());
     });
 
-    subscribe_callback(EventType::STREAM_CONFIG, EventPriority::LOW, [this](ResourceStateChangeNotification notification)
-                        {
+    subscribe_callback(EventType::STREAM_CONFIG, EventPriority::LOW, [this](ResourceStateChangeNotification notification) {
         WEBSERVER_LOG_INFO("Received STREAM_CONFIG notification with LOW priority");
         auto state = std::static_pointer_cast<StreamConfigResourceState>(notification.resource_state);
-        if (state->rotate_enabled || state->resolutions[0].stream_size_changed)
+        if (state->rotate_state_changed || state->resolutions[0].stream_size_changed)
         {
             renable_masks();
         }
-        
     });
 
-    subscribe_callback(EventType::CODEC_CHANGE, EventPriority::LOW, [this](ResourceStateChangeNotification notification)
-                        {
+    subscribe_callback(EventType::CODEC_CHANGE, EventPriority::LOW, [this](ResourceStateChangeNotification notification) {
         WEBSERVER_LOG_INFO("Received CODEC_CHANGE notification with LOW priority");
         renable_masks();
     });
@@ -61,34 +79,130 @@ void PrivacyMaskResource::reset_config(){
     renable_masks();
 }
 
-vertex PrivacyMaskResource::point_rotation(vertex &point, uint32_t width, uint32_t height, StreamConfigResourceState::rotation_t from_rotation, StreamConfigResourceState::rotation_t to_rotation){
-    int angle_diff = to_rotation - from_rotation;
-    WEBSERVER_LOG_INFO("Rotating point ");
-    if (angle_diff == 0){
-        return point;
-    }
+vertex PrivacyMaskResource::flip_rotate_point(const vertex &p)
+{
+    WEBSERVER_LOG_INFO("Rotating + Flipping point ");
+
+    auto original_point = p;
     privacy_mask_types::vertex rotated_point(0, 0);
-    switch (angle_diff)
+
+    switch(m_rotation)
     {
-    case 90:
-    case -270:
-        rotated_point.x = height - point.y; // TODO check if need to switch width and high
-        rotated_point.y = point.x;
+    case ROTATION_ANGLE_0:
+        rotated_point.x = original_point.x;
+        rotated_point.y = original_point.y;
         break;
-    case 180:
-    case -180:
-        rotated_point.x = width - point.x;
-        rotated_point.y = height - point.y;
+    case ROTATION_ANGLE_90:
+        rotated_point.x = m_frame.height - original_point.y;
+        rotated_point.y = original_point.x; 
+        break;
+    case ROTATION_ANGLE_180:
+        rotated_point.x = m_frame.width - original_point.x;
+        rotated_point.y = m_frame.height - original_point.y;
         break;  
-    case 270:
-    case -90:
-        rotated_point.x = point.y;
-        rotated_point.y = width - point.x;
+    case ROTATION_ANGLE_270:
+        rotated_point.x = original_point.y;
+        rotated_point.y = m_frame.width - original_point.x;
         break;
     default:
         WEBSERVER_LOG_ERROR("Invalid rotation angle");
         break;
     }
+
+    auto rotated_frame = m_frame;
+    if (m_rotation == ROTATION_ANGLE_90 || m_rotation == ROTATION_ANGLE_270)
+    {
+        std::swap(rotated_frame.width, rotated_frame.height);
+    }
+
+    privacy_mask_types::vertex flipped_point(0, 0);
+
+    switch (m_flip)
+    {
+    case FLIP_DIRECTION_NONE:
+        flipped_point.x = rotated_point.x;
+        flipped_point.y = rotated_point.y;
+        break;
+    case FLIP_DIRECTION_HORIZONTAL:
+        flipped_point.x = rotated_frame.width - rotated_point.x;
+        flipped_point.y = rotated_point.y; 
+        break;
+    case FLIP_DIRECTION_VERTICAL:
+        flipped_point.x = rotated_point.x;
+        flipped_point.y = rotated_frame.height - rotated_point.y;
+        break;  
+    case FLIP_DIRECTION_BOTH:
+        flipped_point.x = rotated_frame.width - rotated_point.x;
+        flipped_point.y = rotated_frame.height - rotated_point.y;
+        break;
+    default:
+        WEBSERVER_LOG_ERROR("Invalid flip direction");
+        break;
+    };
+
+    return flipped_point;
+}
+vertex PrivacyMaskResource::reverse_flip_rotate_point(const vertex &p)
+{
+    WEBSERVER_LOG_INFO("Reverse Rotating + Flipping point ");
+
+    auto rotated_frame = m_frame;
+    if (m_rotation == ROTATION_ANGLE_90 || m_rotation == ROTATION_ANGLE_270)
+    {
+        std::swap(rotated_frame.width, rotated_frame.height);
+    }
+
+    auto original_point = p;
+    privacy_mask_types::vertex flipped_point(0, 0);
+
+    switch (m_flip)
+    {
+    case FLIP_DIRECTION_NONE:
+        flipped_point.x = original_point.x;
+        flipped_point.y = original_point.y;
+        break;
+    case FLIP_DIRECTION_HORIZONTAL:
+        flipped_point.x = rotated_frame.width - original_point.x;
+        flipped_point.y = original_point.y; 
+        break;
+    case FLIP_DIRECTION_VERTICAL:
+        flipped_point.x = original_point.x;
+        flipped_point.y = rotated_frame.height - original_point.y;
+        break;  
+    case FLIP_DIRECTION_BOTH:
+        flipped_point.x = rotated_frame.width - original_point.x;
+        flipped_point.y = rotated_frame.height - original_point.y;
+        break;
+    default:
+        WEBSERVER_LOG_ERROR("Invalid flip direction");
+        break;
+    };
+
+    privacy_mask_types::vertex rotated_point(0, 0);
+
+    switch(m_rotation)
+    {
+    case ROTATION_ANGLE_0:
+        rotated_point.x = flipped_point.x;
+        rotated_point.y = flipped_point.y;
+        break;
+    case ROTATION_ANGLE_90:
+        rotated_point.x = flipped_point.y;
+        rotated_point.y = m_frame.width - flipped_point.x;
+        break;
+    case ROTATION_ANGLE_180:
+        rotated_point.x = m_frame.width - flipped_point.x;
+        rotated_point.y = m_frame.height - flipped_point.y;
+        break;  
+    case ROTATION_ANGLE_270:
+        rotated_point.x = m_frame.height - flipped_point.y;
+        rotated_point.y = flipped_point.x; 
+        break;
+    default:
+        WEBSERVER_LOG_ERROR("Invalid rotation angle");
+        break;
+    }
+
     return rotated_point;
 }
 
@@ -131,6 +245,8 @@ std::shared_ptr<PrivacyMaskResource::PrivacyMaskResourceState> PrivacyMaskResour
         if (entry["op"] == "remove")
         {
             state->polygon_to_delete.push_back(entry["path"].get<std::string>());
+            m_privacy_masks.erase(entry["path"].get<std::string>());
+            m_original_privacy_masks.erase(entry["path"].get<std::string>());
         }
     }
     return state;
@@ -153,22 +269,35 @@ void PrivacyMaskResource::parse_polygon(nlohmann::json j){
     {
         WEBSERVER_LOG_INFO("Parsing polygon from JSON");
         for (const auto& mask : j["masks"]) {
-            polygon poly;
-            poly.id = mask["id"].get<std::string>();
+            polygon flip_rotated_polygon, original_polygon;
+            flip_rotated_polygon.id = mask["id"].get<std::string>();
+            original_polygon.id = mask["id"].get<std::string>();
             if (mask["Polygon"].empty()){
                 WEBSERVER_LOG_WARNING("Got polygon without points in privacy mask, skipping");
                 continue;
             }
             for (const auto& point : mask["Polygon"]) {
-                poly.vertices.emplace_back(point["x"].get<uint>(), point["y"].get<uint>());
+                vertex v(point["x"].get<uint>(), point["y"].get<uint>());
+                // the polygon coordinates we got are adjusted to the flipped/rotated frame
+                // calculate the normalized polygon by reversing the frame transformation
+                flip_rotated_polygon.vertices.push_back(v);
+                original_polygon.vertices.push_back(reverse_flip_rotate_point(v));
             }
-
-            m_privacy_masks[poly.id] = poly;
+            m_original_privacy_masks[original_polygon.id] = original_polygon;
+            if (!m_dewarp) {
+                // privacy mask is applied on the original frame in the multi resize operation
+                // so the transformed polygon is the same as the original polygon
+                m_privacy_masks[flip_rotated_polygon.id] = original_polygon;
+            } else {
+                // privacy mask is applied on the dewarped frame
+                // so the transformed polygon is the same as the polygon we got
+                m_privacy_masks[flip_rotated_polygon.id] = flip_rotated_polygon;
+            }
         }
     }
     catch (const std::exception& e)
     {
-        WEBSERVER_LOG_ERROR("Failed to parse json body for privacy mask, no change have been made: {}", e.what());
+        WEBSERVER_LOG_ERROR("Failed to parse json body for privacy mask, no change has been made: {}", e.what());
     }
 }
 

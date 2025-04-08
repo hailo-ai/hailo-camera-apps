@@ -8,11 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
-#include "media_library/v4l2_ctrl.hpp"
-#include "media_library/isp_utils.hpp"
 
-
-using namespace isp_utils::ctrl;
 
 namespace webserver
 {
@@ -22,53 +18,6 @@ namespace webserver
         void update_3a_config(nlohmann::json config);
         nlohmann::json get_3a_config();
 
-        class v4l2ControlHelper
-        {
-        private:
-            struct min_max_isp_params
-            {
-                int32_t min;
-                int32_t max;
-                v4l2_ctrl_id ctrl_id;
-            };
-
-            static std::unordered_map<v4l2_ctrl_id, min_max_isp_params> m_min_max_isp_params;
-
-        public:
-            template <typename T>
-            static T calculate_value_from_precentage(uint16_t precentage, v4l2_ctrl_id ctrl_id, T calib_var)
-            {
-                auto min_max_params = m_min_max_isp_params[ctrl_id];
-                float val_after_formula;
-                if (precentage >= 50)
-                {
-                    val_after_formula = (precentage - 50) / 50.0f * (min_max_params.max - calib_var) + calib_var;
-                }
-                else
-                {
-                    val_after_formula = (50 - precentage) / 50.0f * (min_max_params.min - calib_var) + calib_var;
-                }
-
-                return static_cast<T>(val_after_formula);
-            }
-
-            template <typename T>
-            static uint16_t calculate_precentage_from_value(T value, v4l2_ctrl_id ctrl_id, T calib_var)
-            {
-                auto min_max_params = m_min_max_isp_params[ctrl_id];
-                float precentage = 50;
-                if (value > calib_var)
-                {
-                    precentage += ((value - calib_var) / static_cast<float>(min_max_params.max - calib_var) * 50.0f);
-                }
-                else
-                {
-                    precentage -= ((calib_var - value) / static_cast<float>(calib_var - min_max_params.min) * 50.0f);
-                }
-
-                return static_cast<uint16_t>(precentage);
-            }
-        };
 
         struct stream_params_t
         {
@@ -87,28 +36,10 @@ namespace webserver
             uint16_t sharpness_down = 0;
             uint16_t sharpness_up = 0;
 
-            stream_isp_params_t(int32_t saturation, int32_t brightness, int32_t contrast, uint16_t sharpness_down, uint16_t sharpness_up) : saturation(saturation), brightness(brightness), contrast(contrast), sharpness_down(sharpness_down), sharpness_up(sharpness_up) {}
+            stream_isp_params_t(int32_t saturation, int32_t brightness, int32_t contrast, uint16_t sharpness_down, uint16_t sharpness_up);
 
-            stream_isp_params_t from_stream_params(const stream_params_t &params)
-            {
-                int32_t v_brightness = v4l2ControlHelper::calculate_value_from_precentage<int32_t>(params.brightness, V4L2_CTRL_BRIGHTNESS, brightness);
-                int32_t v_contrast = v4l2ControlHelper::calculate_value_from_precentage<int32_t>(params.contrast, V4L2_CTRL_CONTRAST, contrast);
-                int32_t v_saturation = v4l2ControlHelper::calculate_value_from_precentage<int32_t>(params.saturation, V4L2_CTRL_SATURATION, saturation);
-                int32_t v_sharpness_down = v4l2ControlHelper::calculate_value_from_precentage<int32_t>(params.sharpness, V4L2_CTRL_SHARPNESS_DOWN, sharpness_down);
-                int32_t v_sharpness_up = v4l2ControlHelper::calculate_value_from_precentage<int32_t>(params.sharpness, V4L2_CTRL_SHARPNESS_UP, sharpness_up);
-
-                return stream_isp_params_t(v_saturation, v_brightness, v_contrast, v_sharpness_down, v_sharpness_up);
-            }
-
-            stream_params_t to_stream_params(const stream_isp_params_t &params)
-            {
-                uint16_t p_brightness = v4l2ControlHelper::calculate_precentage_from_value<int32_t>(params.brightness, V4L2_CTRL_BRIGHTNESS, brightness);
-                uint16_t p_contrast = v4l2ControlHelper::calculate_precentage_from_value<int32_t>(params.contrast, V4L2_CTRL_CONTRAST, contrast);
-                uint16_t p_saturation = v4l2ControlHelper::calculate_precentage_from_value<int32_t>(params.saturation, V4L2_CTRL_SATURATION, saturation);
-                uint16_t p_sharpness = v4l2ControlHelper::calculate_precentage_from_value<uint16_t>(params.sharpness_down, V4L2_CTRL_SHARPNESS_DOWN, sharpness_down);
-
-                return stream_params_t{p_saturation, p_brightness, p_contrast, p_sharpness};
-            }
+            stream_isp_params_t from_stream_params(const stream_params_t &params);
+            stream_params_t to_stream_params(const stream_isp_params_t &params);
         };
 
         class backlight_filter_t
@@ -117,38 +48,11 @@ namespace webserver
             uint16_t max;
             uint16_t min;
 
-            backlight_filter_t(uint16_t max, uint16_t min) : max(max), min(min) {}
+            backlight_filter_t(uint16_t max, uint16_t min);
 
-            backlight_filter_t from_precentage(uint16_t precentage)
-            {
-                auto new_max = v4l2ControlHelper::calculate_value_from_precentage<int32_t>(precentage, V4L2_CTRL_AE_WDR_VALUES, max);
-                auto new_min = v4l2ControlHelper::calculate_value_from_precentage<int32_t>(precentage, V4L2_CTRL_AE_WDR_VALUES, min);
-                return backlight_filter_t(new_max, new_min);
-            }
-
-            uint16_t to_precentage(const backlight_filter_t &filter)
-            {
-                return v4l2ControlHelper::calculate_precentage_from_value<int32_t>(filter.max, V4L2_CTRL_AE_WDR_VALUES, max);
-            }
-
-            static backlight_filter_t get_from_json()
-            {
-                uint16_t max;
-                uint16_t min;
-                nlohmann::json config = get_3a_config();
-
-                auto root = config["root"];
-                for (auto &obj : config["root"])
-                {
-                    if (obj["classname"] == "AdaptiveAe")
-                    {
-                        max = obj["wdrContrast.max"];
-                        min = obj["wdrContrast.min"];
-                        return backlight_filter_t(max, min);
-                    }
-                }
-                return backlight_filter_t(0, 0);
-            }
+            backlight_filter_t from_precentage(uint16_t precentage);
+            uint16_t to_precentage(const backlight_filter_t &filter);
+            static backlight_filter_t get_from_json();
         };
 
         enum binning_mode_t

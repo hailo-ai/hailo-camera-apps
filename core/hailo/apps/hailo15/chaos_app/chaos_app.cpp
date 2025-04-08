@@ -74,7 +74,8 @@ std::vector<HailoBBox> TILES = {{0.0,0.0,0.6,0.6},  {0.4,0,0.6,0.6},
 #define LANDMARKS_FUNC_NAME "facial_landmarks_nv12"
 
 #define STRESS_CONFIGS_PATH "/home/root/apps/internals/validation_apps_configs/resources/configs/"
-#define FRONTEND_CONFIG_FILE STRESS_CONFIGS_PATH "stress_frontend_config.json"
+//change it to stress_medialib_config.json after changing the app to stages
+#define FRONTEND_CONFIG_FILE STRESS_CONFIGS_PATH "stress_profile.json"
 #define BACKUP_FRONTEND_CONFIG_FILE "/tmp/frontend_config_example.json"
 
 std::string g_encoder_config_file_path = std::string(STRESS_CONFIGS_PATH) + "stress_encoder_sink";
@@ -104,7 +105,7 @@ struct ParsedOptions {
     int test_time;
     int number_of_frontend_restarts;
     std::string encoding_format;
-    bool disable_90_rotate;
+    bool enable_90_rotate;
     bool ai_pipeline_enabled;
 };
 
@@ -117,7 +118,7 @@ ParsedOptions parseArguments(int argc, char* argv[]) {
         ("frames-to-skip", "Number of frames that the pipeline will not make dynamic changes between each change", cxxopts::value<int>()->default_value("10"))
         ("number-of-resets", "Number of frontend resets and HDR flips", cxxopts::value<int>()->default_value("0"))
         ("encoding-format", "Encoding format", cxxopts::value<std::string>()->default_value("h264"))
-        ("disable-rotate-90", "Disabling rotate 90, the output file will be valid this way", cxxopts::value<std::string>()->default_value("false"))
+        ("enable-rotate-90", "Enabling rotate 90, the output file will be valid when enabled", cxxopts::value<std::string>()->default_value("false"))
         ("ai-pipeline", "will the ai pipeline be added to the overall pipeline", cxxopts::value<std::string>()->default_value("true"));
     
     auto result = options.parse(argc, argv);
@@ -133,7 +134,7 @@ ParsedOptions parseArguments(int argc, char* argv[]) {
     parsedOptions.test_time = result["test-time"].as<int>();
     parsedOptions.number_of_frontend_restarts = result["number-of-resets"].as<int>();
     parsedOptions.encoding_format = result["encoding-format"].as<std::string>();
-    std::string disable_90_rotate = result["disable-rotate-90"].as<std::string>();
+    std::string enable_90_rotate = result["enable-rotate-90"].as<std::string>();
     std::string ai_pipeline_str = result["ai-pipeline"].as<std::string>();
     parsedOptions.ai_pipeline_enabled = (ai_pipeline_str == "true" || ai_pipeline_str == "1");
 
@@ -188,26 +189,26 @@ void create_ai_pipeline(std::shared_ptr<MediaLibrary> m_media_lib)
                                                                                         TILLING_OUTPUT_WIDTH, TILLING_OUTPUT_HEIGHT,
                                                                                         "", DETECTION_AI_STAGE, TILES,
                                                                                         5, false, false);
-    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50 ,"device0", 5, 10, 5, 
+    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50 ,"device0", 5, 10, 5, false,
                                                                                              std::chrono::milliseconds(100), false, StagePoolMode::BLOCKING);
     std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, "", 5, false, false);
-    std::shared_ptr<AggregatorStage> agg_stage = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE, false, 
-                                                                                   AI_VISION_SINK, 2, 
-                                                                                   POST_STAGE, 10, 
-                                                                                   true, 0.3, 0.1,
-                                                                                   false, false);
+    std::shared_ptr<AggregatorStage> agg_stage = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE, false, 5,
+                                                                                   AI_VISION_SINK, 2, false,
+                                                                                   POST_STAGE, 10, false,
+                                                                                   true, false, 0.3, 0.1,
+                                                                                   false);
     std::shared_ptr<TrackerStage> tracker_stage = std::make_shared<TrackerStage>(TRACKER_STAGE, 1, false, -1, false);
     std::shared_ptr<BBoxCropStage> bbox_crop_stage = std::make_shared<BBoxCropStage>(BBOX_CROP_STAGE, 100, BBOX_CROP_INPUT_WIDTH, BBOX_CROP_INPUT_HEIGHT,
                                                                                     BBOX_CROP_OUTPUT_WIDTH, BBOX_CROP_OUTPUT_HEIGHT,
                                                                                     AGGREGATOR_STAGE_2, LANDMARKS_AI_STAGE, BBOX_CROP_LABEL, 1, false, false);
-    std::shared_ptr<HailortAsyncStage> landmarks_stage = std::make_shared<HailortAsyncStage>(LANDMARKS_AI_STAGE, LANDMARKS_HEF_FILE, 20, 101 ,"device0", 1, 30, 1, 
+    std::shared_ptr<HailortAsyncStage> landmarks_stage = std::make_shared<HailortAsyncStage>(LANDMARKS_AI_STAGE, LANDMARKS_HEF_FILE, 20, 101 ,"device0", 1, 30, 1, false, 
                                                                                              std::chrono::milliseconds(100), false, StagePoolMode::BLOCKING);
     std::shared_ptr<PostprocessStage> landmarks_post_stage = std::make_shared<PostprocessStage>(LANDMARKS_POST_STAGE, LANDMARKS_POST_SO, LANDMARKS_FUNC_NAME, "", 50, false, false);
     std::shared_ptr<AggregatorStage> agg_stage_2 = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE_2, false, 
-                                                                                     BBOX_CROP_STAGE, 2, 
-                                                                                     LANDMARKS_POST_STAGE, 30,
-                                                                                     false, 0.3, 0.1,
-                                                                                     false, false);
+                                                                                     BBOX_CROP_STAGE, 2, false,
+                                                                                     LANDMARKS_POST_STAGE, 30, false,
+                                                                                     false, false, 0.3, 0.1,
+                                                                                     false);
     std::shared_ptr<OverlayStage> overlay_stage = std::make_shared<OverlayStage>(OVERLAY_STAGE, 1, false, false);
     std::shared_ptr<CallbackStage> sink_stage = std::make_shared<CallbackStage>(AI_CALLBACK_STAGE, 1, false);
 
@@ -470,7 +471,7 @@ int main(int argc, char *argv[])
                 m_media_lib->frontend->stop();
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 start_or_stop_all_encoders(m_media_lib, false);
-                if (options.disable_90_rotate) {
+                if (options.enable_90_rotate) {
                     if (j % 3 == 1) {
                         rotate_90(true, m_media_lib->encoder_file_path , FRONTEND_CONFIG_FILE);
                         rotate_output_resolutions(FRONTEND_CONFIG_FILE);

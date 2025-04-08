@@ -7,11 +7,10 @@
         },
         "source": "/dev/video0"
     },
-    "output_video": {
+    "application_input_streams": {
         "method": "INTERPOLATION_TYPE_BILINEAR",
         "format": "IMAGE_FORMAT_NV12",
         "grayscale": false,
-        "keep_aspect_ratio": false,
         "resolutions": [
             {
                 "width": 1920,
@@ -63,7 +62,8 @@
         "rotational_smoothing_coefficient": 0.0,
         "iir_hpf_coefficient": 0.997,
         "camera_fov_factor": 0.85,
-        "line_readout_time": 7410
+        "line_readout_time": 7410,
+        "hdr_exposure_ratio": 0.2
     },
     "gyro": {
         "enabled": false,

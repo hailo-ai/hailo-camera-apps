@@ -253,8 +253,8 @@ class MesonInstaller(ABC):
         progress_bar_generator = progress_bar(amount_of_files_range, "Progress: ")
 
         for key, value in files_and_dest_paths.items():
-            if not Path(key).is_file():
-                # Introspect returns some non-existing files
+            if not Path(key).is_file() or key.endswith(('.h', '.hpp')):
+                # Introspect returns some non-existing files or header files
                 pass
             else:
                 destination = f"root@{self._remote_machine_ip}:{value}"
@@ -279,7 +279,6 @@ class MesonInstaller(ABC):
     def build(self):
         self._logger.info(f"Building {self._build_folder}")
         env = self.get_custom_environment()
-
         src_dir_name = self._src_build_dir.parts[-1]
         self._output_build_dir = self._output_build_dir / src_dir_name
         print(f"Build dir: {self._output_build_dir}")

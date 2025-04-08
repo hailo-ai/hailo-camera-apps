@@ -43,7 +43,7 @@ class TappasInstaller(MesonInstaller):
         return self.LIBARGS_TEMPLATE.format(get_includes(self.INCLUDES))
 
     def get_meson_build_command(self):
-        usr_path = os.path.join(self._toolchain_rootfs_base_path, 'usr')
+        usr_path = '/usr'
 
         rapidjson_root = f'{self._open_source_root}/rapidjson'
 
@@ -59,6 +59,8 @@ class TappasInstaller(MesonInstaller):
         build_cmd = ['meson', str(self._output_build_dir), '--buildtype', self._build_type,
                      '-Dlibargs={}'.format(self.get_libargs_line(self._toolchain_rootfs_base_path)),
                      '-Dprefix={}'.format(usr_path),
+                     '-Dpost_processes_install_dir=/usr/lib/hailo-post-processes/',
+                     '-Dapps_install_dir=/home/root/apps',
                      '-Dinclude_blas=false',
                      '-Dtarget_platform={}'.format(self._target_platform),
                      '-Dtarget={}'.format(self._build_lib),

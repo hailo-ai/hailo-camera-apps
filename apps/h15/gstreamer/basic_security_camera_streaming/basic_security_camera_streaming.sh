@@ -144,6 +144,12 @@ function create_pipeline() {
 
 }
 
+/home/root/apps/clean_symlinks_config_isp.sh
+if [ $? -ne 0 ]; then
+    echo "Failed to clean symlinks and copy ISP configuration files."
+    exit 1
+fi
+
 create_pipeline $@
 
 PIPELINE="${debug_stats_export} gst-launch-1.0 \

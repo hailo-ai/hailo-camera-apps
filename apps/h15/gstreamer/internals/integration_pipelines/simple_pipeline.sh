@@ -80,7 +80,7 @@ function print_usage() {
     echo "  --use-hailoh265enc              Use hailoh265enc on pipeline"    
     echo "  --encoder-caps                  Set the hailoh265enc caps at output"    
     echo "  --use-udpsink                   Use udp sink instead of fake sink, hardcodded to 10.0.0.2:6543"
-    echo "  --use-filesink                  Use file sink instead of fake sink, hardcodded to /media/mmc0_3/temp/output_video"
+    echo "  --use-filesink                  Use file sink instead of fake sink, hardcodded to /media/mmc0_3/temp/application_input_streams"
     exit 0
 }
 
@@ -237,7 +237,7 @@ function create_sink_pipeline() {
     elif [ "$use_filesink" = true ]; then
         sink_pipeline=" \
             queue max-size-buffers=$queue_size max-size-bytes=0 max-size-time=0 ! \
-            fpsdisplaysink fps-update-interval=2000 video-sink=\"filesink location=/media/mmc0_3/temp/output_video\" sync=true text-overlay=false name=hailo_display"
+            fpsdisplaysink fps-update-interval=2000 video-sink=\"filesink location=/media/mmc0_3/temp/application_input_streams\" sync=true text-overlay=false name=hailo_display"
     else
         sink_pipeline=" \
             queue max-size-buffers=$queue_size max-size-bytes=0 max-size-time=0 ! \

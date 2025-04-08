@@ -532,8 +532,8 @@ void vision_scenario(int& counter, MediaLibraryFrontendPtr frontend)
     }
     if (counter % 29 == 0)
     {
-        std::cout << "grayscale enabled = " << !config.multi_resize_config.output_video_config.grayscale << std::endl;
-        config.multi_resize_config.output_video_config.grayscale = !config.multi_resize_config.output_video_config.grayscale;
+        std::cout << "grayscale enabled = " << !config.multi_resize_config.application_input_streams_config.grayscale << std::endl;
+        config.multi_resize_config.application_input_streams_config.grayscale = !config.multi_resize_config.application_input_streams_config.grayscale;
         change = true;
     }
     if (counter % 31 == 0)

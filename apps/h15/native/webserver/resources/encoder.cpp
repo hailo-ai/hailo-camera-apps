@@ -60,7 +60,7 @@ void webserver::resources::from_json(const nlohmann::json &j, webserver::resourc
     }
 }
 
-webserver::resources::EncoderResource::EncoderResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::ConfigResource> configs) : Resource(event_bus)
+webserver::resources::EncoderResource::EncoderResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::ConfigResourceBase> configs) : Resource(event_bus)
 {
     WEBSERVER_LOG_INFO("Initializing EncoderResource");
     m_default_config = configs->get_encoder_default_config().dump(4);
@@ -77,7 +77,7 @@ webserver::resources::EncoderResource::EncoderResource(std::shared_ptr<EventBus>
         }
 
         if ((state->rotate_enabled &&
-            (state->rotation == StreamConfigResourceState::ROTATION_90 || state->rotation == StreamConfigResourceState::ROTATION_270)))
+            (state->rotation == ROTATION_ANGLE_90 || state->rotation == ROTATION_ANGLE_270)))
         {
             m_encoder_control.width = state->resolutions[0].height;
             m_encoder_control.height = state->resolutions[0].width;
@@ -85,7 +85,7 @@ webserver::resources::EncoderResource::EncoderResource(std::shared_ptr<EventBus>
             m_config["input_stream"]["height"] = m_encoder_control.height.value();
         }
         else if (state->resolutions[0].stream_size_changed || (state->rotate_enabled &&
-            (state->rotation == StreamConfigResourceState::ROTATION_0 || state->rotation == StreamConfigResourceState::ROTATION_180))
+            (state->rotation == ROTATION_ANGLE_0 || state->rotation == ROTATION_ANGLE_180))
             || !state->rotate_enabled)
         {
             m_encoder_control.width = state->resolutions[0].width;

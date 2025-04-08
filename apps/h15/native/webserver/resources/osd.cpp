@@ -10,15 +10,49 @@
 
 using namespace webserver::resources;
 
-OsdResource::OsdResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<ConfigResource> configs) : Resource(event_bus)
+OsdResource::OsdResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<ConfigResourceBase> configs) : Resource(event_bus)
 {
-    auto default_config = configs->get_osd_default_config();
-    m_config = from_medialib_config_to_osd_config(default_config);
-    m_default_config = m_config.dump(4);
+    auto default_config = configs->get_osd_and_encoder_default_config();
+    m_default_config = default_config.dump(4);
+
+    reset_config();
+
+    subscribe_callback(STREAM_CONFIG, [this](ResourceStateChangeNotification notification)
+                       {
+                           WEBSERVER_LOG_INFO("Received STREAM_CONFIG notification");
+                           auto state = std::static_pointer_cast<StreamConfigResourceState>(notification.resource_state);
+
+                           if (state->resolutions[0].framerate_changed || state->dewarp_state_changed || state->flip_state_changed) {
+                                // true only if only one field is changed at a time in state
+                               return;
+                           }
+
+                           auto new_height = state->resolutions[0].height;
+                           auto new_width = state->resolutions[0].width;
+
+                           // Log new resolution
+                           WEBSERVER_LOG_INFO("New resolution: {}x{}", new_width, new_height);
+
+                           // Calculate new size for OSD
+                           m_config = map_overlays(m_config, [this, new_width](nlohmann::json conf)
+                                                                {
+                                                                    return relative_font_size_to_absolut(
+                                                                            absolut_font_size_to_relative(conf, m_resolution_conf.width),
+                                                                            new_width);
+                                                                 });
+
+                           m_resolution_conf.height = new_height;
+                           m_resolution_conf.width = new_width;
+                       });
 }
 
-void OsdResource::reset_config(){
-    m_config = nlohmann::json::parse(m_default_config);
+void OsdResource::reset_config()
+{
+    auto config = nlohmann::json::parse(m_default_config);
+    m_config = from_medialib_config_to_osd_config(config["osd"]);
+    m_resolution_conf.width = config["encoding"]["input_stream"]["width"];
+    m_resolution_conf.height = config["encoding"]["input_stream"]["height"];
+    WEBSERVER_LOG_INFO("OSD configuration reset to default");
 }
 
 nlohmann::json OsdResource::from_medialib_config_to_osd_config(nlohmann::json config)
@@ -59,7 +93,7 @@ nlohmann::json OsdResource::from_medialib_config_to_osd_config(nlohmann::json co
                 item["params"]["id"] = entry["id"];
                 item["params"]["font_path"] = entry["font_path"];
                 item["params"]["font_size"] = entry["font_size"];
-                item["params"]["text_color"] = entry["rgb"];
+                item["params"]["text_color"] = entry["text_color"];
                 item["params"]["x"] = entry["x"];
                 item["params"]["y"] = entry["y"];
                 item["params"]["z-index"] = entry["z-index"];
@@ -78,7 +112,7 @@ nlohmann::json OsdResource::from_medialib_config_to_osd_config(nlohmann::json co
                 item["params"]["label"] = entry["label"];
                 item["params"]["font_path"] = entry["font_path"];
                 item["params"]["font_size"] = entry["font_size"];
-                item["params"]["text_color"] = entry["rgb"];
+                item["params"]["text_color"] = entry["text_color"];
                 item["params"]["x"] = entry["x"];
                 item["params"]["y"] = entry["y"];
                 item["params"]["z-index"] = entry["z-index"];
@@ -102,7 +136,7 @@ OsdResource::OsdResourceState::OsdResourceState(nlohmann::json config, std::vect
             auto j_config = entry["params"];
             if (j_config == nullptr)
                 continue;
-            
+
             if (static_cast<std::string>(category) == "text")
             {
                 bool enabled = entry["enabled"] && config["global_enable"].get<bool>() && config[category]["global_enable"];
@@ -126,53 +160,83 @@ OsdResource::OsdResourceState::OsdResourceState(nlohmann::json config, std::vect
     }
 }
 
-nlohmann::json OsdResource::map_paths(nlohmann::json config)
+nlohmann::json OsdResource::map_overlays(nlohmann::json config, std::function<nlohmann::json(nlohmann::json)> transform_osd)
 {
-    for (const char* category : CATEGORIES)
+    for (const char *category : CATEGORIES)
     {
         if (!config.contains(category) || !config[category].contains("items"))
             continue;
 
         for (auto &entry : config[category]["items"])
         {
-            if (entry["type"] == "image")
-            {
-                entry["params"]["image_path"] = std::string(IMAGE_PATH) + entry["params"]["image_path"].get<std::string>();
-            }
-            else if (entry["type"] == "text" || entry["type"] == "dateTime")
-            {
-                entry["params"]["font_path"] = std::string(FONT_PATH) + entry["params"]["font_path"].get<std::string>();
-            }
+            entry = transform_osd(entry);
         }
     }
     return config;
 }
 
-nlohmann::json OsdResource::unmap_paths(nlohmann::json config)
+nlohmann::json OsdResource::unmap_paths(nlohmann::json osd_entry)
 {
-    for (const char* category : CATEGORIES)
+    if (osd_entry["type"] == "image")
     {
-        if (!config.contains(category) || !config[category].contains("items"))
-            continue;
-
-        for (auto &entry : config[category]["items"])
-        {
-            if (entry["type"] == "image")
-            {
-                entry["params"]["image_path"] = entry["params"]["image_path"].get<std::string>().substr(std::string(IMAGE_PATH).size());
-            }
-            else if (entry["type"] == "text" || entry["type"] == "dateTime")
-            {
-                entry["params"]["font_path"] = entry["params"]["font_path"].get<std::string>().substr(std::string(FONT_PATH).size());
-            }
-        }
+        osd_entry["params"]["image_path"] = osd_entry["params"]["image_path"].get<std::string>().substr(std::string(IMAGE_PATH).size());
     }
-    return config;
+    if ((osd_entry["type"] == "text" || osd_entry["type"] == "dateTime") && osd_entry["params"].contains("font_path"))
+    {
+        osd_entry["params"]["font_path"] = osd_entry["params"]["font_path"].get<std::string>().substr(std::string(FONT_PATH).size());
+    }
+    return osd_entry;
 }
 
+nlohmann::json OsdResource::map_paths(nlohmann::json osd_entry)
+{
+    if (osd_entry["type"] == "image")
+    {
+        osd_entry["params"]["image_path"] = std::string(IMAGE_PATH) + osd_entry["params"]["image_path"].get<std::string>();
+    }
+    if ((osd_entry["type"] == "text" || osd_entry["type"] == "dateTime") && osd_entry["params"].contains("font_path"))
+    {
+        osd_entry["params"]["font_path"] = std::string(FONT_PATH) + osd_entry["params"]["font_path"].get<std::string>();
+    }
+    return osd_entry;
+}
+
+nlohmann::json OsdResource::relative_font_size_to_absolut(nlohmann::json osd_entry, uint32_t width)
+{
+    if ((osd_entry["type"] == "text" || osd_entry["type"] == "dateTime") && osd_entry["params"].contains("font_size"))
+    {
+        osd_entry["params"]["font_size"] = relative_font_size_to_absolut(osd_entry["params"]["font_size"].get<float>(), width);
+    }
+    return osd_entry;
+}
+
+nlohmann::json OsdResource::absolut_font_size_to_relative(nlohmann::json osd_entry, uint32_t width)
+{
+    if ((osd_entry["type"] == "text" || osd_entry["type"] == "dateTime") && osd_entry["params"].contains("font_size"))
+    {
+        osd_entry["params"]["font_size"] = absolut_font_size_to_relative(osd_entry["params"]["font_size"].get<int>(), width);
+    }
+    return osd_entry;
+}
+
+int OsdResource::relative_font_size_to_absolut(float font_size, uint32_t width)
+{
+    if (font_size > 1 || font_size < 0)
+        WEBSERVER_LOG_ERROR("Font size must be between 0 and 1");
+    if (width == 0)
+        width = m_resolution_conf.width;
+    return static_cast<int>(static_cast<float>(font_size) * static_cast<float>(width));
+}
+
+float OsdResource::absolut_font_size_to_relative(int font_size, uint32_t width)
+{
+    if (width == 0)
+        width = m_resolution_conf.width;
+    return static_cast<float>(font_size) / static_cast<float>(m_resolution_conf.width);
+}
 nlohmann::json OsdResource::get_encoder_osd_config()
 {
-    nlohmann::json current_config;
+    nlohmann::json current_config(nlohmann::json::object());
 
     for (const char* category : CATEGORIES)
     {
@@ -221,7 +285,8 @@ std::vector<std::string> OsdResource::get_overlays_to_delete(nlohmann::json prev
 void OsdResource::http_register(std::shared_ptr<HTTPServer> srv)
 {
     srv->Get("/osd", std::function<nlohmann::json()>([this]()
-                                                     { return unmap_paths(m_config); }));
+                                                     { return map_overlays(m_config, [this](nlohmann::json entry)
+                                                                           { return absolut_font_size_to_relative(unmap_paths(entry), m_resolution_conf.width); }); }));
 
     srv->Get("/osd/formats", std::function<nlohmann::json()>([this]() {
         std::vector<std::string> formats;
@@ -254,21 +319,21 @@ void OsdResource::http_register(std::shared_ptr<HTTPServer> srv)
     srv->Patch("/osd", [this](const nlohmann::json &partial_config)
                {
         nlohmann::json previouse_config = m_config;
-        m_config.merge_patch(map_paths(partial_config));
+        m_config.merge_patch(map_overlays(partial_config, [this](nlohmann::json entry) { return relative_font_size_to_absolut(map_paths(entry), m_resolution_conf.width); }));
         auto result = this->m_config;
         auto state = std::make_shared<OsdResource::OsdResourceState>(OsdResourceState(m_config, get_overlays_to_delete(previouse_config, m_config)));
         on_resource_change(EventType::CHANGED_RESOURCE_OSD, state);
-        return unmap_paths(result); });
+        return map_overlays(result, [this](nlohmann::json conf) { return absolut_font_size_to_relative(unmap_paths(conf), m_resolution_conf.width); }); });
 
     srv->Put("/osd", [this](const nlohmann::json &config)
              {
         nlohmann::json previouse_config = m_config;
-        auto partial_config = nlohmann::json::diff(m_config, map_paths(config));
+        auto partial_config = nlohmann::json::diff(m_config, map_overlays(config, [this](nlohmann::json entry) { return relative_font_size_to_absolut(map_paths(entry), m_resolution_conf.width); }));
         m_config = m_config.patch(partial_config);
         auto result = this->m_config;
         auto state = std::make_shared<OsdResource::OsdResourceState>(OsdResourceState(m_config, get_overlays_to_delete(previouse_config, m_config)));
         on_resource_change(EventType::CHANGED_RESOURCE_OSD, state);
-        return unmap_paths(result); });
+        return map_overlays(result, [this](nlohmann::json conf) { return absolut_font_size_to_relative(unmap_paths(conf), m_resolution_conf.width); }); });
 
     srv->Post("/osd/upload", [](const httplib::MultipartFormData& file) {
         std::string extension = file.filename.substr(file.filename.find_last_of("."));

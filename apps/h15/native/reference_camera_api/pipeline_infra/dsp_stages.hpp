@@ -211,6 +211,8 @@ public:
         {
             HailoROIPtr roi = get_crop_roi(i);
             BufferPtr cropped_buffer_ptr = std::make_shared<Buffer>(cropped_buffers[i], roi);
+            BatchMetadataPtr batch_meta = std::make_shared<BatchMetadata>(cropped_buffers.size(), i);
+            cropped_buffer_ptr->add_metadata(batch_meta);
 
             // Set the ROI of the cropped buffer to the scale of the parent ROI
             // Note, this will make overlay incorrect if the bboxes are not flattened

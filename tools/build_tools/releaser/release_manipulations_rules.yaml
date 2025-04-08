@@ -8,12 +8,6 @@ rm_dirs:
   - "core/hailo/unit_tests"
   - "scripts/build_scripts/hailort"
   - "scripts/misc/internals"
-  - "apps/h8/gstreamer/general/license_plate_recognition/debug"
-  - "apps/h8/gstreamer/general/face_recognition/debug"
-  - "apps/h8/gstreamer/general/multi_person_multi_camera_tracking/debug"
-  - "apps/h8/gstreamer/general/multistream_multidevice/debug"
-  - "apps/h8/gstreamer/general/python/examples"
-  - "apps/h8/gstreamer/x86_hw_accelerated/debug"
   - "apps/h15/gstreamer/internals"
   - "apps/h15/gstreamer/classification"
   - "core/hailo/libs/postprocesses/python_bindings"
@@ -34,11 +28,7 @@ rm_files:
   - "downloader/uploader.py"
   - "apps/h8/gstreamer/general/multi_person_multi_camera_tracking/rtsp_multi_person_multi_camera_tracking.sh"
   - "apps/apps.rst"
-  - "apps/h8/gstreamer/gstreamer.rst"
-  - "apps/h8/gstreamer/general/general.rst"
-  - "apps/h8/gstreamer/imx8/imx8.rst"
-  - "apps/h8/gstreamer/raspberrypi/raspberrypi.rst"
-  - "apps/h8/gstreamer/rockchip/rockchip.rst"
+  - "apps/h15/native/internals"
   - "docs/docs.rst"
   - "docs/TAPPAS_Framework.rst"
   - "docs/elements/elements.rst"
@@ -158,33 +148,9 @@ str_replacement:
     src: "subdir('stress_app')"
     to: ""
 
+  - file: "apps/h15/native/meson.build"
+    src: "subdir('internals')"
+    to: ""
+
 regex_rules: 
-  - file: "apps/h8/gstreamer/general/multistream_detection/multi_stream_detection_rtsp.sh"
-    src: '[0-9]+(?:\.[0-9]+){3}'
-    to: "<IP>"
-    num_of_appears: 8
 
-  - file: "apps/h8/gstreamer/general/multistream_detection/multi_stream_detection_rtsp.sh"
-    src: '(user-id=)([a-zA-Z0-9]+!)'
-    to: "<user-id>"
-    num_of_appears: 8
-
-  - file: "apps/h8/gstreamer/general/multistream_detection/multi_stream_detection_rtsp.sh"
-    src: '(user-pw=)([a-zA-Z0-9]+!)'
-    to: "<user-pw>"
-    num_of_appears: 8
-
-  - file: "apps/h8/gstreamer/general/multistream_multidevice/rtsp_detection_and_pose_estimation.sh"
-    src: '[0-9]+(?:\.[0-9]+){3}'
-    to: "<IP>"
-    num_of_appears: 8
-
-  - file: "apps/h8/gstreamer/general/multistream_multidevice/rtsp_detection_and_pose_estimation.sh"
-    src: '(user-id=)([a-zA-Z0-9]+!)'
-    to: "<user-id>"
-    num_of_appears: 8
-
-  - file: "apps/h8/gstreamer/general/multistream_multidevice/rtsp_detection_and_pose_estimation.sh"
-    src: '(user-pw=)([a-zA-Z0-9]+!)'
-    to: "<user-pw>"
-    num_of_appears: 8

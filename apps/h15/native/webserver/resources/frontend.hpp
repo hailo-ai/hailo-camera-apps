@@ -21,8 +21,11 @@ namespace webserver
             {
                 bool freeze;
                 bool freeze_state_changed;
+                bool flip_enabled;
                 bool rotate_enabled;
+                std::string flip;
                 std::string rotate;
+                bool dewarp_enabled;
                 std::vector<Resolution> resolutions;
             };
 
@@ -34,7 +37,7 @@ namespace webserver
                 FrontendResourceState(std::string config, frontend_config_t control) : config(config), control(control) {}
             };
 
-            FrontendResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::AiResource> ai_res, std::shared_ptr<webserver::resources::IspResource> isp_res, std::shared_ptr<webserver::resources::ConfigResource> configs);
+            FrontendResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::AiResource> ai_res, std::shared_ptr<webserver::resources::IspResource> isp_res, std::shared_ptr<webserver::resources::ConfigResourceBase> configs);
             void http_register(std::shared_ptr<HTTPServer> srv) override;
             std::string name() override { return "frontend"; }
             ResourceType get_type() override { return ResourceType::RESOURCE_FRONTEND; }

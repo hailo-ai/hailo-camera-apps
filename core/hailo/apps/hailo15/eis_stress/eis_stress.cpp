@@ -184,7 +184,7 @@ void setup_frontend() {
     frontend_config["gyro"]["enabled"] = true;
 
     // Output 4k 15fps, fhd 15fps, hd 30 fps, sd 30 fps
-    frontend_config["output_video"]["resolutions"] = {{{"width", resolutions_map["4k"].width},
+    frontend_config["application_input_streams"]["resolutions"] = {{{"width", resolutions_map["4k"].width},
                                                        {"height", resolutions_map["4k"].height},
                                                        {"framerate", resolutions_map["4k"].framerate},
                                                        {"pool_max_buffers", resolutions_map["4k"].pool_max_buffers}},
@@ -271,7 +271,7 @@ int create_encoder_objects(std::shared_ptr<MediaLibrary> m_media_lib){
 
 void create_ai_pipelines(){
     m_media_lib->pipeline = std::make_shared<Pipeline>();
-    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50 ,"device0", 10, 20, 8, std::chrono::milliseconds(100), false);
+    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50 ,"device0", 10, 20, 8, false, std::chrono::milliseconds(100), false);
     std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, "", 5, false, false);
     std::shared_ptr<OverlayStage> overlay_stage = std::make_shared<OverlayStage>(OVERLAY_STAGE, 1, false, false);
     std::shared_ptr<CallbackStage> sink_stage = std::make_shared<CallbackStage>(AI_CALLBACK_STAGE, 1, false);

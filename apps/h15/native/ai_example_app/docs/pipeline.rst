@@ -35,10 +35,15 @@ The FHD resolution stream is used for inference, while the other streams are dis
 It is important to note here that each stream can be output at a different framerate (also configurable to the user). 
 For the case of this application, the two vision streams that go to display are output at 30 FPS, while the AI stream (FHD) is output at **15 FPS**.
 
+It is also important to note that the 4K output stream is split in 2 using a tee stage. This stage takes the pointer to incoming data 
+and sends it to mutliple outputs. This means that two streams can access the 4K images **without** copying the data.
+One of the streams will be used in the 4K vision pipeline to display on the screen, and the second will be used by
+the ai piepline to take better resolution crops of the image.
+
 For further reading on the Frontend module, please refer to the Media Library documentation.
 
-HD Pipeline
-===========
+HD Vision Pipeline
+==================
 .. image:: readme_resources/hd_stream.png
     :alt: Application Pipeline
     :align: center
@@ -109,12 +114,9 @@ Inference is performed on the tiles using the Hailo Async API, and after a light
 
 Aggregation
 -----------
-With the bounding boxes in hand, we can now aggregate the results to the 4K stream. This is done through an aggregator stage, which takes the bounding box metadata
-and adds it to the 4K stream. The size and location of the boxes is adjusted to the 4K resolution, so that they match their new image space.
+With the bounding boxes in hand, we can now aggregate the results to the 4K stream. This is done through two aggregator stages, which take the bounding box metadata
+and add it to the 4K stream. The size and location of the boxes is adjusted to the 4K resolution, so that they match their new image space.
 Afterwards NMS is used to remove overlapping bounding boxes between large and small tiles.
-The aggregator has two input streams coming at different framerates, so how is it able to take metadata from the sub stream? In this case the aggregator stage
-is set to a "leaky" mode, so 4K frames coming at 30FPS do not wait for the tiled stream to catch up, and instead use the latest available metadata from the tiled stream (in packs of 5 tiles).
-Between the two input framerates (30 FPS for 4K and 15 FPS for FHD), this means we have bounding boxes for every second frame of the 4K stream.
 
 .. figure:: readme_resources/aggregator.png
     :alt: Application Pipeline
@@ -125,51 +127,31 @@ Between the two input framerates (30 FPS for 4K and 15 FPS for FHD), this means 
 
     The detections from the 5 tiles are aggregated to the 4K image space.
 
-Tracking / Persist
-------------------
-As mentioned above, we now have a 4K stream at 30FPS that has detection boxes for every second frame.
-We have two options on how to complete the the detections in the missing frames:
+The second aggregator has two input streams coming at different framerates, so how is it able to match FHD frames with inference to the right 4K frame? 
+In this case the aggregator stage is set to a "sync" mode, so frames arriving int he aggregator compare timestamps to match the right frames. If 
+a 4K frame arrives and the next FHD frame has a timestamp that is newer (the disonance between the two framerates), the aggregator will let 
+the 4K frame continue without adding any detections, since this one is the gap between the 30FPS and 15FPS streams.
 
-* **Tracking**: We can track the detected objects between frames. This is done by computing box movement on the CPU.
-* **Persist**: We can persist the detections from the previous frame to the next frame.
-
-We will explain how the two look here:
-
-Tracking
-~~~~~~~~
-We can complete the missing frames by tracking the detected objects between frames. 
-This is done using the HailoTracker API provided in Tappas, which tracks bounding boxes using a Joint Detection and Embedding (JDE) algorithm.
-The tracker uses a Kalman Filter to predict bounding box movements, which completes the missing frames in the 4K stream. This can 
-be very accurate at approximating the movement of objects between frames, but can be compute-heavy at large numbers of detections.
-
-.. figure:: readme_resources/tracking.png
+.. figure:: readme_resources/aggregator_sync.png
     :alt: Application Pipeline
     :align: center
-    :height: 311 px
-    :width: 1186 px
-    :scale: 100%
+    :scale: 50%
 
-    The tracker can be used to complete detections between frames.
+    The matching frames are synced by timestamp.
 
-Persist
-~~~~~~~
-The persist method is simpler than tracking, and involves simply applying the latest seen bounding boxes to the next frame. This method is
-faster, as no compute is required, and therefore also scales very well when large numbers of objects are detected. While less accurate than true tracking,
-this method is still very useful for many scenarios. Considering that the we only need to complete detections for 1 frame until the next batch of detections arrives,
-this method is very suitable for this application as the boxes cannot travel as much.
-
-In the current iteration of the application, the persist method is used to complete the detections between frames. This step is applied near the end-to-end 
-of the AI pipeline, before the 4K stream is passed for object drawing.
+It is important to note from the figure above that we now expect every other frame to have detections, since the 4K stream is at 30FPS and the FHD stream is at 15FPS.
+This will be important later in the *persist stage* when we try to smooth the missing frames in between detections.
 
 From here the 4K stream continues to stage 2 of the AI pipeline.
+
 
 AI Stage 2: Detection Cropping and Face Landmarking
 ===================================================
 .. figure:: readme_resources/stage_2.png
     :alt: Application Pipeline
     :align: center
-    :height: 236 px
-    :width: 1522 px
+    :height: 238 px
+    :width: 1098 px
     :scale: 90%
 
     The second stage in the AI pipeline crops faces from the 4K stream and adds landmarks to them.
@@ -227,6 +209,64 @@ Aggregation
 This aggregation stage is similar to the one in the first half of the AI pipeline, but here we have a dynamic number of cropped images to add to the 4K stream.
 The aggregator will take the metadata from the 4K stream that arrived and use that to know how many faces should arrive.
 
+From here the 4K stream continues to 4K vision pipeline.
+
+
+4K Vision Pipeline
+==================
+The 4K vision pipeline is very similar to the HD pipeline, but with a few additions:
+
+.. image:: readme_resources/fourk_stream.png
+    :alt: Application Pipeline
+    :align: center
+
+We will focus on each stage separately and explain the operations performed in each.
+
+Results Aggregation
+-------------------
+This stage merges the results of the AI pipeline into the 4K stream. This is done by adding the bounding boxes and landmarks to the 4K stream
+with an aggregator like in previous instances. This aggregator is synced, so it also compares timestamps to
+match the right frames between the two streams.
+
+An important mechanism in this instance of aggregator is an inital latency delay between the first buffer arriving from the frontend pipeline and the first buffer arriving from the AI pipeline.
+This provides the AI pipeline the initial oppurtunity to catch up on it's latency to stay synced with the frontend pipeline.
+
+Tracking / Persist
+------------------
+`As mentioned before <#aggregation>`_, we now have a 4K stream at 30FPS that has detection boxes for every second frame.
+We have two options on how to complete the the detections in the missing frames:
+
+* **Tracking**: We can track the detected objects between frames. This is done by computing box movement on the CPU.
+* **Persist**: We can persist the detections from the previous frame to the next frame.
+
+We will explain how the two look here:
+
+Tracking
+~~~~~~~~
+We can complete the missing frames by tracking the detected objects between frames. 
+This is done using the HailoTracker API provided in Tappas, which tracks bounding boxes using a Joint Detection and Embedding (JDE) algorithm.
+The tracker uses a Kalman Filter to predict bounding box movements, which completes the missing frames in the 4K stream. This can 
+be very accurate at approximating the movement of objects between frames, but can be compute-heavy at large numbers of detections.
+
+.. figure:: readme_resources/tracking.png
+    :alt: Application Pipeline
+    :align: center
+    :height: 311 px
+    :width: 1186 px
+    :scale: 100%
+
+    The tracker can be used to complete detections between frames.
+
+Persist
+~~~~~~~
+The persist method is simpler than tracking, and involves simply applying the latest seen bounding boxes to the next frame. This method is
+faster, as no compute is required, and therefore also scales very well when large numbers of objects are detected. While less accurate than true tracking,
+this method is still very useful for many scenarios. Considering that the we only need to complete detections for 1 frame until the next batch of detections arrives,
+this method is very suitable for this application as the boxes cannot travel as much.
+
+In the current iteration of the application, the persist method is used to complete the detections between frames. This step is applied near the end-to-end 
+of the AI pipeline, before the 4K stream is passed for object drawing.
+
 Persist
 -------
 It is at this stage where we persist the detections between frames. This is done by applying the latest seen detections to the next frame. The latest
@@ -239,4 +279,4 @@ The next stage calls the HailoOverlay module provided in Tappas to draw all the 
 
 Streaming AI Pipeline
 ---------------------
-From here the AI Piepline is the same as the `HD Pipeline <#hd-pipeline>`_: OSD blending is performed by the DSP, and the image is encoded then finaly streamed to the host machine.
+From here the AI Piepline is the same as the `HD Pipeline <#hd-vision-pipeline>`_: OSD blending is performed by the DSP, and the image is encoded then finaly streamed to the host machine.

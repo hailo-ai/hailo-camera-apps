@@ -30,6 +30,7 @@ Welcome to TAPPAS's documentation!
    docs/installation/installation
    apps/apps
    apps/h15/native/ai_example_app/README
+   apps/h15/native/webserver/README
    core/patches/rtsp/README
    docs/docs
    tools/tools

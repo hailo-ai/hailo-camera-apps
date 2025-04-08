@@ -1,13 +1,13 @@
 #include "webrtc.hpp"
 using namespace webserver::resources;
 
-WebRtcResource::WebRtcResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<ConfigResource> configs) : Resource(event_bus){
+WebRtcResource::WebRtcResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<ConfigResourceBase> configs) : Resource(event_bus){
     WEBSERVER_LOG_INFO("Initializing WebRtcResource");
     m_stream_codec = configs->get_encoder_default_config()["hailo_encoder"]["config"]["output_stream"]["codec"];
     subscribe_callback(EventType::STREAM_CONFIG, [this](ResourceStateChangeNotification notification){
         WEBSERVER_LOG_INFO("Received STREAM_CONFIG event");
         auto state = std::static_pointer_cast<StreamConfigResourceState>(notification.resource_state);
-        if (state->resolutions[0].framerate_changed)
+        if (state->resolutions[0].framerate_changed || state->dewarp_state_changed || state->flip_state_changed)
         {
             return;
         }
@@ -196,5 +196,6 @@ void WebRtcResource::http_register(std::shared_ptr<HTTPServer> srv)
                             WEBSERVER_LOG_ERROR("Error processing WebRTC response: {}", e.what());
                             throw;
                         }
+                        WEBSERVER_LOG_INFO("WebRTC response processed successfully");
                     }));
 }

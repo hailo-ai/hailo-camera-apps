@@ -101,10 +101,18 @@ public:
 
         if (hmat)
         {
-            auto detections_size = hailo_common::get_hailo_detections(data->get_roi()).size();
-            if (detections_size > 0)
+            auto detections = hailo_common::get_hailo_detections(data->get_roi());
+            if (!detections.empty())
             {
-                REFERENCE_CAMERA_LOG_TRACE("Overlay stage: Processing frame with {} detections", detections_size);
+                std::unordered_map<std::string, int> label_count;
+                for (const auto &detection : detections)
+                    ++label_count[detection->get_label()];
+
+                std::ostringstream labels_stream;
+                for (const auto &[label, count] : label_count)
+                    labels_stream << (labels_stream.tellp() ? ", " : "") << label << ": " << count;
+
+                REFERENCE_CAMERA_LOG_TRACE("Overlay stage: Processing frame with {}", labels_stream.str());
             }
 
             if (DmaMemoryAllocator::get_instance().dmabuf_sync_start(data->get_buffer()->get_plane_ptr(0)) != MEDIA_LIBRARY_SUCCESS)
