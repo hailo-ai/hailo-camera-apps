@@ -1,10 +1,10 @@
 #include "cpp_pipeline.hpp"
 
-
 using namespace webserver::pipeline;
 using namespace webserver::resources;
 
-void CppPipeline::callback_handle_profile_switch(ResourceStateChangeNotification notif){
+void CppPipeline::callback_handle_profile_switch(ResourceStateChangeNotification notif)
+{
     WEBSERVER_LOG_DEBUG("Pipeline: Handling switch profile event");
     auto state = std::static_pointer_cast<ConfigResourceMedialib::ProfileResourceState>(notif.resource_state);
     std::string profile_name = state->profile_name;
@@ -17,7 +17,8 @@ void CppPipeline::callback_handle_profile_switch(ResourceStateChangeNotification
     WEBSERVER_LOG_DEBUG("Pipeline: Switch profile event handled");
 }
 
-hailo_encoder_config_t CppPipeline::get_encoder_config(){
+hailo_encoder_config_t CppPipeline::get_encoder_config()
+{
     auto expected_profile = m_app_resources->media_library->get_current_profile();
     if (!expected_profile.has_value())
     {
@@ -27,7 +28,7 @@ hailo_encoder_config_t CppPipeline::get_encoder_config(){
     ProfileConfig current_profile = expected_profile.value();
 
     // encoder_config_t encoder_config = current_profile.m_encoders[STREAM_4K];
-    encoder_config_t encoder_config = m_app_resources->media_library->m_encoders[STREAM_4K]->get_config();//TODO get the config form the profile(mosko need to be updated from the real struct)
+    encoder_config_t encoder_config = m_app_resources->media_library->m_encoders[STREAM_4K]->get_config(); // TODO get the config form the profile(mosko need to be updated from the real struct)
     if (std::holds_alternative<jpeg_encoder_config_t>(encoder_config))
     {
         WEBSERVER_LOG_CRITICAL("JPEG encoder config is not supported in webserver");
@@ -36,10 +37,11 @@ hailo_encoder_config_t CppPipeline::get_encoder_config(){
     return std::get<hailo_encoder_config_t>(encoder_config);
 }
 
-void CppPipeline::callback_handle_encoder(ResourceStateChangeNotification notif){
+void CppPipeline::callback_handle_encoder(ResourceStateChangeNotification notif)
+{
     WEBSERVER_LOG_DEBUG("Pipeline: Handling encoder resource state change");
     auto state = std::static_pointer_cast<EncoderResource::EncoderResourceState>(notif.resource_state);
-    
+
     auto expected_profile = m_app_resources->media_library->get_current_profile();
     if (!expected_profile.has_value())
     {
@@ -59,7 +61,8 @@ void CppPipeline::callback_handle_encoder(ResourceStateChangeNotification notif)
 
     current_profile.encoder_configs[STREAM_4K] = hailo_encoder_config;
 
-    if(m_app_resources->media_library->set_override_profile(current_profile) != media_library_return::MEDIA_LIBRARY_SUCCESS)
+    if (m_app_resources->media_library->set_override_parameters(current_profile) !=
+        media_library_return::MEDIA_LIBRARY_SUCCESS)
     {
         WEBSERVER_LOG_ERROR("Failed to set profile");
         throw std::runtime_error("Failed to set profile");
@@ -86,7 +89,8 @@ void CppPipeline::callback_handle_frontend(ResourceStateChangeNotification notif
     ProfileConfig current_profile = expected_profile.value();
     update_profile_config_frontend(state->config, current_profile);
 
-    if(m_app_resources->media_library->set_override_profile(current_profile) != media_library_return::MEDIA_LIBRARY_SUCCESS)
+    if (m_app_resources->media_library->set_override_parameters(current_profile) !=
+        media_library_return::MEDIA_LIBRARY_SUCCESS)
     {
         WEBSERVER_LOG_ERROR("Failed to set profile");
         throw std::runtime_error("Failed to set profile");
@@ -96,7 +100,8 @@ void CppPipeline::callback_handle_frontend(ResourceStateChangeNotification notif
     WEBSERVER_LOG_DEBUG("Pipeline: Frontend resource state change handled");
 }
 
-void CppPipeline::update_profile_config_frontend(const std::string &frontend_conf, ProfileConfig &profile_config){
+void CppPipeline::update_profile_config_frontend(const std::string &frontend_conf, ProfileConfig &profile_config)
+{
     ConfigManager frontend_config_schema(ConfigSchema::CONFIG_SCHEMA_FRONTEND);
     frontend_config_t frontend_config;
     frontend_config_schema.config_string_to_struct<frontend_config_t>(frontend_conf, frontend_config);
@@ -110,7 +115,8 @@ void CppPipeline::update_profile_config_frontend(const std::string &frontend_con
     profile_config.input_config = frontend_config.input_config;
 }
 
-void CppPipeline::callback_handle_stream_config(ResourceStateChangeNotification notif){
+void CppPipeline::callback_handle_stream_config(ResourceStateChangeNotification notif)
+{
     WEBSERVER_LOG_DEBUG("Pipeline: Handling stream config resource state change");
     auto state = std::static_pointer_cast<StreamConfigResourceState>(notif.resource_state);
     auto expected_profile = m_app_resources->media_library->get_current_profile();
@@ -122,7 +128,7 @@ void CppPipeline::callback_handle_stream_config(ResourceStateChangeNotification 
     ProfileConfig current_profile = expected_profile.value();
     if (state->resolutions[0].framerate_changed)
     {
-        current_profile.multi_resize_config.application_input_streams_config.resolutions[0].framerate = state->resolutions[0].framerate;//TODO need to solve the magic number 0 when i will have more streams
+        current_profile.multi_resize_config.application_input_streams_config.resolutions[0].framerate = state->resolutions[0].framerate; // TODO need to solve the magic number 0 when i will have more streams
     }
 
     if (state->resolutions[0].stream_size_changed)
@@ -131,11 +137,12 @@ void CppPipeline::callback_handle_stream_config(ResourceStateChangeNotification 
         current_profile.multi_resize_config.application_input_streams_config.resolutions[0].dimensions.destination_height = state->resolutions[0].height;
     }
 
-    if (state->rotate_enabled){
+    if (state->rotate_enabled)
+    {
         current_profile.multi_resize_config.rotation_config.enabled = state->rotate_enabled;
         current_profile.multi_resize_config.rotation_config.angle = state->rotation;
     }
-    //TODO the next part break architecture, need to be fixed
+    // TODO the next part break architecture, need to be fixed
     encoder_config_t encoder_config = m_app_resources->media_library->m_encoders[STREAM_4K]->get_config();
     if (std::holds_alternative<jpeg_encoder_config_t>(encoder_config))
     {
@@ -149,7 +156,8 @@ void CppPipeline::callback_handle_stream_config(ResourceStateChangeNotification 
 
     current_profile.encoder_configs[STREAM_4K] = hailo_encoder_config;
 
-    if(m_app_resources->media_library->set_override_profile(current_profile) != media_library_return::MEDIA_LIBRARY_SUCCESS)
+    if (m_app_resources->media_library->set_override_parameters(current_profile) !=
+        media_library_return::MEDIA_LIBRARY_SUCCESS)
     {
         WEBSERVER_LOG_ERROR("Failed to set profile");
         throw std::runtime_error("Failed to set profile");
