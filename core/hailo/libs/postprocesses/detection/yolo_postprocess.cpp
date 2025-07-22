@@ -28,7 +28,7 @@ namespace fs = std::experimental::filesystem;
 
 class YoloPost
 {
-protected:
+  protected:
     std::vector<std::shared_ptr<YoloOutputLayer>> _layers;
     uint _max_boxes;
     float _detection_thr;
@@ -37,14 +37,10 @@ protected:
     uint m_image_height;
     std::map<uint8_t, std::string> m_dataset;
 
-public:
+  public:
     virtual ~YoloPost() = default;
-    YoloPost(std::map<uint8_t, std::string> dataset,
-             float detection_threshold,
-             float iou_threshold,
-             uint max_boxes)
-        : _max_boxes(max_boxes), _detection_thr(detection_threshold),
-          _iou_thr(iou_threshold), m_dataset(dataset){};
+    YoloPost(std::map<uint8_t, std::string> dataset, float detection_threshold, float iou_threshold, uint max_boxes)
+        : _max_boxes(max_boxes), _detection_thr(detection_threshold), _iou_thr(iou_threshold), m_dataset(dataset) {};
 
     std::vector<HailoDetection> decode()
     {
@@ -77,12 +73,10 @@ public:
      * @param[in] thr Postprocess threshold.
      * @param[out] objects Reference to vector of detections.
      */
-    void extract_boxes(std::shared_ptr<YoloOutputLayer> layer,
-                       std::vector<HailoDetection> &objects);
+    void extract_boxes(std::shared_ptr<YoloOutputLayer> layer, std::vector<HailoDetection> &objects);
 };
 
-void YoloPost::extract_boxes(std::shared_ptr<YoloOutputLayer> layer,
-                             std::vector<HailoDetection> &objects)
+void YoloPost::extract_boxes(std::shared_ptr<YoloOutputLayer> layer, std::vector<HailoDetection> &objects)
 {
     uint class_id = 0;
     float x, y, h, w, confidence, class_confidence = 0.0f;
@@ -106,7 +100,8 @@ void YoloPost::extract_boxes(std::shared_ptr<YoloOutputLayer> layer,
                     // Get the top left corner of the object.
                     xmin = (x - (w / 2.0f));
                     ymin = (y - (h / 2.0f));
-                    objects.push_back(HailoDetection(HailoBBox(xmin, ymin, w, h), class_id, m_dataset[class_id], confidence));
+                    objects.push_back(
+                        HailoDetection(HailoBBox(xmin, ymin, w, h), class_id, m_dataset[class_id], confidence));
                 }
             }
         }
@@ -115,24 +110,23 @@ void YoloPost::extract_boxes(std::shared_ptr<YoloOutputLayer> layer,
 
 class Yolov5 : public YoloPost
 {
-public:
+  public:
     Yolov5(HailoROIPtr roi, YoloParams *params)
-        : YoloPost(params->labels, params->detection_threshold, params->iou_threshold, params->max_boxes), _tensors(roi->get_tensors())
+        : YoloPost(params->labels, params->detection_threshold, params->iou_threshold, params->max_boxes),
+          _tensors(roi->get_tensors())
     {
         if (_tensors.size() > 0)
         {
             bool sigmoid = (params->output_activation == "sigmoid");
             sort(_tensors.begin(), _tensors.end(),
-                 [](const HailoTensorPtr &a, const HailoTensorPtr &b)
-                 { return a->size() < b->size(); });
+                 [](const HailoTensorPtr &a, const HailoTensorPtr &b) { return a->size() < b->size(); });
 
             m_image_width = _tensors[0]->width() * 32;
             m_image_height = _tensors[0]->height() * 32;
             _layers.reserve(_tensors.size());
             for (std::size_t i = 0; i < _tensors.size(); i++)
             {
-                hailo_format_type_t format = _tensors[i]->vstream_info().format.type;
-                _layers.push_back(std::make_shared<Yolov5OL>(_tensors[i], params->anchors_vec[i], sigmoid, params->label_offset, format == HAILO_FORMAT_TYPE_UINT16));
+                _layers.push_back(std::make_shared<Yolov5OL>(_tensors[i], params->anchors_vec[i], sigmoid, params->label_offset, _tensors[i]->is_uint16()));
             }
 
             params->check_params_logic(get_num_classes());
@@ -141,60 +135,58 @@ public:
 
     virtual ~Yolov5() = default;
 
-private:
+  private:
     std::vector<HailoTensorPtr> _tensors;
 };
 
 class Yolov3 : public YoloPost
 {
-public:
+  public:
     Yolov3(HailoROIPtr roi, YoloParams *params)
-        : YoloPost(params->labels, params->detection_threshold, params->iou_threshold, params->max_boxes), _tensors(roi->get_tensors())
+        : YoloPost(params->labels, params->detection_threshold, params->iou_threshold, params->max_boxes),
+          _tensors(roi->get_tensors())
     {
         if (_tensors.size() > 0)
         {
             bool sigmoid = (params->output_activation == "sigmoid");
             sort(_tensors.begin(), _tensors.end(),
-                 [](const HailoTensorPtr &a, const HailoTensorPtr &b)
-                 { return a->size() < b->size(); });
+                 [](const HailoTensorPtr &a, const HailoTensorPtr &b) { return a->size() < b->size(); });
             m_image_width = _tensors[0]->width() * 32;
             m_image_height = _tensors[0]->height() * 32;
             _layers.reserve(_tensors.size());
 
             for (std::size_t i = 0; i < _tensors.size(); i++)
             {
-                hailo_format_type_t format = _tensors[i]->vstream_info().format.type;
-                _layers.push_back(std::make_shared<Yolov3OL>(_tensors[i], params->anchors_vec[i], sigmoid, params->label_offset, format == HAILO_FORMAT_TYPE_UINT16));
+                _layers.push_back(std::make_shared<Yolov3OL>(_tensors[i], params->anchors_vec[i], sigmoid, params->label_offset, _tensors[i]->is_uint16()));
             }
         }
         params->check_params_logic(get_num_classes());
     };
     virtual ~Yolov3() = default;
 
-private:
+  private:
     std::vector<HailoTensorPtr> _tensors;
 };
 
 class TinyYolov4LicensePlates : public YoloPost
 {
-public:
+  public:
     TinyYolov4LicensePlates(HailoROIPtr roi, YoloParams *params)
-        : YoloPost(params->labels, params->detection_threshold, params->iou_threshold, params->max_boxes), _tensors(roi->get_tensors())
+        : YoloPost(params->labels, params->detection_threshold, params->iou_threshold, params->max_boxes),
+          _tensors(roi->get_tensors())
     {
         if (_tensors.size() > 0)
         {
             bool sigmoid = (params->output_activation == "sigmoid");
             sort(_tensors.begin(), _tensors.end(),
-                 [](const HailoTensorPtr &a, const HailoTensorPtr &b)
-                 { return a->size() < b->size(); });
+                 [](const HailoTensorPtr &a, const HailoTensorPtr &b) { return a->size() < b->size(); });
             m_image_width = _tensors[0]->width() * 32;
             m_image_height = _tensors[0]->height() * 32;
             _layers.reserve(_tensors.size());
 
             for (std::size_t i = 0; i < _tensors.size(); i++)
             {
-                hailo_format_type_t format = _tensors[i]->vstream_info().format.type;
-                _layers.push_back(std::make_shared<TinyYolov4OL>(_tensors[i], params->anchors_vec[i], sigmoid, params->label_offset, format == HAILO_FORMAT_TYPE_UINT16));
+                _layers.push_back(std::make_shared<TinyYolov4OL>(_tensors[i], params->anchors_vec[i], sigmoid, params->label_offset, _tensors[i]->is_uint16()));
             }
         }
         params->check_params_logic(get_num_classes());
@@ -202,77 +194,70 @@ public:
 
     virtual ~TinyYolov4LicensePlates() = default;
 
-private:
+  private:
     std::vector<HailoTensorPtr> _tensors;
 };
 
 class Yolov4 : public YoloPost
 {
-public:
+  public:
     Yolov4(HailoROIPtr roi, YoloParams *params)
         : YoloPost(params->labels, params->detection_threshold, params->iou_threshold, params->max_boxes), _roi(roi)
     {
         if (_roi->has_tensors())
         {
             bool sigmoid = (params->output_activation == "sigmoid");
-            hailo_format_type_t format;
             auto anchors = params->anchors_vec;
             m_image_width = _roi->get_tensor("yolov4_leaky/conv110_centers")->width() * 32;
             m_image_height = _roi->get_tensor("yolov4_leaky/conv110_centers")->height() * 32;
 
-            format = _roi->get_tensor("yolov4_leaky/conv110_centers")->vstream_info().format.type;
             _layers.push_back(std::make_shared<Yolov4OL>(_roi->get_tensor("yolov4_leaky/conv110_centers"), _roi->get_tensor("yolov4_leaky/conv110_scales"),
                                                          _roi->get_tensor("yolov4_leaky/conv110_obj"), _roi->get_tensor("yolov4_leaky/conv110_probs"),
-                                                         anchors[0], params->label_offset, sigmoid, format == HAILO_FORMAT_TYPE_UINT16));
+                                                         anchors[0], params->label_offset, sigmoid, _roi->get_tensor("yolov4_leaky/conv110_centers")->is_uint16()));
 
-            format = _roi->get_tensor("yolov4_leaky/conv103_centers")->vstream_info().format.type;
             _layers.push_back(std::make_shared<Yolov4OL>(_roi->get_tensor("yolov4_leaky/conv103_centers"), _roi->get_tensor("yolov4_leaky/conv103_scales"),
                                                          _roi->get_tensor("yolov4_leaky/conv103_obj"), _roi->get_tensor("yolov4_leaky/conv103_probs"),
-                                                         anchors[1], params->label_offset, sigmoid, format == HAILO_FORMAT_TYPE_UINT16));
+                                                         anchors[1], params->label_offset, sigmoid, _roi->get_tensor("yolov4_leaky/conv103_centers")->is_uint16()));
 
-            format = _roi->get_tensor("yolov4_leaky/conv95_centers")->vstream_info().format.type;
             _layers.push_back(std::make_shared<Yolov4OL>(_roi->get_tensor("yolov4_leaky/conv95_centers"), _roi->get_tensor("yolov4_leaky/conv95_scales"),
                                                          _roi->get_tensor("yolov4_leaky/conv95_obj"), _roi->get_tensor("yolov4_leaky/conv95_probs"),
-                                                         anchors[2], params->label_offset, sigmoid, format == HAILO_FORMAT_TYPE_UINT16));
+                                                         anchors[2], params->label_offset, sigmoid, _roi->get_tensor("yolov4_leaky/conv95_centers")->is_uint16()));
 
             params->check_params_logic(get_num_classes());
         }
     };
     virtual ~Yolov4() = default;
 
-protected:
+  protected:
     HailoROIPtr _roi;
 };
 
 class YoloX : public YoloPost
 {
-public:
+  public:
     YoloX(HailoROIPtr roi, YoloParams *params)
         : YoloPost(params->labels, params->detection_threshold, params->iou_threshold, params->max_boxes), _roi(roi)
     {
         if (_roi->has_tensors())
         {
-            hailo_format_type_t format;
+            
             m_image_width = _roi->get_tensor("yolox_l_leaky/conv130")->width() * 32;
             m_image_height = _roi->get_tensor("yolox_l_leaky/conv130")->height() * 32;
 
-            format = _roi->get_tensor("yolox_l_leaky/conv130")->vstream_info().format.type;
             _layers.push_back(std::make_shared<YoloXOL>(_roi->get_tensor("yolox_l_leaky/conv130"), _roi->get_tensor("yolox_l_leaky/conv131"),
-                                                        _roi->get_tensor("yolox_l_leaky/conv129"), params->label_offset, format == HAILO_FORMAT_TYPE_UINT16));
+                                                        _roi->get_tensor("yolox_l_leaky/conv129"), params->label_offset, _roi->get_tensor("yolox_l_leaky/conv130")->is_uint16()));
 
-            format = _roi->get_tensor("yolox_l_leaky/conv113")->vstream_info().format.type;
             _layers.push_back(std::make_shared<YoloXOL>(_roi->get_tensor("yolox_l_leaky/conv113"), _roi->get_tensor("yolox_l_leaky/conv114"),
-                                                        _roi->get_tensor("yolox_l_leaky/conv112"), params->label_offset, format == HAILO_FORMAT_TYPE_UINT16));
+                                                        _roi->get_tensor("yolox_l_leaky/conv112"), params->label_offset, _roi->get_tensor("yolox_l_leaky/conv113")->is_uint16()));
 
-            format = _roi->get_tensor("yolox_l_leaky/conv95")->vstream_info().format.type;
             _layers.push_back(std::make_shared<YoloXOL>(_roi->get_tensor("yolox_l_leaky/conv95"), _roi->get_tensor("yolox_l_leaky/conv96"),
-                                                        _roi->get_tensor("yolox_l_leaky/conv94"), params->label_offset, format == HAILO_FORMAT_TYPE_UINT16));
+                                                        _roi->get_tensor("yolox_l_leaky/conv94"), params->label_offset, _roi->get_tensor("yolox_l_leaky/conv95")->is_uint16()));
             params->check_params_logic(get_num_classes());
         }
     };
     ~YoloX() = default;
 
-protected:
+  protected:
     HailoROIPtr _roi;
 };
 
@@ -282,10 +267,10 @@ void yolov5_no_persons(HailoROIPtr roi, void *params_void_ptr)
     auto post = Yolov5(roi, params);
     auto detections = post.decode();
     int person_class_id = 1;
-    detections.erase(std::remove_if(detections.begin(), detections.end(),
-                                    [person_class_id](HailoDetection obj)
-                                    { return obj.get_class_id() == person_class_id; }),
-                     detections.end());
+    detections.erase(
+        std::remove_if(detections.begin(), detections.end(),
+                       [person_class_id](HailoDetection obj) { return obj.get_class_id() == person_class_id; }),
+        detections.end());
     hailo_common::add_detections(roi, detections);
 }
 
@@ -328,8 +313,7 @@ void yolov5_no_faces_letterbox(HailoROIPtr roi, void *params_void_ptr)
         else
         {
             detections.erase(std::remove_if(detections.begin(), detections.end(),
-                                            [](HailoDetection obj)
-                                            { return obj.get_label() == "face"; }),
+                                            [](HailoDetection obj) { return obj.get_label() == "face"; }),
                              detections.end());
         }
     }
@@ -557,8 +541,8 @@ YoloParams *init(const std::string config_path, const std::string function_name)
             if (params->output_activation != "sigmoid" && params->output_activation != "none")
             {
                 std::ostringstream oss;
-                oss << "config output activation do not match! output activation: "
-                    << params->output_activation << std::endl;
+                oss << "config output activation do not match! output activation: " << params->output_activation
+                    << std::endl;
                 throw std::runtime_error(oss.str());
             }
         }
@@ -571,8 +555,8 @@ void YoloParams::check_params_logic(uint num_classes_tensors)
     if (labels.size() - 1 != num_classes_tensors)
     {
         std::ostringstream oss;
-        oss << "config class labels do not match output tensors! config labels size: "
-            << labels.size() - 1 << " tensors num classes: " << num_classes_tensors << std::endl;
+        oss << "config class labels do not match output tensors! config labels size: " << labels.size() - 1
+            << " tensors num classes: " << num_classes_tensors << std::endl;
         throw std::runtime_error(oss.str());
     }
 }

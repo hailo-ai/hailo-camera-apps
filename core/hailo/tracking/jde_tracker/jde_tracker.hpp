@@ -26,7 +26,7 @@
 #define DEFAULT_KALMAN_DISTANCE (0.7f)
 #define DEFAULT_IOU_THRESHOLD (0.8f)
 #define DEFAULT_INIT_IOU_THRESHOLD (0.9f)
-#define DEFAULT_KEEP_FRAMES (2)
+#define DEFAULT_KEEP_FRAMES (5)
 #define DEFAULT_KEEP_PAST_METADATA (true)
 #define DEFAULT_STD_WEIGHT_POSITION (0.01)
 #define DEFAULT_STD_WEIGHT_POSITION_BOX (0.00000001)
@@ -40,7 +40,7 @@ class JDETracker
     //******************************************************************
     // CLASS MEMBERS
     //******************************************************************
-private:
+  private:
     float m_kalman_dist_thr;   // threshold used for kalman tracker, bigger is looser
     float m_iou_thr;           // threshold used for iou tracker, bigger is looser
     float m_init_iou_thr;      // threshold used for iou tracker for new detections, bigger is looser
@@ -60,19 +60,25 @@ private:
     //******************************************************************
     // CLASS RESOURCE MANAGEMENT
     //******************************************************************
-public:
+  public:
     // Default Constructor
     JDETracker(float kalman_dist = DEFAULT_KALMAN_DISTANCE, float iou_thr = DEFAULT_IOU_THRESHOLD,
                float init_iou_thr = DEFAULT_INIT_IOU_THRESHOLD, int keep_tracked = DEFAULT_KEEP_FRAMES,
                int keep_new = DEFAULT_KEEP_FRAMES, int keep_lost = DEFAULT_KEEP_FRAMES,
-               bool keep_past_metadata = DEFAULT_KEEP_PAST_METADATA, float std_weight_position = DEFAULT_STD_WEIGHT_POSITION,
-               float std_weight_position_box = DEFAULT_STD_WEIGHT_POSITION_BOX, float std_weight_velocity = DEFAULT_STD_WEIGHT_VELOCITY,
+               bool keep_past_metadata = DEFAULT_KEEP_PAST_METADATA,
+               float std_weight_position = DEFAULT_STD_WEIGHT_POSITION,
+               float std_weight_position_box = DEFAULT_STD_WEIGHT_POSITION_BOX,
+               float std_weight_velocity = DEFAULT_STD_WEIGHT_VELOCITY,
                float std_weight_velocity_box = DEFAULT_STD_WEIGHT_VELOCITY_BOX, bool debug = DEFAULT_DEBUG,
-               std::vector<hailo_object_t> hailo_objects_blacklist_vec = {HAILO_LANDMARKS, HAILO_DEPTH_MASK, HAILO_CLASS_MASK}) : m_kalman_dist_thr(kalman_dist), m_iou_thr(iou_thr), m_init_iou_thr(init_iou_thr),
-                                                                                                                                  m_keep_tracked_frames(keep_tracked), m_keep_new_frames(keep_new), m_keep_lost_frames(keep_lost),
-                                                                                                                                  m_keep_past_metadata(keep_past_metadata), m_debug(debug), m_hailo_objects_blacklist(hailo_objects_blacklist_vec)
+               std::vector<hailo_object_t> hailo_objects_blacklist_vec = {HAILO_LANDMARKS, HAILO_DEPTH_MASK,
+                                                                          HAILO_CLASS_MASK})
+        : m_kalman_dist_thr(kalman_dist), m_iou_thr(iou_thr), m_init_iou_thr(init_iou_thr),
+          m_keep_tracked_frames(keep_tracked), m_keep_new_frames(keep_new), m_keep_lost_frames(keep_lost),
+          m_keep_past_metadata(keep_past_metadata), m_debug(debug),
+          m_hailo_objects_blacklist(hailo_objects_blacklist_vec)
     {
-        m_kalman_filter = KalmanFilter(std_weight_position, std_weight_position_box, std_weight_velocity, std_weight_velocity_box);
+        m_kalman_filter =
+            KalmanFilter(std_weight_position, std_weight_position_box, std_weight_velocity, std_weight_velocity_box);
     }
 
     // Destructor
@@ -81,54 +87,137 @@ public:
     //******************************************************************
     // CLASS MEMBER ACCESS
     //******************************************************************
-public:
+  public:
     // Setters for members accessible at element-property level
-    void set_kalman_distance(float new_distance) { m_kalman_dist_thr = new_distance; }
-    void set_iou_threshold(float new_iou_thr) { m_iou_thr = new_iou_thr; }
-    void set_init_iou_threshold(float new_init_iou_thr) { m_init_iou_thr = new_init_iou_thr; }
-    void set_keep_tracked_frames(int new_keep_tracked) { m_keep_tracked_frames = new_keep_tracked; }
-    void set_keep_new_frames(int new_keep_new) { m_keep_new_frames = new_keep_new; }
-    void set_keep_lost_frames(int new_keep_lost) { m_keep_lost_frames = new_keep_lost; }
-    void set_keep_past_metadata(bool new_keep_past_metadata) { m_keep_past_metadata = new_keep_past_metadata; }
+    void set_kalman_distance(float new_distance)
+    {
+        m_kalman_dist_thr = new_distance;
+    }
+    void set_iou_threshold(float new_iou_thr)
+    {
+        m_iou_thr = new_iou_thr;
+    }
+    void set_init_iou_threshold(float new_init_iou_thr)
+    {
+        m_init_iou_thr = new_init_iou_thr;
+    }
+    void set_keep_tracked_frames(int new_keep_tracked)
+    {
+        m_keep_tracked_frames = new_keep_tracked;
+    }
+    void set_keep_new_frames(int new_keep_new)
+    {
+        m_keep_new_frames = new_keep_new;
+    }
+    void set_keep_lost_frames(int new_keep_lost)
+    {
+        m_keep_lost_frames = new_keep_lost;
+    }
+    void set_keep_past_metadata(bool new_keep_past_metadata)
+    {
+        m_keep_past_metadata = new_keep_past_metadata;
+    }
 
-    void set_std_weight_position(float std_weight_position) { m_kalman_filter.set_std_weight_position(std_weight_position); }
-    void set_std_weight_position_box(float std_weight_position_box) { m_kalman_filter.set_std_weight_position_box(std_weight_position_box); }
-    void set_std_weight_velocity(float std_weight_velocity) { m_kalman_filter.set_std_weight_velocity(std_weight_velocity); }
-    void set_std_weight_velocity_box(float std_weight_velocity_box) { m_kalman_filter.set_std_weight_velocity_box(std_weight_velocity_box); }
-    void set_debug(bool debug) { m_debug = debug; }
-    void set_hailo_objects_blacklist(std::vector<hailo_object_t> hailo_objects_blacklist) { m_hailo_objects_blacklist = hailo_objects_blacklist; }
+    void set_std_weight_position(float std_weight_position)
+    {
+        m_kalman_filter.set_std_weight_position(std_weight_position);
+    }
+    void set_std_weight_position_box(float std_weight_position_box)
+    {
+        m_kalman_filter.set_std_weight_position_box(std_weight_position_box);
+    }
+    void set_std_weight_velocity(float std_weight_velocity)
+    {
+        m_kalman_filter.set_std_weight_velocity(std_weight_velocity);
+    }
+    void set_std_weight_velocity_box(float std_weight_velocity_box)
+    {
+        m_kalman_filter.set_std_weight_velocity_box(std_weight_velocity_box);
+    }
+    void set_debug(bool debug)
+    {
+        m_debug = debug;
+    }
+    void set_hailo_objects_blacklist(std::vector<hailo_object_t> hailo_objects_blacklist)
+    {
+        m_hailo_objects_blacklist = hailo_objects_blacklist;
+    }
 
     // Getters for members accessible at element-property level
-    float get_kalman_distance() { return m_kalman_dist_thr; }
-    float get_iou_threshold() { return m_iou_thr; }
-    float get_init_iou_threshold() { return m_init_iou_thr; }
-    int get_keep_tracked_frames() { return m_keep_tracked_frames; }
-    int get_keep_new_frames() { return m_keep_new_frames; }
-    int get_keep_lost_frames() { return m_keep_lost_frames; }
-    bool get_keep_past_metadata() { return m_keep_past_metadata; }
-    float get_std_weight_position() { return m_kalman_filter.get_std_weight_position(); }
-    float get_std_weight_position_box() { return m_kalman_filter.get_std_weight_position_box(); }
-    float get_std_weight_velocity() { return m_kalman_filter.get_std_weight_velocity(); }
-    float get_std_weight_velocity_box() { return m_kalman_filter.get_std_weight_velocity_box(); }
-    bool get_debug() { return m_debug; }
-    std::vector<hailo_object_t> get_hailo_objects_blacklist() { return m_hailo_objects_blacklist; }
+    float get_kalman_distance()
+    {
+        return m_kalman_dist_thr;
+    }
+    float get_iou_threshold()
+    {
+        return m_iou_thr;
+    }
+    float get_init_iou_threshold()
+    {
+        return m_init_iou_thr;
+    }
+    int get_keep_tracked_frames()
+    {
+        return m_keep_tracked_frames;
+    }
+    int get_keep_new_frames()
+    {
+        return m_keep_new_frames;
+    }
+    int get_keep_lost_frames()
+    {
+        return m_keep_lost_frames;
+    }
+    bool get_keep_past_metadata()
+    {
+        return m_keep_past_metadata;
+    }
+    float get_std_weight_position()
+    {
+        return m_kalman_filter.get_std_weight_position();
+    }
+    float get_std_weight_position_box()
+    {
+        return m_kalman_filter.get_std_weight_position_box();
+    }
+    float get_std_weight_velocity()
+    {
+        return m_kalman_filter.get_std_weight_velocity();
+    }
+    float get_std_weight_velocity_box()
+    {
+        return m_kalman_filter.get_std_weight_velocity_box();
+    }
+    bool get_debug()
+    {
+        return m_debug;
+    }
+    std::vector<hailo_object_t> get_hailo_objects_blacklist()
+    {
+        return m_hailo_objects_blacklist;
+    }
 
     //******************************************************************
     // TRACKING FUNCTIONS
     //******************************************************************
     /******************** PUBLIC FUNCTIONS ****************************/
-public:
-    static std::vector<STrack> hailo_detections_to_stracks(std::vector<HailoDetectionPtr> &inputs, int frame_id, std::vector<hailo_object_t> hailo_objects_blacklist);
+  public:
+    static std::vector<STrack> hailo_detections_to_stracks(std::vector<HailoDetectionPtr> &inputs, int frame_id,
+                                                           std::vector<hailo_object_t> hailo_objects_blacklist);
     static std::vector<HailoDetectionPtr> stracks_to_hailo_detections(std::vector<STrack> &stracks, bool debug);
     STrack *get_detection_with_id(int track_id);
     std::vector<STrack> get_tracked_stracks();
     std::vector<STrack> update(std::vector<HailoDetectionPtr> &inputs, bool report_unconfirmed, bool report_lost);
 
     /******************** PRIVATE FUNCTIONS ****************************/
-private:
-    void update_unmatches(std::vector<STrack *> strack_pool, std::vector<STrack> &tracked_stracks, std::vector<STrack> &lost_stracks, std::vector<STrack> &new_stracks);
-    void update_matches(std::vector<std::pair<int, int>> matches, std::vector<STrack *> tracked_stracks, std::vector<STrack> &detections, std::vector<STrack> &activated_stracks);
-    void linear_assignment(std::vector<std::vector<float>> &cost_matrix, int cost_matrix_rows, int cost_matrix_cols, float thresh, std::vector<std::pair<int, int>> &matches, std::vector<int> &unmatched_a, std::vector<int> &unmatched_b);
+  private:
+    void update_unmatches(std::vector<STrack *> strack_pool, std::vector<STrack> &tracked_stracks,
+                          std::vector<STrack> &lost_stracks, std::vector<STrack> &new_stracks);
+    void update_matches(std::vector<std::pair<int, int>> matches, std::vector<STrack *> tracked_stracks,
+                        std::vector<STrack> &detections, std::vector<STrack> &activated_stracks);
+    void linear_assignment(std::vector<std::vector<float>> &cost_matrix, int cost_matrix_rows, int cost_matrix_cols,
+                           float thresh, std::vector<std::pair<int, int>> &matches, std::vector<int> &unmatched_a,
+                           std::vector<int> &unmatched_b);
 
     std::vector<std::vector<float>> iou_distance(std::vector<STrack *> &atracks, std::vector<STrack> &btracks);
     std::vector<std::vector<float>> iou_distance(std::vector<STrack> &atracks, std::vector<STrack> &btracks);
@@ -139,8 +228,10 @@ private:
     std::vector<STrack> sub_stracks(std::vector<STrack> &tlista, std::vector<STrack> &tlistb);
     void remove_duplicate_stracks(std::vector<STrack> &stracksa, std::vector<STrack> &stracksb);
 
-    void embedding_distance(std::vector<STrack *> &tracks, std::vector<STrack> &detections, std::vector<std::vector<float>> &cost_matrix);
-    void fuse_motion(std::vector<std::vector<float>> &cost_matrix, std::vector<STrack *> &tracks, std::vector<STrack> &detections, float lambda_);
+    void embedding_distance(std::vector<STrack *> &tracks, std::vector<STrack> &detections,
+                            std::vector<std::vector<float>> &cost_matrix);
+    void fuse_motion(std::vector<std::vector<float>> &cost_matrix, std::vector<STrack *> &tracks,
+                     std::vector<STrack> &detections, float lambda_);
 };
 __END_DECLS
 

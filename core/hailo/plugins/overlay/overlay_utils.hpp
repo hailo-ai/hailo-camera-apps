@@ -12,14 +12,17 @@ __BEGIN_DECLS
  */
 class Parallel_pixel_opencv : public cv::ParallelLoopBody
 {
-protected:
+  protected:
     cv::Vec3b *p;
     float transparency;
     int image_cols;
     int roi_cols;
 
-public:
-    Parallel_pixel_opencv(uint8_t *ptr, float transparency, int image_cols, int roi_cols) : p((cv::Vec3b *)ptr), transparency(transparency), image_cols(image_cols), roi_cols(roi_cols) {}
+  public:
+    Parallel_pixel_opencv(uint8_t *ptr, float transparency, int image_cols, int roi_cols)
+        : p((cv::Vec3b *)ptr), transparency(transparency), image_cols(image_cols), roi_cols(roi_cols)
+    {
+    }
 };
 
 /**
@@ -33,11 +36,14 @@ public:
  */
 class ParallelPixelClassMask : public Parallel_pixel_opencv
 {
-private:
+  private:
     uint8_t *mask_data;
 
-public:
-    ParallelPixelClassMask(uint8_t *ptr, uint8_t *mask_data, float transparency, int image_cols, int roi_cols) : Parallel_pixel_opencv(ptr, transparency, image_cols, roi_cols), mask_data(mask_data) {}
+  public:
+    ParallelPixelClassMask(uint8_t *ptr, uint8_t *mask_data, float transparency, int image_cols, int roi_cols)
+        : Parallel_pixel_opencv(ptr, transparency, image_cols, roi_cols), mask_data(mask_data)
+    {
+    }
 
     virtual void operator()(const cv::Range &r) const
     {
@@ -57,20 +63,24 @@ public:
 /**
  * @brief
  * this class inherites from Parallel_pixel_opencv
- * it override the virtual void operator ()(const cv::Range& range) const, and draws the color of mask classification if the pixel value is above threshold.
- * The range in the operator () represents the subset of pixels that will be
- * treated by an individual thread. This splitting is done automatically to
- * distribute equally the computation load.
+ * it override the virtual void operator ()(const cv::Range& range) const, and draws the color of mask classification if
+ * the pixel value is above threshold. The range in the operator () represents the subset of pixels that will be treated
+ * by an individual thread. This splitting is done automatically to distribute equally the computation load.
  *
  */
 class ParallelPixelClassConfMask : public Parallel_pixel_opencv
 {
-private:
+  private:
     float *mask_data;
     cv::Scalar mask_color;
 
-public:
-    ParallelPixelClassConfMask(uint8_t *ptr, uint8_t *mask_data, float transparency, int image_cols, int roi_cols, cv::Scalar mask_color) : Parallel_pixel_opencv(ptr, transparency, image_cols, roi_cols), mask_data((float *)mask_data), mask_color(mask_color) {}
+  public:
+    ParallelPixelClassConfMask(uint8_t *ptr, uint8_t *mask_data, float transparency, int image_cols, int roi_cols,
+                               cv::Scalar mask_color)
+        : Parallel_pixel_opencv(ptr, transparency, image_cols, roi_cols), mask_data((float *)mask_data),
+          mask_color(mask_color)
+    {
+    }
 
     virtual void operator()(const cv::Range &r) const
     {
@@ -101,11 +111,14 @@ public:
  */
 class ParallelPixelDepthMask : public Parallel_pixel_opencv
 {
-private:
+  private:
     float *mask_data;
 
-public:
-    ParallelPixelDepthMask(uint8_t *ptr, uint8_t *mask_data, float transparency, int image_cols, int roi_cols) : Parallel_pixel_opencv(ptr, transparency, image_cols, roi_cols), mask_data((float *)mask_data) {}
+  public:
+    ParallelPixelDepthMask(uint8_t *ptr, uint8_t *mask_data, float transparency, int image_cols, int roi_cols)
+        : Parallel_pixel_opencv(ptr, transparency, image_cols, roi_cols), mask_data((float *)mask_data)
+    {
+    }
 
     virtual void operator()(const cv::Range &r) const
     {

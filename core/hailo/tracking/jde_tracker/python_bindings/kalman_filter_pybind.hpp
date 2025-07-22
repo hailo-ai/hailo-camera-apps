@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 /*
   Pybind API for Kalman Filter class
 */
@@ -38,11 +38,13 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
-class KalmanFilterWrapper {
-    public:
+class KalmanFilterWrapper
+{
+  public:
     // Constructor
     KalmanFilterWrapper(std::unique_ptr<KalmanFilter> &&filter) : m_kalman_filter(std::move(filter))
-    {}
+    {
+    }
 
     // Proxy Constructor
     static KalmanFilterWrapper create()
@@ -50,13 +52,12 @@ class KalmanFilterWrapper {
         auto kalman_filter = std::make_unique<KalmanFilter>(KalmanFilter());
         return KalmanFilterWrapper(std::move(kalman_filter));
     }
-    
-    private:
-        std::unique_ptr<KalmanFilter> m_kalman_filter;
+
+  private:
+    std::unique_ptr<KalmanFilter> m_kalman_filter;
 };
 
 void KalmanFilter_api_initialize_python_module(py::module &m)
 {
-    py::class_<KalmanFilterWrapper>(m, "KalmanFilter")
-        .def(py::init(&KalmanFilterWrapper::create));
+    py::class_<KalmanFilterWrapper>(m, "KalmanFilter").def(py::init(&KalmanFilterWrapper::create));
 }

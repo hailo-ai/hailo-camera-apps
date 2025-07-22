@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 #pragma once
 
 #define PY_SSIZE_T_CLEAN
@@ -22,7 +22,7 @@ class PyObjectWrapper
     PyObject *object;
     std::string description;
 
-public:
+  public:
     PyObjectWrapper(PyObject *object = nullptr, const char *desc = nullptr) : object(object)
     {
         if (!object && desc)
@@ -32,7 +32,10 @@ public:
         description = desc != nullptr ? std::string(desc) : std::string();
     }
 
-    operator PyObject *() { return object; }
+    operator PyObject *()
+    {
+        return object;
+    }
 
     ~PyObjectWrapper()
     {
@@ -70,9 +73,9 @@ class PythonCallback
     std::string module_name;
     GstCaps *caps_ptr;
 
-public:
-    PythonCallback(const char *module_path, const char *function_name,
-                   const char *args_string, const char *kwargs_string);
+  public:
+    PythonCallback(const char *module_path, const char *function_name, const char *args_string,
+                   const char *kwargs_string);
 
     ~PythonCallback() = default;
 
@@ -83,7 +86,7 @@ public:
 
 class PythonContextInitializer
 {
-public:
+  public:
     PythonContextInitializer();
 
     ~PythonContextInitializer();
@@ -92,7 +95,7 @@ public:
 
     void extendPath(const std::string &module_path);
 
-private:
+  private:
     PyGILState_STATE state;
     PyObject *sys_path;
 };
@@ -100,8 +103,8 @@ private:
 GstFlowReturn set_python_callback_caps(PythonCallback *python_callback, GstCaps *caps, char **error_msg);
 GstFlowReturn invoke_python_callback(PythonCallback *pycb, GstBuffer *buffer, py_descriptor_t desc, char **error_msg);
 GstFlowReturn invoke_python_callback(PythonCallback *pycb, char **error_msg);
-PythonCallback *create_python_callback(const char *module_path, const char *function_name,
-                                       const char *args_string, const char *keyword_args_string, char **error_msg);
+PythonCallback *create_python_callback(const char *module_path, const char *function_name, const char *args_string,
+                                       const char *keyword_args_string, char **error_msg);
 
 class PythonError
 {
@@ -110,7 +113,7 @@ class PythonError
     char *traceback;
     char *get_python_error(PyObject *ptype, PyObject *pvalue, PyObject *ptraceback);
 
-public:
+  public:
     PythonError();
     char *get();
 };

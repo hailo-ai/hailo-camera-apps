@@ -1,12 +1,11 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 #pragma once
 #include <gst/gst.h>
 
 G_BEGIN_DECLS
-
 
 #define GST_HAILO_STREAM_META_API_TYPE (gst_hailo_stream_meta_api_get_type())
 #define GST_HAILO_STREAM_META_INFO (gst_hailo_stream_meta_get_info())

@@ -8,7 +8,7 @@
 
 G_BEGIN_DECLS
 
-#define GST_TYPE_BUFFER_DROP_TRACER (gst_buffer_drop_tracer_get_type ())
-G_DECLARE_FINAL_TYPE (GstBufferDropTracer, gst_buffer_drop_tracer, GST, BUFFER_DROP_TRACER, GstSharkTracer)
+#define GST_TYPE_BUFFER_DROP_TRACER (gst_buffer_drop_tracer_get_type())
+G_DECLARE_FINAL_TYPE(GstBufferDropTracer, gst_buffer_drop_tracer, GST, BUFFER_DROP_TRACER, GstSharkTracer)
 
 G_END_DECLS

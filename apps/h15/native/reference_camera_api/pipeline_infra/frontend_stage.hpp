@@ -18,17 +18,20 @@
 #include "stage.hpp"
 #include "buffer.hpp"
 
+#define FRONEND_QUEUE_SIZE_DEFAULT (1)
+
 class FrontendStage : public ConnectedStage
 {
-private:
+  private:
     MediaLibraryFrontendPtr m_frontend;
     std::map<output_stream_id_t, std::vector<ConnectedStagePtr>> m_stream_subscribers;
     std::mutex m_running_mutex;
     std::condition_variable m_running_cv;
-    
-public:
-    FrontendStage(std::string name, size_t queue_size=1, bool leaky=false, bool print_fps=false) : 
-        ConnectedStage(name, queue_size, leaky, print_fps)
+
+  public:
+    FrontendStage(std::string name, size_t queue_size = FRONEND_QUEUE_SIZE_DEFAULT, bool leaky = false,
+                  bool print_fps = false)
+        : ConnectedStage(name, queue_size, leaky, print_fps)
     {
         m_frontend = nullptr;
         m_stream_subscribers.clear();
@@ -61,15 +64,13 @@ public:
         FrontendCallbacksMap fe_callbacks;
         if (!streams.has_value())
         {
-            std::cout << "Failed to get stream ids" << std::endl;
             REFERENCE_CAMERA_LOG_ERROR("Failed to get stream ids");
             throw std::runtime_error("Failed to get stream ids");
         }
         for (auto s : streams.value())
         {
-            std::cout << "subscribing to frontend for '" << s.id << "'" << std::endl;
-            fe_callbacks[s.id] = [s, this](HailoMediaLibraryBufferPtr buffer, size_t size)
-            {
+            REFERENCE_CAMERA_LOG_INFO("subscribing to frontend for '{}'", s.id);
+            fe_callbacks[s.id] = [s, this](HailoMediaLibraryBufferPtr buffer, size_t size) {
                 BufferPtr wrapped_buffer = std::make_shared<Buffer>(buffer);
                 for (auto &subscriber : m_stream_subscribers[s.id])
                 {
@@ -129,5 +130,53 @@ public:
     tl::expected<std::vector<frontend_output_stream_t>, media_library_return> get_outputs_streams()
     {
         return m_frontend->get_outputs_streams();
+    }
+};
+
+class FrontendStageBuild : public FrontendStage
+{
+  public:
+    class Builder
+    {
+
+      private:
+        std::optional<std::string> m_stage_name;
+        size_t m_queue_size = FRONEND_QUEUE_SIZE_DEFAULT;
+        bool m_leaky = false;
+        bool m_print_fps = false;
+
+      public:
+        Builder &set_stage_name(std::string name)
+        {
+            m_stage_name = name;
+            return *this;
+        }
+        Builder &set_queue_size_opt(size_t size)
+        {
+            m_queue_size = size;
+            return *this;
+        }
+        Builder &set_leaky_opt(bool activate)
+        {
+            m_leaky = activate;
+            return *this;
+        }
+        Builder &set_printfps_opt(bool activate)
+        {
+            m_print_fps = activate;
+            return *this;
+        }
+
+        std::shared_ptr<FrontendStage> buildptr() const
+        {
+            THROW_IF_MISSING(m_stage_name.has_value(), "set_stage_name");
+
+            return std::make_shared<FrontendStage>(m_stage_name.value(), m_queue_size, m_leaky, m_print_fps);
+        }
+    };
+
+    static Builder create()
+    {
+        return Builder();
     }
 };

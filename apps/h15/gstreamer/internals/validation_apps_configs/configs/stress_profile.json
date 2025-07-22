@@ -38,10 +38,11 @@
             }
         ]
     },
+    "application_analytics": {},
     "dewarp": {
         "enabled": true,
         "color_interpolation": "INTERPOLATION_TYPE_BILINEAR",
-        "sensor_calib_path": "/home/root/apps/resources/cam_intrinsics.txt",
+        "sensor_calib_path": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/shared/calibration/cam_intrinsics.txt",
         "camera_type": "CAMERA_TYPE_PINHOLE"
     },
     "dis": {
@@ -159,10 +160,10 @@
         }
     },
     "encoded_output_streams": [
-	 	{
-		  "stream_id": "sink0",
-		  "config_path": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_encoder_sink0.json"
-		},
+        {
+            "stream_id": "sink0",
+            "config_path": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_encoder_sink0.json"
+        },
         {
             "stream_id": "sink1",
             "config_path": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_encoder_sink1.json"
@@ -175,9 +176,9 @@
             "stream_id": "sink3",
             "config_path": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_encoder_sink3.json"
         }
-	],
+    ],
     "isp_config_files": {
-        "3a_config_path": "/usr/lib/medialib/sensors/imx678/theia_sl410m/4k/isp_profiles/daylight/3aconfig.json",
-        "sensor_entry": "/usr/lib/medialib/sensors/imx678/theia_sl410m/4k/isp_profiles/daylight/Sensor0_Entry.cfg"
+        "3a_config_path": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/tuning/3aconfig.json",
+        "sensor_entry": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/tuning/Sensor0_Entry.cfg"
     }
 }

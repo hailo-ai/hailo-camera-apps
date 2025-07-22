@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 #pragma once
 #include "hailo_objects.hpp"
 #include "hailo_common.hpp"
@@ -22,6 +22,7 @@ void time_d(HailoROIPtr roi);
 void time_e(HailoROIPtr roi);
 void sleep10(HailoROIPtr roi);
 void identity(HailoROIPtr roi);
+void generate_fixed_detections(HailoROIPtr roi);
 void generate_random_detections(HailoROIPtr roi);
 void generate_center_detection(HailoROIPtr roi);
 void generate_bottom_detection(HailoROIPtr roi);

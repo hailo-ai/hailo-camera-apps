@@ -7,7 +7,7 @@
 #define BIG_FRAMERATE (30)
 #define SMALL_FRAMERATE (10)
 
-static int counter=0;
+static int counter = 0;
 
 /**
  * Update the framerate of the pipeline
@@ -42,9 +42,9 @@ static GstPadProbeReturn update_framerate_probe_callback(GstPad *pad, GstPadProb
     GstElement *pipeline = GST_ELEMENT(user_data);
     counter++;
 
-    if (counter % 200 == 0) 
-        {
-        if (counter % 400 == 0) 
+    if (counter % 200 == 0)
+    {
+        if (counter % 400 == 0)
         {
             GST_INFO("Changing pipeline to %d fps", BIG_FRAMERATE);
             update_framerate(pipeline, BIG_FRAMERATE);
@@ -67,7 +67,7 @@ static GstPadProbeReturn update_framerate_probe_callback(GstPad *pad, GstPadProb
  * @return GST_FLOW_OK
  * @note Example only - only mapping the buffer to a GstMapInfo, than unmapping.
  */
-static GstFlowReturn appsink_new_sample(GstAppSink * appsink, gpointer callback_data)
+static GstFlowReturn appsink_new_sample(GstAppSink *appsink, gpointer callback_data)
 {
     GstSample *sample;
     GstBuffer *buffer;
@@ -80,7 +80,7 @@ static GstFlowReturn appsink_new_sample(GstAppSink * appsink, gpointer callback_
     GST_INFO_OBJECT(appsink, "Got Buffer from appsink: %p", mapinfo.data);
     // Do Logic
 
-    gst_buffer_unmap(buffer,&mapinfo);
+    gst_buffer_unmap(buffer, &mapinfo);
     gst_sample_unref(sample);
 
     return GST_FLOW_OK;
@@ -100,13 +100,18 @@ std::string create_pipeline_string(std::string codec)
                "video/x-raw,format=NV12,width=1920,height=1080,framerate=30/1 ! "
                "videorate name=videorate ! capsfilter name=videofilter caps=video/x-raw,framerate=30/1 ! "
                "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-               "hailo" + codec + "enc name=enco ! " + codec + "parse config-interval=-1 ! tee name=t t. ! "
+               "hailo" +
+               codec + "enc name=enco ! " + codec +
+               "parse config-interval=-1 ! tee name=t t. ! "
                "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-               "fpsdisplaysink fps-update-interval=2000 name=display_sink text-overlay=false video-sink=\"appsink name=hailo_sink\" sync=true signal-fps-measurements=true t. ! "
+               "fpsdisplaysink fps-update-interval=2000 name=display_sink text-overlay=false video-sink=\"appsink "
+               "name=hailo_sink\" sync=true signal-fps-measurements=true t. ! "
                "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-               "rtp" + codec + "pay ! "
+               "rtp" +
+               codec +
+               "pay ! "
                "udpsink host=10.0.0.2 port=5000 sync=true name=udp_sink";
-                                           
+
     std::cout << "Pipeline:" << std::endl;
     std::cout << "gst-launch-1.0 " << pipeline << std::endl;
 
@@ -122,7 +127,7 @@ std::string create_pipeline_string(std::string codec)
  */
 void set_callbacks(GstElement *pipeline, bool print_fps)
 {
-    GstAppSinkCallbacks callbacks={NULL};
+    GstAppSinkCallbacks callbacks = {NULL};
 
     GstElement *display_sink = gst_bin_get_by_name(GST_BIN(pipeline), "display_sink");
     GstElement *appsink = gst_bin_get_by_name(GST_BIN(display_sink), "hailo_sink");
@@ -149,7 +154,8 @@ void set_probes(GstElement *pipeline)
     // extract pads from elements
     GstPad *pad_encoder = gst_element_get_static_pad(encoder, "sink");
     // set probes
-    gst_pad_add_probe(pad_encoder, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)update_framerate_probe_callback, pipeline, NULL);
+    gst_pad_add_probe(pad_encoder, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)update_framerate_probe_callback,
+                      pipeline, NULL);
 }
 
 int main(int argc, char *argv[])
@@ -165,18 +171,19 @@ int main(int argc, char *argv[])
     auto result = options.parse(argc, argv);
     std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options, codec);
 
-    for (ArgumentType argument: argument_handling_results)
+    for (ArgumentType argument : argument_handling_results)
     {
-        switch (argument) {
-            case ArgumentType::Help:
-                return 0;
-            case ArgumentType::Codec:
-                break;
-            case ArgumentType::PrintFPS:
-                print_fps = true;
-                break;
-            case ArgumentType::Error:
-                return 1;
+        switch (argument)
+        {
+        case ArgumentType::Help:
+            return 0;
+        case ArgumentType::Codec:
+            break;
+        case ArgumentType::PrintFPS:
+            print_fps = true;
+            break;
+        case ArgumentType::Error:
+            return 1;
         }
     }
 

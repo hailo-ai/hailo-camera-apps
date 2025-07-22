@@ -17,7 +17,7 @@ void semantic_segmentation(HailoROIPtr roi)
     // find the argmax1 tensor
     for (auto tensor : tensors)
     {
-        if (std::regex_search(tensor->name(), std::regex("argmax"))) 
+        if (std::regex_search(tensor->name(), std::regex("argmax")))
         {
             tensor_ptr = tensor;
         }

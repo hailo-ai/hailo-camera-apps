@@ -19,7 +19,6 @@ function init_variables() {
     udp_port=$DEFAULT_UDP_PORT
     udp_host_ip=$DEFAULT_UDP_HOST_IP
     framerate=$DEFAULT_FRAMERATE
-    
 
     num_buffers_if_jpeg=10
     property_num_buffers=""
@@ -30,6 +29,10 @@ function init_variables() {
     sync_pipeline=false
     print_gst_launch_only=false
     additional_parameters=""
+
+    mode="daylight"
+    tuning_extension=""
+    project="hailo15h"
 }
 
 function print_usage() {
@@ -42,28 +45,54 @@ function print_usage() {
     echo "  --print-gst-launch      Print the ready gst-launch command without running it"
     echo "  --udp-port              Set the udp port (default $udp_port)"
     echo "  --udp-host-ip           Set the udp host ip (default $udp_host_ip)"
+    echo "  --mode                  mode (e.g., daylight)"
+    echo "  --tuning                tuning extension - relevant only for denoise (e.g., _r0225)"
+    echo "  --project               project name (e.g., hailo15h)"
     exit 0
 }
 
 function parse_args() {
     while test $# -gt 0; do
-        if [ "$1" = "--help" ] || [ "$1" == "-h" ]; then
-            print_usage
-            exit 0
-        elif [ "$1" = "--print-gst-launch" ]; then
-            print_gst_launch_only=true
-        elif [ "$1" = "--show-fps" ]; then
-            echo "Printing fps"
-            additional_parameters="-v | grep hailo_display"
-        elif [ "$1" = "--input" ] || [ "$1" = "-i" ]; then
-            input_source="$2"
-            shift
-        else
-            echo "Received invalid argument: $1. See expected arguments below:"
-            print_usage
-            exit 1
-        fi
-
+        case "$1" in
+            --help|-h)
+                print_usage
+                ;;
+            --print-gst-launch)
+                print_gst_launch_only=true
+                ;;
+            --show-fps)
+                echo "Printing fps"
+                additional_parameters="-v | grep hailo_display"
+                ;;
+            -i|--input)
+                input_source="$2"
+                shift
+                ;;
+            --udp-port)
+                udp_port="$2"
+                shift
+                ;;
+            --udp-host-ip)
+                udp_host_ip="$2"
+                shift
+                ;;
+            --mode)
+                mode="$2"
+                shift
+                ;;
+            --tuning)
+                tuning_extension="$2"
+                shift
+                ;;
+            --project)
+                project="$2"
+                shift
+                ;;
+            *)
+                echo "Received invalid argument: $1"
+                print_usage
+                ;;
+        esac
         shift
     done
 }
@@ -89,13 +118,14 @@ PIPELINE="gst-launch-1.0 \
             fpsdisplaysink fps-update-interval=2000 video-sink=fakesink name=hailo_display sync=$sync_pipeline text-overlay=false \
         ${additional_parameters}"
 
-/home/root/apps/clean_symlinks_config_isp.sh
+
+/home/root/apps/clean_symlinks_config_isp.sh --mode "$mode" --tuning "$tuning_extension" --project "$project"
 if [ $? -ne 0 ]; then
     echo "Failed to clean symlinks and copy ISP configuration files."
     exit 1
 fi
 
-echo "Running $network_name"
+echo "Running OSD pipeline with MODE=${mode:-default}, TUNING_EXTENSION=${tuning_extension:-none}", PROJECT=${project:-hailo15h}
 echo ${PIPELINE}
 
 if [ "$print_gst_launch_only" = true ]; then

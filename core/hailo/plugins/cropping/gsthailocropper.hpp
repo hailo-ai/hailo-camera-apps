@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 #pragma once
 
 #include <gst/gst.h>
@@ -18,8 +18,8 @@ G_BEGIN_DECLS
 #define GST_IS_HAILO_CROPPER(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), GST_TYPE_HAILO_CROPPER))
 #define GST_IS_HAILO_CROPPER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), GST_TYPE_HAILO_CROPPER))
 #define GST_HAILO_CROPPER_CAST(obj) ((GstHailoCropper *)obj)
-#define GST_HAILO_CROPPER_GET_CLASS(obj) \
-        (G_TYPE_INSTANCE_GET_CLASS ((obj),GST_TYPE_HAILO_CROPPER,GstHailoCropperClass))
+#define GST_HAILO_CROPPER_GET_CLASS(obj)                                                                               \
+    (G_TYPE_INSTANCE_GET_CLASS((obj), GST_TYPE_HAILO_CROPPER, GstHailoCropperClass))
 
 typedef struct _GstHailoCropper GstHailoCropper;
 typedef struct _GstHailoCropperClass GstHailoCropperClass;

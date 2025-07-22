@@ -2,7 +2,9 @@
 
 #define WEBPAGE_BUNDLE_PATH "/usr/share/hailo/webpage"
 
-webserver::resources::WebpageResource::WebpageResource(std::shared_ptr<EventBus> event_bus): Resource(event_bus) {}
+webserver::resources::WebpageResource::WebpageResource(std::shared_ptr<EventBus> event_bus) : Resource(event_bus)
+{
+}
 
 void webserver::resources::WebpageResource::http_register(std::shared_ptr<HTTPServer> srv)
 {

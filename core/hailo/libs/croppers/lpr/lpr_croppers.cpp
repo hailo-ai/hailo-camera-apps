@@ -49,25 +49,27 @@ float quality_estimation(std::shared_ptr<HailoMat> hailo_mat, const HailoBBox &r
         return -1.0;
 
     // If it is not too small then we can make the crop
-    HailoROIPtr crop_roi = std::make_shared<HailoROI>(HailoBBox(cropped_xmin, cropped_ymin, cropped_width_n, cropped_height_n));
+    HailoROIPtr crop_roi =
+        std::make_shared<HailoROI>(HailoBBox(cropped_xmin, cropped_ymin, cropped_width_n, cropped_height_n));
     std::vector<cv::Mat> cropped_image_vec = hailo_mat->crop(crop_roi);
 
     // Convert image to BGR
     cv::Mat bgr_image;
     switch (hailo_mat->get_type())
     {
-    case HAILO_MAT_YUY2:
-    {
+    case HAILO_MAT_YUY2: {
         cv::Mat cropped_image = cropped_image_vec[0];
-        cv::Mat yuy2_image = cv::Mat(cropped_image.rows, cropped_image.cols * 2, CV_8UC2, (char *)cropped_image.data, cropped_image.step);
+        cv::Mat yuy2_image = cv::Mat(cropped_image.rows, cropped_image.cols * 2, CV_8UC2, (char *)cropped_image.data,
+                                     cropped_image.step);
         cv::cvtColor(yuy2_image, bgr_image, cv::COLOR_YUV2BGR_YUY2);
         break;
     }
-    case HAILO_MAT_NV12:
-    {
-        cv::Mat full_mat = cv::Mat(cropped_image_vec[0].rows + cropped_image_vec[1].rows, cropped_image_vec[0].cols, CV_8UC1);
+    case HAILO_MAT_NV12: {
+        cv::Mat full_mat =
+            cv::Mat(cropped_image_vec[0].rows + cropped_image_vec[1].rows, cropped_image_vec[0].cols, CV_8UC1);
         memcpy(full_mat.data, cropped_image_vec[0].data, cropped_image_vec[0].rows * cropped_image_vec[0].cols);
-        memcpy(full_mat.data + cropped_image_vec[0].rows * cropped_image_vec[0].cols, cropped_image_vec[1].data, cropped_image_vec[1].rows * cropped_image_vec[1].cols);
+        memcpy(full_mat.data + cropped_image_vec[0].rows * cropped_image_vec[0].cols, cropped_image_vec[1].data,
+               cropped_image_vec[1].rows * cropped_image_vec[1].cols);
         cv::cvtColor(full_mat, bgr_image, cv::COLOR_YUV2BGR_NV12);
 
         break;
@@ -132,7 +134,8 @@ std::vector<HailoROIPtr> license_plate_quality_estimation(std::shared_ptr<HailoM
         {
             if (LICENSE_PLATE_LABEL != license_plate->get_label())
                 continue;
-            HailoBBox license_plate_box = hailo_common::create_flattened_bbox(license_plate->get_bbox(), license_plate->get_scaling_bbox());
+            HailoBBox license_plate_box =
+                hailo_common::create_flattened_bbox(license_plate->get_bbox(), license_plate->get_scaling_bbox());
 
             // Get the variance of the image, only add ROIs that are above threshold.
             variance = quality_estimation(image, license_plate_box, CROP_RATIO);
@@ -177,9 +180,7 @@ std::vector<HailoROIPtr> vehicles_without_ocr(std::shared_ptr<HailoMat> image, H
     {
         HailoBBox vehicle_bbox = detection->get_bbox();
         // If the bbox is not yet in the image, then throw it out
-        if ((vehicle_bbox.xmin() < 0.0) ||
-            (vehicle_bbox.xmax() > 1.0) ||
-            (vehicle_bbox.ymin() < 0.0) ||
+        if ((vehicle_bbox.xmin() < 0.0) || (vehicle_bbox.xmax() > 1.0) || (vehicle_bbox.ymin() < 0.0) ||
             (vehicle_bbox.ymax() > 1.0))
             continue;
 
@@ -194,7 +195,8 @@ std::vector<HailoROIPtr> vehicles_without_ocr(std::shared_ptr<HailoMat> image, H
 
         has_ocr = false;
         // For each detection, check the classifications
-        std::vector<HailoClassificationPtr> vehicle_classifications = hailo_common::get_hailo_classifications(detection);
+        std::vector<HailoClassificationPtr> vehicle_classifications =
+            hailo_common::get_hailo_classifications(detection);
         for (HailoClassificationPtr &classification : vehicle_classifications)
         {
             if (OCR_LABEL == classification->get_classification_type())

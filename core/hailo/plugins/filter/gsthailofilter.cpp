@@ -18,17 +18,14 @@ GST_DEBUG_CATEGORY_STATIC(gst_hailofilter_debug_category);
 #define INIT_FUNC_NAME "init"
 #define FREE_FUNC_NAME "free_resources"
 
-static void gst_hailofilter_set_property(GObject *object,
-                                         guint property_id, const GValue *value, GParamSpec *pspec);
-static void gst_hailofilter_get_property(GObject *object,
-                                         guint property_id, GValue *value, GParamSpec *pspec);
+static void gst_hailofilter_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
+static void gst_hailofilter_get_property(GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
 static void gst_hailofilter_dispose(GObject *object);
 static void gst_hailofilter_finalize(GObject *object);
 
 static gboolean gst_hailofilter_start(GstBaseTransform *trans);
 static gboolean gst_hailofilter_stop(GstBaseTransform *trans);
-static GstFlowReturn gst_hailofilter_transform_ip(GstBaseTransform *trans,
-                                                  GstBuffer *buffer);
+static GstFlowReturn gst_hailofilter_transform_ip(GstBaseTransform *trans, GstBuffer *buffer);
 
 enum
 {
@@ -44,44 +41,42 @@ G_DEFINE_TYPE_WITH_CODE(GstHailofilter, gst_hailofilter, GST_TYPE_BASE_TRANSFORM
                         GST_DEBUG_CATEGORY_INIT(gst_hailofilter_debug_category, "hailofilter", 0,
                                                 "debug category for hailofilter element"));
 
-static void
-gst_hailofilter_class_init(GstHailofilterClass *klass)
+static void gst_hailofilter_class_init(GstHailofilterClass *klass)
 {
     GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
-    GstBaseTransformClass *base_transform_class =
-        GST_BASE_TRANSFORM_CLASS(klass);
+    GstBaseTransformClass *base_transform_class = GST_BASE_TRANSFORM_CLASS(klass);
 
     gst_element_class_add_pad_template(GST_ELEMENT_CLASS(klass),
-                                       gst_pad_template_new("src", GST_PAD_SRC, GST_PAD_ALWAYS,
-                                                            GST_CAPS_ANY));
+                                       gst_pad_template_new("src", GST_PAD_SRC, GST_PAD_ALWAYS, GST_CAPS_ANY));
     gst_element_class_add_pad_template(GST_ELEMENT_CLASS(klass),
-                                       gst_pad_template_new("sink", GST_PAD_SINK, GST_PAD_ALWAYS,
-                                                            GST_CAPS_ANY));
+                                       gst_pad_template_new("sink", GST_PAD_SINK, GST_PAD_ALWAYS, GST_CAPS_ANY));
 
-    gst_element_class_set_static_metadata(GST_ELEMENT_CLASS(klass),
-                                          "hailofilter - postprocessing element", "Hailo/Tools", "Allowes to user access Hailonet's output using an so file.",
+    gst_element_class_set_static_metadata(GST_ELEMENT_CLASS(klass), "hailofilter - postprocessing element",
+                                          "Hailo/Tools", "Allowes to user access Hailonet's output using an so file.",
                                           "hailo.ai <contact@hailo.ai>");
 
     gobject_class->set_property = gst_hailofilter_set_property;
     gobject_class->get_property = gst_hailofilter_get_property;
-    g_object_class_install_property(gobject_class, PROP_PROCESS_LIB,
-                                    g_param_spec_string("so-path", "process so Path Location",
-                                                        "Location of the so file to load", NULL,
-                                                        (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
-    g_object_class_install_property(gobject_class, PROP_PROCESS_FUNC_NAME,
-                                    g_param_spec_string("function-name", "Name of function in the so file",
-                                                        "function-name", "filter",
-                                                        (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
-    g_object_class_install_property(gobject_class, PROP_USE_GST_BUFFER,
-                                    g_param_spec_boolean("use-gst-buffer", "use-gst-buffer", "use function with access to the Gst Buffer", false,
-                                                         (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-    g_object_class_install_property(gobject_class, PROP_CONFIG_FILE_PATH,
-                                    g_param_spec_string("config-path", "config-path",
-                                                        "json config file path", NULL,
-                                                        (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
-    g_object_class_install_property(gobject_class, PROP_REMOVE_TENSORS,
-                                    g_param_spec_boolean("remove-tensors", "remove-tensors", "whether hailofilter should delete tensors at the end", true,
-                                                         (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property(
+        gobject_class, PROP_PROCESS_LIB,
+        g_param_spec_string("so-path", "process so Path Location", "Location of the so file to load", NULL,
+                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
+    g_object_class_install_property(
+        gobject_class, PROP_PROCESS_FUNC_NAME,
+        g_param_spec_string("function-name", "Name of function in the so file", "function-name", "filter",
+                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
+    g_object_class_install_property(
+        gobject_class, PROP_USE_GST_BUFFER,
+        g_param_spec_boolean("use-gst-buffer", "use-gst-buffer", "use function with access to the Gst Buffer", false,
+                             (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property(
+        gobject_class, PROP_CONFIG_FILE_PATH,
+        g_param_spec_string("config-path", "config-path", "json config file path", NULL,
+                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
+    g_object_class_install_property(
+        gobject_class, PROP_REMOVE_TENSORS,
+        g_param_spec_boolean("remove-tensors", "remove-tensors", "whether hailofilter should delete tensors at the end",
+                             true, (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     gobject_class->dispose = gst_hailofilter_dispose;
     gobject_class->finalize = gst_hailofilter_finalize;
@@ -90,8 +85,7 @@ gst_hailofilter_class_init(GstHailofilterClass *klass)
     base_transform_class->transform_ip = GST_DEBUG_FUNCPTR(gst_hailofilter_transform_ip);
 }
 
-static void
-gst_hailofilter_init(GstHailofilter *hailofilter)
+static void gst_hailofilter_init(GstHailofilter *hailofilter)
 {
     hailofilter->use_config = true;
     hailofilter->remove_tensors = true;
@@ -99,8 +93,7 @@ gst_hailofilter_init(GstHailofilter *hailofilter)
     hailofilter->config_path = g_strdup("NULL");
 }
 
-void gst_hailofilter_set_property(GObject *object, guint property_id,
-                                  const GValue *value, GParamSpec *pspec)
+void gst_hailofilter_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
     GstHailofilter *hailofilter = GST_HAILO_FILTER(object);
 
@@ -130,8 +123,7 @@ void gst_hailofilter_set_property(GObject *object, guint property_id,
     }
 }
 
-void gst_hailofilter_get_property(GObject *object, guint property_id,
-                                  GValue *value, GParamSpec *pspec)
+void gst_hailofilter_get_property(GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
 {
     GstHailofilter *hailofilter = GST_HAILO_FILTER(object);
 
@@ -238,14 +230,16 @@ static gboolean gst_hailofilter_start(GstBaseTransform *trans)
             if use_gst_buffer, the function should have three arguments (HailoROIPtr, GstVideoFrame*, and gchar*),
             and therefore will be able to change the buffer data.
             */
-            hailofilter->handler_gst_no_config = (void (*)(HailoROIPtr, GstVideoFrame *))dlsym(hailofilter->loaded_lib, hailofilter->function_name);
+            hailofilter->handler_gst_no_config =
+                (void (*)(HailoROIPtr, GstVideoFrame *))dlsym(hailofilter->loaded_lib, hailofilter->function_name);
         }
         else
         {
             /*
             in this case the funtion doesn't get GstVideoFrame* as argument therefore it can't modify the buffer data.
             */
-            hailofilter->handler_no_config = (void (*)(HailoROIPtr))dlsym(hailofilter->loaded_lib, hailofilter->function_name);
+            hailofilter->handler_no_config =
+                (void (*)(HailoROIPtr))dlsym(hailofilter->loaded_lib, hailofilter->function_name);
         }
     }
     else // found init function
@@ -257,14 +251,17 @@ static gboolean gst_hailofilter_start(GstBaseTransform *trans)
             if use_gst_buffer, the function should have four arguments (HailoROIPtr, GstVideoFrame*, and gchar*,void *),
             and therefore will be able to change the buffer data.
             */
-            hailofilter->handler_gst = (void (*)(HailoROIPtr, GstVideoFrame *, void *))dlsym(hailofilter->loaded_lib, hailofilter->function_name);
+            hailofilter->handler_gst = (void (*)(HailoROIPtr, GstVideoFrame *, void *))dlsym(
+                hailofilter->loaded_lib, hailofilter->function_name);
         }
         else
         {
             /*
-                       in this case the funtion doesn't get GstVideoFrame* as argument therefore it can't modify the buffer data.
+                       in this case the funtion doesn't get GstVideoFrame* as argument therefore it can't modify the
+               buffer data.
             */
-            hailofilter->handler = (void (*)(HailoROIPtr, void *))dlsym(hailofilter->loaded_lib, hailofilter->function_name);
+            hailofilter->handler =
+                (void (*)(HailoROIPtr, void *))dlsym(hailofilter->loaded_lib, hailofilter->function_name);
         }
     }
     // If there was an error loading one of the symbols, close the dl and break.
@@ -280,8 +277,7 @@ static gboolean gst_hailofilter_start(GstBaseTransform *trans)
     return TRUE;
 }
 
-static gboolean
-gst_hailofilter_stop(GstBaseTransform *trans)
+static gboolean gst_hailofilter_stop(GstBaseTransform *trans)
 {
     GstHailofilter *hailofilter = GST_HAILO_FILTER(trans);
 
@@ -313,8 +309,8 @@ void get_tensors_from_meta(GstBuffer *buffer, HailoROIPtr roi)
             gst_buffer_unmap(pmeta->buffer, &info);
             continue;
         }
-        const hailo_vstream_info_t vstream_info = reinterpret_cast<GstHailoTensorMeta *>(gst_buffer_get_meta(pmeta->buffer, g_type_from_name(TENSOR_META_API_NAME)))->info;
-        roi->add_tensor(std::make_shared<HailoTensor>(reinterpret_cast<uint8_t *>(info.data), vstream_info));
+        const hailo_tensor_metadata_t tensor_meta_info = reinterpret_cast<GstHailoTensorMeta *>(gst_buffer_get_meta(pmeta->buffer, g_type_from_name(TENSOR_META_API_NAME)))->info;
+        roi->add_tensor(std::make_shared<HailoTensor>(reinterpret_cast<uint8_t *>(info.data), tensor_meta_info));
         gst_buffer_unmap(pmeta->buffer, &info);
     }
 }
@@ -346,8 +342,7 @@ gboolean remove_tensors(GstBuffer *buffer, HailoROIPtr roi)
     return true;
 }
 
-static GstFlowReturn gst_hailofilter_transform_ip(GstBaseTransform *trans,
-                                                  GstBuffer *buffer)
+static GstFlowReturn gst_hailofilter_transform_ip(GstBaseTransform *trans, GstBuffer *buffer)
 {
     GstHailofilter *hailofilter = GST_HAILO_FILTER(trans);
 

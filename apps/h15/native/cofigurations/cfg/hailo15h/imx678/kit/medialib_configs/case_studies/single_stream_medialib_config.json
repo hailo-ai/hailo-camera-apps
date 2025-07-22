@@ -1,0 +1,18 @@
+{
+    "version": "1.0.0",
+    "default_profile": "Daylight",
+    "profiles": [
+        {
+            "name": "Daylight",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/daylight/case_studies/single_stream_daylight_profile.json"
+        },
+        {
+            "name": "Lowlight_Bayer",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/lowlight/case_studies/single_stream_lowlight_bayer_profile.json"
+        },
+        {
+            "name": "Lowlight_Bayer_Preprocess",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/lowlight/case_studies/single_stream_lowlight_bayer_preprocess_profile.json"
+        }
+    ]
+}

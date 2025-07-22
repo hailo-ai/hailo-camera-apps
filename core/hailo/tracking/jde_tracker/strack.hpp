@@ -53,7 +53,7 @@ class STrack
     //******************************************************************
     // CLASS MEMBERS
     //******************************************************************
-public:
+  public:
     // Class members
     bool m_is_activated; // Is activated
     int m_track_id;      // Unique track id
@@ -71,7 +71,7 @@ public:
     TrackerTypes::KAL_MEAN m_mean;
     TrackerTypes::KAL_COVA m_covariance;
 
-private:
+  private:
     int m_times_seen;
     int m_state;                                           // Current state: can be New, Tracked, or Lost
     KalmanFilter *m_kalman_filter;                         // A Kalman Filter instance to make predictions
@@ -81,13 +81,15 @@ private:
     //******************************************************************
     // CLASS RESOURCE MANAGEMENT
     //******************************************************************
-public:
+  public:
     // Constructors
     STrack(std::vector<float> tlwh_ = {0., 0., 0., 0.}, float score_ = 0.0, std::vector<float> temp_feat = {0.0},
            HailoDetectionPtr detection_ptr = nullptr, int frame_id = 0,
-           std::vector<hailo_object_t> hailo_objects_blacklist = {HAILO_LANDMARKS, HAILO_DEPTH_MASK, HAILO_CLASS_MASK}, bool debug = false) : m_is_activated(false), m_track_id(0), m_frame_id(frame_id), m_tracklet_len(0), m_confidence(score_),
-                                                                                                                                              m_start_frame(0), m_alpha(0.9), tmp_location_tlwh(tlwh_), m_state(TrackState::New),
-                                                                                                                                              m_hailo_detection(detection_ptr), m_debug(debug)
+           std::vector<hailo_object_t> hailo_objects_blacklist = {HAILO_LANDMARKS, HAILO_DEPTH_MASK, HAILO_CLASS_MASK},
+           bool debug = false)
+        : m_is_activated(false), m_track_id(0), m_frame_id(frame_id), m_tracklet_len(0), m_confidence(score_),
+          m_start_frame(0), m_alpha(0.9), tmp_location_tlwh(tlwh_), m_state(TrackState::New),
+          m_hailo_detection(detection_ptr), m_debug(debug)
     {
         m_times_seen = 0;
         // Initialize mean/covariance to zero
@@ -105,7 +107,7 @@ public:
     // TRACKING FUNCTIONS
     //******************************************************************
     /******************** PUBLIC FUNCTIONS ****************************/
-public:
+  public:
     /**
      * @brief Update the HailoDetectionPtr bbox with the strack's m_tlwh
      *
@@ -135,7 +137,8 @@ public:
             else if (keep_past_metadata)
             {
                 // Add the sub object only if its type is not under hailo_objects_blacklist
-                if (std::find(m_hailo_objects_blacklist.begin(), m_hailo_objects_blacklist.end(), object_type) == m_hailo_objects_blacklist.end())
+                if (std::find(m_hailo_objects_blacklist.begin(), m_hailo_objects_blacklist.end(), object_type) ==
+                    m_hailo_objects_blacklist.end())
                 {
                     new_detection->add_unscaled_object(object);
                 }
@@ -252,22 +255,40 @@ public:
     }
 
     // Mark state to tracked
-    void mark_tracked() { m_state = TrackState::Tracked; }
+    void mark_tracked()
+    {
+        m_state = TrackState::Tracked;
+    }
 
     // Mark state to lost
-    void mark_lost() { m_state = TrackState::Lost; }
+    void mark_lost()
+    {
+        m_state = TrackState::Lost;
+    }
 
     // Mark state to removed
-    void mark_removed() { m_state = TrackState::Removed; }
+    void mark_removed()
+    {
+        m_state = TrackState::Removed;
+    }
 
     // Get the state
-    int get_state() { return m_state; }
+    int get_state()
+    {
+        return m_state;
+    }
 
     // Get debug
-    bool get_debug() { return m_debug; }
+    bool get_debug()
+    {
+        return m_debug;
+    }
 
     // Get the hailo detection object
-    HailoDetectionPtr get_hailo_detection() { return this->m_hailo_detection; }
+    HailoDetectionPtr get_hailo_detection()
+    {
+        return this->m_hailo_detection;
+    }
 
     /**
      * @brief Get the next available id
@@ -427,7 +448,7 @@ public:
     }
 
     /******************** PRIVATE FUNCTIONS ****************************/
-private:
+  private:
     /**
      * @brief Update the tracklet's features and applies smoothing.
      *

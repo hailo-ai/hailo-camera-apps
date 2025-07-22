@@ -29,26 +29,13 @@
 #define SCRFD_WIDTH (640)
 #define SCRFD_HEIGHT (640)
 
+std::vector<std::string> BOXES_10g{"scrfd_10g/conv48", "scrfd_10g/conv54", "scrfd_10g/conv57"};
+std::vector<std::string> CLASSES_10g{"scrfd_10g/conv47", "scrfd_10g/conv53", "scrfd_10g/conv56"};
+std::vector<std::string> LANDMARKS_10g{"scrfd_10g/conv49", "scrfd_10g/conv55", "scrfd_10g/conv58"};
 
-std::vector<std::string> BOXES_10g {"scrfd_10g/conv48",
-                                    "scrfd_10g/conv54",
-                                    "scrfd_10g/conv57"};
-std::vector<std::string> CLASSES_10g {"scrfd_10g/conv47",
-                                      "scrfd_10g/conv53",
-                                      "scrfd_10g/conv56"};
-std::vector<std::string> LANDMARKS_10g {"scrfd_10g/conv49",
-                                        "scrfd_10g/conv55",
-                                        "scrfd_10g/conv58"};
-
-std::vector<std::string> BOXES_2_5g {"scrfd_2_5g/conv47",
-                                     "scrfd_2_5g/conv53",
-                                     "scrfd_2_5g/conv56"};
-std::vector<std::string> CLASSES_2_5g {"scrfd_2_5g/conv46",
-                                       "scrfd_2_5g/conv52",
-                                       "scrfd_2_5g/conv55"};
-std::vector<std::string> LANDMARKS_2_5g {"scrfd_2_5g/conv48",
-                                         "scrfd_2_5g/conv54",
-                                         "scrfd_2_5g/conv57"};
+std::vector<std::string> BOXES_2_5g{"scrfd_2_5g/conv47", "scrfd_2_5g/conv53", "scrfd_2_5g/conv56"};
+std::vector<std::string> CLASSES_2_5g{"scrfd_2_5g/conv46", "scrfd_2_5g/conv52", "scrfd_2_5g/conv55"};
+std::vector<std::string> LANDMARKS_2_5g{"scrfd_2_5g/conv48", "scrfd_2_5g/conv54", "scrfd_2_5g/conv57"};
 
 std::vector<std::string> BOXES;
 std::vector<std::string> CLASSES;
@@ -199,7 +186,8 @@ ScrfdParams *init(const std::string config_path, const std::string function_name
     xt::xarray<float> anchors;
     anchors = get_anchors_scrfd(anchor_min_size, anchor_steps, image_width, image_height);
     // Using the anchors, create a multiplier that will be used against the tensor results.
-    ScrfdParams *params = new ScrfdParams(anchors, anchor_variance, anchor_min_size, score_threshold, iou_threshold, num_branches);
+    ScrfdParams *params =
+        new ScrfdParams(anchors, anchor_variance, anchor_min_size, score_threshold, iou_threshold, num_branches);
     return params;
 }
 
@@ -213,15 +201,13 @@ void free_resources(void *params_void_ptr)
 // SETUP - ANCHOR EXTRACTION
 //******************************************************************
 xt::xarray<float> get_anchors_scrfd(const std::vector<std::vector<int>> &anchor_min_sizes,
-                                    const xt::xarray<int> &anchor_steps,
-                                    const int image_width,
-                                    const int image_height)
+                                    const xt::xarray<int> &anchor_steps, const int image_width, const int image_height)
 {
     int total_anchors, num_anchors, width, height;
     total_anchors = num_anchors = width = height = 0;
 
     // Initialize the anchors to the given size. This way we can fill them in-place
-    // instead of concatenating, saving lots of time. 
+    // instead of concatenating, saving lots of time.
     for (uint index = 0; index < anchor_min_sizes.size(); index++)
     {
         width = image_width / anchor_steps[index];
@@ -238,7 +224,8 @@ xt::xarray<float> get_anchors_scrfd(const std::vector<std::vector<int>> &anchor_
         int width = image_width / anchor_steps[index];
         int height = image_height / anchor_steps[index];
         num_anchors = anchor_min_sizes[index].size();
-        xt::xarray<float> anchor_centers_stack = xt::transpose(xt::stack(xt::meshgrid(xt::arange(0, width), xt::arange(0, height)))) * anchor_steps[index];
+        xt::xarray<float> anchor_centers_stack =
+            xt::transpose(xt::stack(xt::meshgrid(xt::arange(0, width), xt::arange(0, height)))) * anchor_steps[index];
         auto anchor_centers_paired = xt::reshape_view(anchor_centers_stack, {width * height, 2});
 
         // Normalize the centers to the size of the anchor branch
@@ -262,18 +249,17 @@ xt::xarray<float> get_anchors_scrfd(const std::vector<std::vector<int>> &anchor_
 //******************************************************************
 // BOX/LANDMARK DECODING
 //******************************************************************
-xt::xarray<float> decode_landmarks_scrfd(const xt::xarray<float> &landmark_detections,
-                                        const xt::xarray<float> &anchors)
+xt::xarray<float> decode_landmarks_scrfd(const xt::xarray<float> &landmark_detections, const xt::xarray<float> &anchors)
 {
     // Decode the boxes relative to their anchors.
     // There are 5 landmarks paired in sets of 2 (x and y values),
     // so we need to tile our anchors by 5
-    xt::xarray<float> landmarks = xt::tile(xt::view(anchors, xt::all(), xt::range(0, 2)), {1, 5}) + landmark_detections * xt::tile(xt::view(anchors, xt::all(), xt::range(2, 4)), {1, 5});
+    xt::xarray<float> landmarks = xt::tile(xt::view(anchors, xt::all(), xt::range(0, 2)), {1, 5}) +
+                                  landmark_detections * xt::tile(xt::view(anchors, xt::all(), xt::range(2, 4)), {1, 5});
     return landmarks;
 }
 
-xt::xarray<float> decode_boxes_scrfd(const xt::xarray<float> &box_detections,
-                                     const xt::xarray<float> &anchors)
+xt::xarray<float> decode_boxes_scrfd(const xt::xarray<float> &box_detections, const xt::xarray<float> &anchors)
 {
     // Initalize the boxes matrix at the expected size
     xt::xarray<float> boxes = xt::zeros<float>(box_detections.shape());
@@ -285,37 +271,34 @@ xt::xarray<float> decode_boxes_scrfd(const xt::xarray<float> &box_detections,
     return boxes;
 }
 
-std::tuple<xt::xarray<float>, xt::xarray<float>, xt::xarray<float>> detect_decode_branch(std::map<std::string, HailoTensorPtr> &tensors,
-                                                                                        const xt::xarray<uint8_t> &boxes_quant,
-                                                                                        const xt::xarray<uint8_t> &classes_quant,
-                                                                                        const xt::xarray<uint8_t> &landmarks_quant,
-                                                                                        const xt::xarray<float> &anchors,
-                                                                                        const float score_threshold,
-                                                                                        const int i,
-                                                                                        const int steps)
+std::tuple<xt::xarray<float>, xt::xarray<float>, xt::xarray<float>> detect_decode_branch(
+    std::map<std::string, HailoTensorPtr> &tensors, const xt::xarray<uint8_t> &boxes_quant,
+    const xt::xarray<uint8_t> &classes_quant, const xt::xarray<uint8_t> &landmarks_quant,
+    const xt::xarray<float> &anchors, const float score_threshold, const int i, const int steps)
 {
     // Filter scores that pass threshold, quantize the score threshold
     auto scores_quant = xt::col(classes_quant, 1);
-    xt::xarray<int> threshold_indices = xt::flatten_indices(xt::argwhere(scores_quant > tensors[CLASSES[i]]->quantize(score_threshold)));
-    
+    xt::xarray<int> threshold_indices =
+        xt::flatten_indices(xt::argwhere(scores_quant > tensors[CLASSES[i]]->quantize(score_threshold)));
+
     if (threshold_indices.shape(0) == 0)
         return xt::xtuple(xt::empty<float>({0}), xt::empty<float>({0}), xt::empty<float>({0}));
 
     // Filter and dequantize boxes
     xt::xarray<uint8_t> high_boxes_quant = xt::view(boxes_quant, xt::keep(threshold_indices), xt::all());
     auto high_boxes_dequant = common::dequantize(high_boxes_quant,
-                                                tensors[BOXES[i]]->vstream_info().quant_info.qp_scale,
-                                                tensors[BOXES[i]]->vstream_info().quant_info.qp_zp);
+                                                tensors[BOXES[i]]->qp_scale(),
+                                                tensors[BOXES[i]]->qp_zp());
     // Filter and dequantize scores
     xt::xarray<uint8_t> high_scores_quant = xt::view(scores_quant, xt::keep(threshold_indices));
     auto high_scores_dequant = common::dequantize(high_scores_quant,
-                                                tensors[CLASSES[i]]->vstream_info().quant_info.qp_scale,
-                                                tensors[CLASSES[i]]->vstream_info().quant_info.qp_zp);
+                                                tensors[CLASSES[i]]->qp_scale(),
+                                                tensors[CLASSES[i]]->qp_zp());
     // Filter and dequantize landmarks
     xt::xarray<uint8_t> high_landmarks_quant = xt::view(landmarks_quant, xt::keep(threshold_indices), xt::all());
     auto high_landmarks_dequant = common::dequantize(high_landmarks_quant,
-                                                    tensors[LANDMARKS[i]]->vstream_info().quant_info.qp_scale,
-                                                    tensors[LANDMARKS[i]]->vstream_info().quant_info.qp_zp);
+                                                    tensors[LANDMARKS[i]]->qp_scale(),
+                                                    tensors[LANDMARKS[i]]->qp_zp());
     // Filter anchors and use them to decode boxes/landmarks
     auto stepped_inds = threshold_indices + steps;
     auto high_anchors = xt::view(anchors, xt::keep(stepped_inds), xt::all());
@@ -326,14 +309,11 @@ std::tuple<xt::xarray<float>, xt::xarray<float>, xt::xarray<float>> detect_decod
     return xt::xtuple(decoded_boxes, high_scores_dequant, decoded_landmarks);
 }
 
-std::tuple<std::vector<xt::xarray<float>>,
-            std::vector<xt::xarray<float>>,
-            std::vector<xt::xarray<float>>>
+std::tuple<std::vector<xt::xarray<float>>, std::vector<xt::xarray<float>>, std::vector<xt::xarray<float>>>
 detect_boxes_and_landmarks(std::map<std::string, HailoTensorPtr> &tensors,
                            const std::vector<xt::xarray<uint8_t>> &boxes_quant,
                            const std::vector<xt::xarray<uint8_t>> &classes_quant,
-                           const std::vector<xt::xarray<uint8_t>> &landmarks_quant,
-                           const xt::xarray<float> &anchors,
+                           const std::vector<xt::xarray<uint8_t>> &landmarks_quant, const xt::xarray<float> &anchors,
                            const float score_threshold)
 {
     std::vector<xt::xarray<float>> high_scores_dequant(CLASSES.size());
@@ -343,31 +323,23 @@ detect_boxes_and_landmarks(std::map<std::string, HailoTensorPtr> &tensors,
     int steps = 0;
     for (uint i = 0; i < CLASSES.size(); ++i)
     {
-        auto boxes_scores_landmarks = detect_decode_branch(tensors,
-                                                           boxes_quant[i],
-                                                           classes_quant[i],
-                                                           landmarks_quant[i],
-                                                           anchors, score_threshold, i, steps);
+        auto boxes_scores_landmarks = detect_decode_branch(tensors, boxes_quant[i], classes_quant[i],
+                                                           landmarks_quant[i], anchors, score_threshold, i, steps);
         decoded_boxes[i] = std::get<0>(boxes_scores_landmarks);
         high_scores_dequant[i] = std::get<1>(boxes_scores_landmarks);
         decoded_landmarks[i] = std::get<2>(boxes_scores_landmarks);
         steps += classes_quant[i].shape(0);
     }
 
-    return std::tuple<std::vector<xt::xarray<float>>,
-                      std::vector<xt::xarray<float>>,
-                      std::vector<xt::xarray<float>>>(std::move(decoded_boxes),
-                                                      std::move(high_scores_dequant),
-                                                      std::move(decoded_landmarks));
+    return std::tuple<std::vector<xt::xarray<float>>, std::vector<xt::xarray<float>>, std::vector<xt::xarray<float>>>(
+        std::move(decoded_boxes), std::move(high_scores_dequant), std::move(decoded_landmarks));
 }
 
 //******************************************************************
 // DETECTION/LANDMARKS EXTRACTION & ENCODING
 //******************************************************************
-void encode_detections(std::vector<HailoDetection> &objects,
-                       std::vector<xt::xarray<float>> &detection_boxes,
-                       std::vector<xt::xarray<float>> &scores,
-                       std::vector<xt::xarray<float>> &landmarks)
+void encode_detections(std::vector<HailoDetection> &objects, std::vector<xt::xarray<float>> &detection_boxes,
+                       std::vector<xt::xarray<float>> &scores, std::vector<xt::xarray<float>> &landmarks)
 {
     // Here we will package the processed detections into the HailoDetection meta
     // The detection meta will hold the following items:
@@ -379,9 +351,9 @@ void encode_detections(std::vector<HailoDetection> &objects,
     {
         for (uint index = 0; index < scores[i].size(); ++index)
         {
-            confidence = scores[i](index);                                  // Get the score for this detection
-            xmin = detection_boxes[i](index, 0);                            // Box xmin, relative to image size
-            ymin = detection_boxes[i](index, 1);                            // Box ymin, relative to image size
+            confidence = scores[i](index);                                     // Get the score for this detection
+            xmin = detection_boxes[i](index, 0);                               // Box xmin, relative to image size
+            ymin = detection_boxes[i](index, 1);                               // Box ymin, relative to image size
             w = (detection_boxes[i](index, 2) - detection_boxes[i](index, 0)); // Box width, relative to image size
             h = (detection_boxes[i](index, 3) - detection_boxes[i](index, 1)); // Box height, relative to image size
 
@@ -402,10 +374,8 @@ void encode_detections(std::vector<HailoDetection> &objects,
 }
 
 std::vector<HailoDetection> face_detection_postprocess(std::map<std::string, HailoTensorPtr> &tensors_by_name,
-                                                       const xt::xarray<float> &anchors,
-                                                       const float score_threshold,
-                                                       const float iou_threshold,
-                                                       const int num_branches,
+                                                       const xt::xarray<float> &anchors, const float score_threshold,
+                                                       const float iou_threshold, const int num_branches,
                                                        const int total_classes)
 {
     std::vector<HailoDetection> objects; // The detection meta we will eventually return
@@ -423,19 +393,24 @@ std::vector<HailoDetection> face_detection_postprocess(std::map<std::string, Hai
         // Extract the boxes
         xt::xarray<uint8_t> xdata_boxes = common::get_xtensor(tensors_by_name[BOXES[i]]);
         auto num_boxes = (int)xdata_boxes.shape(0) * (int)xdata_boxes.shape(1) * ((int)xdata_boxes.shape(2) / 4);
-        auto xdata_boxes_reshaped = xt::reshape_view(xdata_boxes, {num_boxes, 4}); // Resize to be by the 4 parameters for a box
+        auto xdata_boxes_reshaped =
+            xt::reshape_view(xdata_boxes, {num_boxes, 4}); // Resize to be by the 4 parameters for a box
         box_layers_quant.emplace_back(std::move(xdata_boxes_reshaped));
 
         // Extract the classes
         xt::xarray<uint8_t> xdata_classes = common::get_xtensor(tensors_by_name[CLASSES[i]]);
-        auto num_classes = (int)xdata_classes.shape(0) * (int)xdata_classes.shape(1) * ((int)xdata_classes.shape(2) / total_classes);
-        auto xdata_classes_reshaped = xt::reshape_view(xdata_classes, {num_classes, total_classes}); // Resize to be by the total_classes available classes
+        auto num_classes =
+            (int)xdata_classes.shape(0) * (int)xdata_classes.shape(1) * ((int)xdata_classes.shape(2) / total_classes);
+        auto xdata_classes_reshaped = xt::reshape_view(
+            xdata_classes, {num_classes, total_classes}); // Resize to be by the total_classes available classes
         class_layers_quant.emplace_back(std::move(xdata_classes_reshaped));
 
         // Extract the landmarks
         xt::xarray<uint8_t> xdata_landmarks = common::get_xtensor(tensors_by_name[LANDMARKS[i]]);
-        auto num_landmarks = (int)xdata_landmarks.shape(0) * (int)xdata_landmarks.shape(1) * ((int)xdata_landmarks.shape(2) / 10);
-        auto xdata_landmarks_reshaped = xt::reshape_view(xdata_landmarks, {num_landmarks, 10}); // Resize to be by the (x,y) for each of the 5 landmarks (2*5=10)
+        auto num_landmarks =
+            (int)xdata_landmarks.shape(0) * (int)xdata_landmarks.shape(1) * ((int)xdata_landmarks.shape(2) / 10);
+        auto xdata_landmarks_reshaped = xt::reshape_view(
+            xdata_landmarks, {num_landmarks, 10}); // Resize to be by the (x,y) for each of the 5 landmarks (2*5=10)
         landmarks_layers_quant.emplace_back(std::move(xdata_landmarks_reshaped));
     }
 
@@ -444,21 +419,15 @@ std::vector<HailoDetection> face_detection_postprocess(std::map<std::string, Hai
     //-------------------------------
 
     // Extract boxes and landmarks
-    auto boxes_and_landmarks = detect_boxes_and_landmarks(tensors_by_name,
-                                                          box_layers_quant,
-                                                          class_layers_quant,
-                                                          landmarks_layers_quant,
-                                                          anchors,
-                                                          score_threshold);
+    auto boxes_and_landmarks = detect_boxes_and_landmarks(tensors_by_name, box_layers_quant, class_layers_quant,
+                                                          landmarks_layers_quant, anchors, score_threshold);
 
     // //-------------------------------
     // // RESULTS ENCODING
     // //-------------------------------
 
     // // Encode the individual boxes/keypoints and package them into the meta
-    encode_detections(objects,
-                      std::get<0>(boxes_and_landmarks),
-                      std::get<1>(boxes_and_landmarks),
+    encode_detections(objects, std::get<0>(boxes_and_landmarks), std::get<1>(boxes_and_landmarks),
                       std::get<2>(boxes_and_landmarks));
 
     // // Perform nms to throw out similar detections
@@ -501,14 +470,12 @@ void scrfd(HailoROIPtr roi, void *params_void_ptr)
     std::map<std::string, HailoTensorPtr> tensors_by_name = roi->get_tensors_by_name();
 
     // Extract the detection objects using the given parameters.
-    std::vector<HailoDetection> detections = face_detection_postprocess(tensors_by_name, params->anchors,
-                                                                        params->score_threshold, params->iou_threshold,
-                                                                        params->num_branches, 1);
+    std::vector<HailoDetection> detections = face_detection_postprocess(
+        tensors_by_name, params->anchors, params->score_threshold, params->iou_threshold, params->num_branches, 1);
 
     // Update the frame with the found detections.
     hailo_common::add_detections(roi, detections);
 }
-
 
 void scrfd_2_5g(HailoROIPtr roi, void *params_void_ptr)
 {
@@ -518,7 +485,6 @@ void scrfd_2_5g(HailoROIPtr roi, void *params_void_ptr)
     LANDMARKS = LANDMARKS_2_5g;
     scrfd(roi, params);
 }
-
 
 void scrfd_10g(HailoROIPtr roi, void *params_void_ptr)
 {

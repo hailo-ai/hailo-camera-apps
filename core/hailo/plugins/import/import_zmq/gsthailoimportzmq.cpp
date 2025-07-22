@@ -27,17 +27,14 @@ GST_DEBUG_CATEGORY_STATIC(gst_hailoimportzmq_debug_category);
 
 /* prototypes */
 
-static void gst_hailoimportzmq_set_property(GObject *object,
-                                            guint property_id, const GValue *value, GParamSpec *pspec);
-static void gst_hailoimportzmq_get_property(GObject *object,
-                                            guint property_id, GValue *value, GParamSpec *pspec);
+static void gst_hailoimportzmq_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
+static void gst_hailoimportzmq_get_property(GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
 static void gst_hailoimportzmq_dispose(GObject *object);
 static void gst_hailoimportzmq_finalize(GObject *object);
 
 static gboolean gst_hailoimportzmq_start(GstBaseTransform *trans);
 static gboolean gst_hailoimportzmq_stop(GstBaseTransform *trans);
-static GstFlowReturn gst_hailoimportzmq_transform_ip(GstBaseTransform *trans,
-                                                     GstBuffer *buffer);
+static GstFlowReturn gst_hailoimportzmq_transform_ip(GstBaseTransform *trans, GstBuffer *buffer);
 
 /* class initialization */
 
@@ -54,12 +51,10 @@ enum
 // Default import node
 const gchar *DEFAULT_ADDRESS = "tcp://localhost:5555";
 
-static void
-gst_hailoimportzmq_class_init(GstHailoImportZMQClass *klass)
+static void gst_hailoimportzmq_class_init(GstHailoImportZMQClass *klass)
 {
     GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
-    GstBaseTransformClass *base_transform_class =
-        GST_BASE_TRANSFORM_CLASS(klass);
+    GstBaseTransformClass *base_transform_class = GST_BASE_TRANSFORM_CLASS(klass);
 
     const char *description = "Imports HailoObjects in JSON format from a ZMQ socket."
                               "\n\t\t\t   "
@@ -67,24 +62,19 @@ gst_hailoimportzmq_class_init(GstHailoImportZMQClass *klass)
     /* Setting up pads and setting metadata should be moved to
        base_class_init if you intend to subclass this class. */
     gst_element_class_add_pad_template(GST_ELEMENT_CLASS(klass),
-                                       gst_pad_template_new("src", GST_PAD_SRC, GST_PAD_ALWAYS,
-                                                            gst_caps_new_any()));
+                                       gst_pad_template_new("src", GST_PAD_SRC, GST_PAD_ALWAYS, gst_caps_new_any()));
     gst_element_class_add_pad_template(GST_ELEMENT_CLASS(klass),
-                                       gst_pad_template_new("sink", GST_PAD_SINK, GST_PAD_ALWAYS,
-                                                            gst_caps_new_any()));
+                                       gst_pad_template_new("sink", GST_PAD_SINK, GST_PAD_ALWAYS, gst_caps_new_any()));
 
-    gst_element_class_set_static_metadata(GST_ELEMENT_CLASS(klass),
-                                          "hailoimportzmq - import element",
-                                          "Hailo/Tools",
-                                          description,
-                                          "hailo.ai <contact@hailo.ai>");
+    gst_element_class_set_static_metadata(GST_ELEMENT_CLASS(klass), "hailoimportzmq - import element", "Hailo/Tools",
+                                          description, "hailo.ai <contact@hailo.ai>");
 
     gobject_class->set_property = gst_hailoimportzmq_set_property;
     gobject_class->get_property = gst_hailoimportzmq_get_property;
-    g_object_class_install_property(gobject_class, PROP_ADDRESS,
-                                    g_param_spec_string("address", "Endpoint address.",
-                                                        "Address to bind the socket to.", "tcp://localhost:5555",
-                                                        (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
+    g_object_class_install_property(
+        gobject_class, PROP_ADDRESS,
+        g_param_spec_string("address", "Endpoint address.", "Address to bind the socket to.", "tcp://localhost:5555",
+                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
 
     gobject_class->dispose = gst_hailoimportzmq_dispose;
     gobject_class->finalize = gst_hailoimportzmq_finalize;
@@ -93,14 +83,12 @@ gst_hailoimportzmq_class_init(GstHailoImportZMQClass *klass)
     base_transform_class->transform_ip = GST_DEBUG_FUNCPTR(gst_hailoimportzmq_transform_ip);
 }
 
-static void
-gst_hailoimportzmq_init(GstHailoImportZMQ *hailoimportzmq)
+static void gst_hailoimportzmq_init(GstHailoImportZMQ *hailoimportzmq)
 {
     hailoimportzmq->address = g_strdup(DEFAULT_ADDRESS);
 }
 
-void gst_hailoimportzmq_set_property(GObject *object, guint property_id,
-                                     const GValue *value, GParamSpec *pspec)
+void gst_hailoimportzmq_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
     GstHailoImportZMQ *hailoimportzmq = GST_HAILO_IMPORT_ZMQ(object);
 
@@ -117,8 +105,7 @@ void gst_hailoimportzmq_set_property(GObject *object, guint property_id,
     }
 }
 
-void gst_hailoimportzmq_get_property(GObject *object, guint property_id,
-                                     GValue *value, GParamSpec *pspec)
+void gst_hailoimportzmq_get_property(GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
 {
     GstHailoImportZMQ *hailoimportzmq = GST_HAILO_IMPORT_ZMQ(object);
 
@@ -155,8 +142,7 @@ void gst_hailoimportzmq_finalize(GObject *object)
     G_OBJECT_CLASS(gst_hailoimportzmq_parent_class)->finalize(object);
 }
 
-static gboolean
-gst_hailoimportzmq_start(GstBaseTransform *trans)
+static gboolean gst_hailoimportzmq_start(GstBaseTransform *trans)
 {
     GstHailoImportZMQ *hailoimportzmq = GST_HAILO_IMPORT_ZMQ(trans);
     GST_DEBUG_OBJECT(hailoimportzmq, "start");
@@ -166,13 +152,13 @@ gst_hailoimportzmq_start(GstBaseTransform *trans)
 
     // Bind the socket to the requested address
     hailoimportzmq->socket->setsockopt(ZMQ_SUBSCRIBE, "", 0);
-    try {
+    try
+    {
         hailoimportzmq->socket->connect(hailoimportzmq->address);
     }
-    catch (zmq::error_t const& err)
+    catch (zmq::error_t const &err)
     {
-        GST_ERROR("hailoimportzmq failed to connect to socket at address %s! Error: %s",
-                  hailoimportzmq->address,
+        GST_ERROR("hailoimportzmq failed to connect to socket at address %s! Error: %s", hailoimportzmq->address,
                   err.what());
         return FALSE;
     }
@@ -180,8 +166,7 @@ gst_hailoimportzmq_start(GstBaseTransform *trans)
     return TRUE;
 }
 
-static gboolean
-gst_hailoimportzmq_stop(GstBaseTransform *trans)
+static gboolean gst_hailoimportzmq_stop(GstBaseTransform *trans)
 {
     GstHailoImportZMQ *hailoimportzmq = GST_HAILO_IMPORT_ZMQ(trans);
     GST_DEBUG_OBJECT(hailoimportzmq, "stop");
@@ -193,9 +178,7 @@ gst_hailoimportzmq_stop(GstBaseTransform *trans)
     return TRUE;
 }
 
-static GstFlowReturn
-gst_hailoimportzmq_transform_ip(GstBaseTransform *trans,
-                                GstBuffer *buffer)
+static GstFlowReturn gst_hailoimportzmq_transform_ip(GstBaseTransform *trans, GstBuffer *buffer)
 {
     GstHailoImportZMQ *hailoimportzmq = GST_HAILO_IMPORT_ZMQ(trans);
 
@@ -212,7 +195,7 @@ gst_hailoimportzmq_transform_ip(GstBaseTransform *trans,
     while (recv_message.size() == 0)
     {
         recv_succeeded = hailoimportzmq->socket->recv(recv_message, zmq::recv_flags(ZMQ_DONTWAIT));
-        sleep(0);  // yield the scheduler to prevent the thread from spinning the CPU core
+        sleep(0); // yield the scheduler to prevent the thread from spinning the CPU core
     }
     if (recv_succeeded <= 0)
         GST_WARNING("hailoimportzmq failed to send buffer!");
@@ -221,7 +204,8 @@ gst_hailoimportzmq_transform_ip(GstBaseTransform *trans,
     std::string rx_str;
     rx_str.assign(static_cast<char *>(recv_message.data()), recv_message.size());
     rapidjson::Document decoded_stream;
-    if (decoded_stream.Parse(rx_str).HasParseError()) {
+    if (decoded_stream.Parse(rx_str).HasParseError())
+    {
         GST_ERROR("hailoimportzmq failed to parse message to json!");
     }
     decode_json::decode_hailo_roi(decoded_stream, hailo_roi);

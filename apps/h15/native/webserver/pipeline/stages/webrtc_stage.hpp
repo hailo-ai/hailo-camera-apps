@@ -16,10 +16,12 @@
 
 using webserver::resources::WebRtcResource;
 
-class WebrtcStage : public ConnectedStage {
-public:
+class WebrtcStage : public ConnectedStage
+{
+  public:
     // Constructor and Destructor
-    WebrtcStage(std::string name, std::shared_ptr<WebRtcResource> webrtc_resource, size_t queue_size = 1, bool leaky = false, bool print_fps = false);
+    WebrtcStage(std::string name, std::shared_ptr<WebRtcResource> webrtc_resource, size_t queue_size = 1,
+                bool leaky = false, bool print_fps = false);
     ~WebrtcStage() override = default;
 
     // Public member functions
@@ -29,7 +31,7 @@ public:
     AppStatus configure(EncodingType type);
     AppStatus process(BufferPtr data);
 
-private:
+  private:
     // Worker function for processing frames
     void callback_worker();
 

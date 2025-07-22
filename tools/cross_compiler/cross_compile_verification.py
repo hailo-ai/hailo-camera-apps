@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+import multiprocessing
 
 from common import (FOLDER_NAME, Arch, MesonInstaller, Target,
                     install_compilers_apt_packages)
@@ -62,6 +63,7 @@ def parse_args():
     parser.add_argument('--clean-build-dir', action='store_true', help='Delete previous build cache (default false)', default=False)
     parser.add_argument('--install-to-rootfs', action='store_true', help='Install to rootfs (default false)', default=False)
     parser.add_argument('--check-req-packages', action='store_true', help='Install compiler packages (default false)', default=False)
+    parser.add_argument('--limit-jobs', type=int, help='Limit the number of jobs for the build process', default=max(1, multiprocessing.cpu_count() - 2))
 
     return parser.parse_args()
 
@@ -78,4 +80,4 @@ if __name__ == '__main__':
                                         remote_machine_ip=args.remote_machine_ip,
                                         clean_build_dir=args.clean_build_dir,
                                         install_to_rootfs=args.install_to_rootfs)
-    gst_installer.build()
+    gst_installer.build(args.limit_jobs)

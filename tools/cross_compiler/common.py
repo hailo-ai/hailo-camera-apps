@@ -222,10 +222,10 @@ class MesonInstaller(ABC):
         self._runner.run(ninja_cmd, env, print_output=True)
         self._logger.info('Done running Ninja install')
 
-    def run_ninja_build_command(self, env=None):
+    def run_ninja_build_command(self, limit_jobs, env=None):
         self._logger.info("Running Ninja command.")
 
-        ninja_cmd = ['ninja', '-C', self._output_build_dir]
+        ninja_cmd = ['ninja', '-C', self._output_build_dir, '-j', str(limit_jobs)]
         self._runner.run(ninja_cmd, env, print_output=True)
         self._logger.info('Done running Ninja command')
 
@@ -276,7 +276,7 @@ class MesonInstaller(ABC):
 
         return env_from_environ_setup
 
-    def build(self):
+    def build(self, limit_job):
         self._logger.info(f"Building {self._build_folder}")
         env = self.get_custom_environment()
         src_dir_name = self._src_build_dir.parts[-1]
@@ -288,7 +288,7 @@ class MesonInstaller(ABC):
                 shutil.rmtree(self._output_build_dir)
 
             self.run_meson_build_command(env)
-            self.run_ninja_build_command(env)
+            self.run_ninja_build_command(limit_job, env)
 
             if self._install_to_toolchain_rootfs:
                 self.run_ninja_install_command(env)

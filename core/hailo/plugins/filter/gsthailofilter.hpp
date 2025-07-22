@@ -29,7 +29,7 @@ struct _GstHailofilter
     gchar *config_path;
     gchar *function_name;
     void *loaded_lib;
-    void * params;
+    void *params;
     gboolean use_config;
     gboolean remove_tensors;
 

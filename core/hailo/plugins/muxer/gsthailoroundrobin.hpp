@@ -6,7 +6,8 @@
  * GStreamer ROUND_ROBIN element
  *
  *
- * gsthailoroundrobin.hpp: Simple ROUND_ROBIN (N->1) element, waits on all sinks, passes the first one, with all metadata included.
+ * gsthailoroundrobin.hpp: Simple ROUND_ROBIN (N->1) element, waits on all sinks, passes the first one, with all
+ * metadata included.
  */
 
 #pragma once
@@ -22,16 +23,12 @@
 
 G_BEGIN_DECLS
 
-#define GST_TYPE_HAILO_ROUND_ROBIN \
-    (gst_hailo_round_robin_get_type())
-#define GST_HAILO_ROUND_ROBIN(obj) \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), GST_TYPE_HAILO_ROUND_ROBIN, GstHailoRoundRobin))
-#define GST_HAILO_ROUND_ROBIN_CLASS(klass) \
+#define GST_TYPE_HAILO_ROUND_ROBIN (gst_hailo_round_robin_get_type())
+#define GST_HAILO_ROUND_ROBIN(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), GST_TYPE_HAILO_ROUND_ROBIN, GstHailoRoundRobin))
+#define GST_HAILO_ROUND_ROBIN_CLASS(klass)                                                                             \
     (G_TYPE_CHECK_CLASS_CAST((klass), GST_TYPE_HAILO_ROUND_ROBIN, GstHailoRoundRobinClass))
-#define GST_IS_HAILO_ROUND_ROBIN(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), GST_TYPE_HAILO_ROUND_ROBIN))
-#define GST_IS_HAILO_ROUND_ROBIN_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), GST_TYPE_HAILO_ROUND_ROBIN))
+#define GST_IS_HAILO_ROUND_ROBIN(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), GST_TYPE_HAILO_ROUND_ROBIN))
+#define GST_IS_HAILO_ROUND_ROBIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), GST_TYPE_HAILO_ROUND_ROBIN))
 #define GST_HAILO_ROUND_ROBIN_CAST(obj) ((GstHailoRoundRobin *)(obj))
 
 typedef struct _GstHailoRoundRobin GstHailoRoundRobin;

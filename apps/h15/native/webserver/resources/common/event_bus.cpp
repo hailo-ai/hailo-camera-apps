@@ -1,20 +1,35 @@
 #include "event_bus.hpp"
 
-void EventBus::subscribe(EventType event_type, EventPriority priority, ResourceChangeCallback callback) {
-    m_callbacks[event_type][priority].emplace_back(std::move(callback));
+void EventBus::subscribe(EventType event_type, EventPriority priority, const ResourceChangeCallback &callback)
+{
+    WEBSERVER_LOG_INFO("Subscribing to event type {} with priority {}", nlohmann::json(event_type).dump(),
+    nlohmann::json(priority).dump());
+    m_callbacks[event_type][priority].emplace_back(callback);
 }
 
-void EventBus::notify(EventType event_type, std::shared_ptr<ResourceState> data) {
-    // Find the event type in the map
-    auto it = m_callbacks.find(event_type);
-    if (it != m_callbacks.end()) {
-        // Call the callbacks in order of priority
-        std::map<EventPriority, std::vector<ResourceChangeCallback>>& priority_callbacks = it->second;
-        for (auto& [priority, callbacks] : priority_callbacks) {
-            WEBSERVER_LOG_DEBUG("Calling callbacks for event type {} with priority {}", static_cast<nlohmann::json>(event_type).dump(), priority);
-            for (auto& callback : callbacks) {
-                callback({event_type, data});
-            }
-        }
+void EventBus::subscribe(std::initializer_list<EventType> event_types, EventPriority priority,
+                         const ResourceChangeCallback &callback)
+{
+    for (auto event_type : event_types)
+    {
+        subscribe(event_type, priority, callback);
+    }
+}
+void EventBus::subscribe_async(EventType event_type, EventPriority priority, const ResourceChangeCallback &callback)
+{
+    auto async_callback = [callback](auto... args) {
+        std::thread([callback, args...]() { callback(args...); }).detach();
+    };
+    WEBSERVER_LOG_INFO("Subscribing to event type {} with priority {}", nlohmann::json(event_type).dump(),
+    nlohmann::json(priority).dump());
+    m_callbacks[event_type][priority].emplace_back(async_callback);
+}
+
+void EventBus::subscribe_async(std::initializer_list<EventType> event_types, EventPriority priority,
+                               const ResourceChangeCallback &callback)
+{
+    for (auto event_type : event_types)
+    {
+        subscribe_async(event_type, priority, callback);
     }
 }

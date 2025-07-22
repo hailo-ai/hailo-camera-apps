@@ -24,7 +24,6 @@ The Frontend pipeline is provided by the Media Library package on the Hailo-15, 
 - **HDR** - High Dynamic Range, accelerated on the NN core
 - **Low Light Enhancement (AI Denoising)** - noise reduction for low light ennhancement using the NN core
 - **Dewarping (DSP)** - LDC image dewarping using the DSP
-- **Privacy Mask (DSP)** - masking out certain areas of the image using the DSP
 - **Multiple resize (DSP)** - resizing the image to multiple resolutions using the DSP
 
 All of these features are configurable and can be enabled or disabled as needed by the user.
@@ -53,6 +52,7 @@ The Encoder/OSD module is provided by the Media Library package on the Hailo-15,
 
 After the Frontend pipeline, the HD pipeline takes the resized video stream and performs the following operations:
 
+- **Privacy Mask (DSP)** - masking out certain areas of the image using the DSP
 - **On-Screen Display (OSD)** - The HD pipeline adds overlays such as text, graphics, and timestamps to the video feed uisng DSP blending.
 - **Encoding** - Video encoding to compress the video feed for streaming purposes. This is done with the hardware accelerated encoder provided in the Hailo-15.
 - **RTP/UDP Streaming** - The encoded video is payloaded into RTP packets and streamed over UDP to the host machine.

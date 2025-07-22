@@ -79,7 +79,8 @@ void OCR_postprocess(HailoROIPtr roi, const char *layer_name)
         pre_char_index = preb_label[i];
     }
 
-    float conf_mean = std::accumulate(no_repeat_label_conf.begin(), no_repeat_label_conf.end(), 0.0) / no_repeat_label_conf.size();
+    float conf_mean =
+        std::accumulate(no_repeat_label_conf.begin(), no_repeat_label_conf.end(), 0.0) / no_repeat_label_conf.size();
     if (conf_mean >= MIN_SCORE_THRESHOLD && no_repeat_label.str().size() > MIN_CHARS)
     {
         hailo_common::add_classification(roi, std::string("ocr"), no_repeat_label.str(), conf_mean);

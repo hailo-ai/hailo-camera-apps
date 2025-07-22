@@ -1,5 +1,8 @@
 /* Change background color for Bash snippets to separate them from Python snippets */
-.highlight-bash .highlight, .highlight-bash-literal, .highlight-console .highlight, .highlight-console-literal {
+.highlight-bash .highlight,
+.highlight-bash-literal,
+.highlight-console .highlight,
+.highlight-console-literal {
     background-color: #ddeeee;
 }
 
@@ -18,12 +21,14 @@
     background-color: black;
 }
 
-.rst-content .internal-users pre.literal-block, .rst-content .internal-users div[class^='highlight'] {
+.rst-content .internal-users pre.literal-block,
+.rst-content .internal-users div[class^="highlight"] {
     background-color: #555 !important;
     border-color: #444 !important;
 }
 
-.rst-content .internal-users pre.literal-block, .rst-content .internal-users div[class^='highlight'] span {
+.rst-content .internal-users pre.literal-block,
+.rst-content .internal-users div[class^="highlight"] span {
     color: white !important;
 }
 
@@ -40,7 +45,8 @@
     color: #b7b !important;
 }
 
-.internal-users a code, .internal-users a:visited code {
+.internal-users a code,
+.internal-users a:visited code {
     color: #aaa !important;
 }
 
@@ -48,7 +54,9 @@
     color: #ccc !important;
 }
 
-.rst-content .internal-users table, .rst-content .internal-users table td, .rst-content .internal-users table th {
+.rst-content .internal-users table,
+.rst-content .internal-users table td,
+.rst-content .internal-users table th {
     border-color: #555 !important;
     color: white !important;
 }
@@ -105,21 +113,49 @@
     font-style: italic;
 }
 
-body, .fa, .wy-menu-vertical li span.toctree-expand,
-.wy-menu-vertical li.on a span.toctree-expand, .wy-menu-vertical li.current>a span.toctree-expand,
-.rst-content .admonition-title, .rst-content h1 .headerlink, .rst-content h2 .headerlink,
-.rst-content h3 .headerlink, .rst-content h4 .headerlink, .rst-content h5 .headerlink,
-.rst-content h6 .headerlink, .rst-content dl dt .headerlink, .rst-content p.caption .headerlink,
-.rst-content table>caption .headerlink, .rst-content .code-block-caption .headerlink,
-.rst-content tt.download span:first-child, .rst-content code.download span:first-child, .icon,
-input[type="text"], input[type="password"], input[type="email"], input[type="url"],
-input[type="date"], input[type="month"], input[type="time"], input[type="datetime"],
-input[type="datetime-local"], input[type="week"], input[type="number"], input[type="search"],
-input[type="tel"], input[type="color"] {
+body,
+.fa,
+.wy-menu-vertical li span.toctree-expand,
+.wy-menu-vertical li.on a span.toctree-expand,
+.wy-menu-vertical li.current > a span.toctree-expand,
+.rst-content .admonition-title,
+.rst-content h1 .headerlink,
+.rst-content h2 .headerlink,
+.rst-content h3 .headerlink,
+.rst-content h4 .headerlink,
+.rst-content h5 .headerlink,
+.rst-content h6 .headerlink,
+.rst-content dl dt .headerlink,
+.rst-content p.caption .headerlink,
+.rst-content table > caption .headerlink,
+.rst-content .code-block-caption .headerlink,
+.rst-content tt.download span:first-child,
+.rst-content code.download span:first-child,
+.icon,
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="url"],
+input[type="date"],
+input[type="month"],
+input[type="time"],
+input[type="datetime"],
+input[type="datetime-local"],
+input[type="week"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="color"] {
     font-family: "OpenSans";
 }
 
-h1, h2, h3, h4, h5, span.caption-text, p.rubric {
+h1,
+h2,
+h3,
+h4,
+h5,
+span.caption-text,
+p.rubric {
     font-family: "Exo 2";
 }
 
@@ -127,7 +163,8 @@ dd p.rubric {
     font-family: "OpenSans";
 }
 
-html, p {
+html,
+p {
     font-size: 15px;
 }
 
@@ -136,10 +173,12 @@ table p {
 }
 
 table code {
-    font-size: 13px !important; 
+    font-size: 13px !important;
 }
 
-code, .rst-content tt, .rst-content code {
+code,
+.rst-content tt,
+.rst-content code {
     font-size: 80%;
 }
 
@@ -147,7 +186,8 @@ code, .rst-content tt, .rst-content code {
     background-color: #0098c4;
 }
 
-.wy-menu-vertical header, .wy-menu-vertical p.caption {
+.wy-menu-vertical header,
+.wy-menu-vertical p.caption {
     color: #0098c4;
 }
 
@@ -183,19 +223,21 @@ table p:not(:last-of-type) {
 
 /* override table width restrictions */
 @media screen and (min-width: 767px) {
-
-   .wy-table-responsive table td, .wy-table-responsive table th {
-      /* !important prevents the common CSS stylesheets from overriding
+    .wy-table-responsive table td,
+    .wy-table-responsive table th {
+        /* !important prevents the common CSS stylesheets from overriding
          this as on RTD they are loaded after this stylesheet */
-      white-space: normal !important;
-   }
+        white-space: normal !important;
+    }
 
-   .wy-table-responsive {
-      overflow: visible !important;
-   }
+    .wy-table-responsive {
+        overflow: visible !important;
+    }
 }
 
-.wy-table, .rst-content table.docutils, .rst-content table.field-list {
+.wy-table,
+.rst-content table.docutils,
+.rst-content table.field-list {
     width: 100%;
 }
 
@@ -236,6 +278,6 @@ dl.type dt a.reference {
 }
 
 /* Hide include lines inside C++ doc */
-#hailort-c-c-api-reference dl.struct>dd>em {
+#hailort-c-c-api-reference dl.struct > dd > em {
     display: none;
 }

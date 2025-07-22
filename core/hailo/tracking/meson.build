@@ -1,4 +1,4 @@
-tracker_sources = ['hailo_tracker.cpp']
+tracker_sources = ['hailo_tracker.cpp', 'hailo_lightweight_tracker.cpp']
 
 ################################################
 # Hailo Tracker Shared Library
@@ -16,6 +16,7 @@ tracker_lib = shared_library('hailo_tracker',
 )
 
 install_headers('hailo_tracker.hpp', subdir: 'hailo/tappas')
+install_headers('hailo_lightweight_tracker.hpp', subdir: 'hailo/tappas')
 
 tracker_dep = declare_dependency(
   include_directories: [include_directories('.')],

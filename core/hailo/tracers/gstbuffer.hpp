@@ -23,7 +23,7 @@
 
 G_BEGIN_DECLS
 
-#define GST_TYPE_BUFFER_TRACER (gst_buffer_tracer_get_type ())
-G_DECLARE_FINAL_TYPE (GstBufferTracer, gst_buffer_tracer, GST, BUFFER_TRACER, GstSharkTracer)
+#define GST_TYPE_BUFFER_TRACER (gst_buffer_tracer_get_type())
+G_DECLARE_FINAL_TYPE(GstBufferTracer, gst_buffer_tracer, GST, BUFFER_TRACER, GstSharkTracer)
 
 G_END_DECLS

@@ -9,8 +9,8 @@
 #define __PYFILTER_WRAPPER(_OBJECT) PyObjectWrapper(_OBJECT, #_OBJECT)
 #define __PYFILTER_DECL_WRAPPER(_NAME, _OBJECT) PyObjectWrapper _NAME(_OBJECT, #_OBJECT)
 
-PythonCallback *create_python_callback(const char *module_path, const char *function_name,
-                                       const char *args_string, const char *keyword_args_string, char **error_msg)
+PythonCallback *create_python_callback(const char *module_path, const char *function_name, const char *args_string,
+                                       const char *keyword_args_string, char **error_msg)
 {
 
     if (!module_path || !function_name)
@@ -30,8 +30,7 @@ PythonCallback *create_python_callback(const char *module_path, const char *func
             context_initializer.extendPath(dir);
         }
 
-        return new PythonCallback(module_path, function_name, args_string,
-                                  keyword_args_string);
+        return new PythonCallback(module_path, function_name, args_string, keyword_args_string);
     }
     catch (const std::exception &e)
     {
@@ -63,8 +62,8 @@ GstFlowReturn invoke_python_callback(PythonCallback *python_callback, char **err
     }
 }
 
-GstFlowReturn invoke_python_callback(PythonCallback *python_callback, GstBuffer *buffer,
-                                     py_descriptor_t desc, char **error_msg)
+GstFlowReturn invoke_python_callback(PythonCallback *python_callback, GstBuffer *buffer, py_descriptor_t desc,
+                                     char **error_msg)
 {
     if (!python_callback)
     {
@@ -124,12 +123,12 @@ GstFlowReturn PythonCallback::CallPython(GstBuffer *buffer, py_descriptor_t desc
         throw std::runtime_error("Could not convert HailoROI to python");
     }
     // Create a Gst.Buffer object.
-    __PYFILTER_DECL_WRAPPER(py_buffer, pyg_boxed_new(buffer->mini_object.type, buffer,
-                                                     FALSE /*copy_boxed*/, FALSE /*own_ref*/));
-    __PYFILTER_DECL_WRAPPER(py_caps, pyg_boxed_new(caps_ptr->mini_object.type, caps_ptr,
-                                                   FALSE /*copy_boxed*/, FALSE /*own_ref*/));
-    __PYFILTER_DECL_WRAPPER(frame, PyObject_CallFunctionObjArgs(python_frame_class, (PyObject *)py_buffer, (PyObject *)py_caps,
-                                                                (PyObject *)hailo_roi, nullptr));
+    __PYFILTER_DECL_WRAPPER(py_buffer,
+                            pyg_boxed_new(buffer->mini_object.type, buffer, FALSE /*copy_boxed*/, FALSE /*own_ref*/));
+    __PYFILTER_DECL_WRAPPER(
+        py_caps, pyg_boxed_new(caps_ptr->mini_object.type, caps_ptr, FALSE /*copy_boxed*/, FALSE /*own_ref*/));
+    __PYFILTER_DECL_WRAPPER(frame, PyObject_CallFunctionObjArgs(python_frame_class, (PyObject *)py_buffer,
+                                                                (PyObject *)py_caps, (PyObject *)hailo_roi, nullptr));
 
     // Create the arguments for the user function and call it.
     __PYFILTER_DECL_WRAPPER(args, Py_BuildValue("(O)", (PyObject *)frame));
@@ -155,8 +154,8 @@ GstFlowReturn PythonCallback::CallPython()
     return (GstFlowReturn)PyLong_AsLong(result);
 }
 
-PythonCallback::PythonCallback(const char *module_path, const char *function_name,
-                               const char *args_string, const char *kwargs_string)
+PythonCallback::PythonCallback(const char *module_path, const char *function_name, const char *args_string,
+                               const char *kwargs_string)
 {
     if (module_path == nullptr)
     {
@@ -183,8 +182,7 @@ PythonCallback::PythonCallback(const char *module_path, const char *function_nam
         module_name = std::string(filename, extension);
     }
 
-    PyObjectWrapper pluginModule(
-        PyImport_Import(__PYFILTER_WRAPPER(PyUnicode_FromString(module_name.c_str()))));
+    PyObjectWrapper pluginModule(PyImport_Import(__PYFILTER_WRAPPER(PyUnicode_FromString(module_name.c_str()))));
     if (!(PyObject *)pluginModule)
     {
         // Can't be static because should be destroyed while Python context is initialized
@@ -197,8 +195,8 @@ PythonCallback::PythonCallback(const char *module_path, const char *function_nam
 
     if (!(PyObject *)user_python_function)
     {
-        throw std::runtime_error("Error getting function '" + std::string(function_name) +
-                                 "' from Python module " + std::string(module_path));
+        throw std::runtime_error("Error getting function '" + std::string(function_name) + "' from Python module " +
+                                 std::string(module_path));
     }
     __PYFILTER_DECL_WRAPPER(hailo_module, PyImport_Import(__PYFILTER_WRAPPER(PyUnicode_FromString("hailo"))));
     if (!(PyObject *)hailo_module)
@@ -296,12 +294,10 @@ char *PythonError::get_python_error(PyObject *ptype, PyObject *pvalue, PyObject 
 {
     __PYFILTER_DECL_WRAPPER(py_stringio_instance, PyObject_CallObject(py_stringio_constructor, NULL));
     PyErr_NormalizeException(&ptype, &pvalue, &ptraceback);
-    __PYFILTER_DECL_WRAPPER(py_args,
-                            Py_BuildValue("OOOOO", ptype ? ptype : Py_None, pvalue ? pvalue : Py_None,
-                                          ptraceback ? ptraceback : Py_None, Py_None,
-                                          (PyObject *)py_stringio_instance));
-    __PYFILTER_DECL_WRAPPER(py_traceback_result,
-                            PyObject_CallObject(py_traceback_print_exception, py_args));
+    __PYFILTER_DECL_WRAPPER(py_args, Py_BuildValue("OOOOO", ptype ? ptype : Py_None, pvalue ? pvalue : Py_None,
+                                                   ptraceback ? ptraceback : Py_None, Py_None,
+                                                   (PyObject *)py_stringio_instance));
+    __PYFILTER_DECL_WRAPPER(py_traceback_result, PyObject_CallObject(py_traceback_print_exception, py_args));
     __PYFILTER_DECL_WRAPPER(py_getvalue, PyObject_GetAttrString(py_stringio_instance, "getvalue"));
     __PYFILTER_DECL_WRAPPER(py_result, PyObject_CallObject(py_getvalue, nullptr));
 

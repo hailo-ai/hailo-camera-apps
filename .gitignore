@@ -104,4 +104,6 @@ tools/cross_compiler/*-build-release
 tools/cross_compiler/*-build-debug
 
 # vscode
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json

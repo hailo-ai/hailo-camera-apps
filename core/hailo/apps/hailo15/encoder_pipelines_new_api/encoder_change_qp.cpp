@@ -5,7 +5,7 @@
 #include "apps_common.hpp"
 #include "media_library/encoder_config.hpp"
 
-static int counter=0;
+static int counter = 0;
 
 /**
  * Encoder's probe callback
@@ -22,7 +22,8 @@ static GstPadProbeReturn encoder_probe_callback(GstPad *pad, GstPadProbeInfo *in
     GstElement *encoder_element = gst_bin_get_by_name(GST_BIN(pipeline), "enco");
 
     counter++;
-    if (counter % 600 == 200) {
+    if (counter % 600 == 200)
+    {
         gpointer value = nullptr;
         g_object_get(G_OBJECT(encoder_element), "user-config", &value, NULL);
         encoder_config_t *config = reinterpret_cast<encoder_config_t *>(value);
@@ -33,7 +34,8 @@ static GstPadProbeReturn encoder_probe_callback(GstPad *pad, GstPadProbeInfo *in
         hailo_config.rate_control.quantization.qp_hdr = 5;
         g_object_set(G_OBJECT(encoder_element), "user-config", config, NULL);
     }
-    else if (counter % 600 == 400) {
+    else if (counter % 600 == 400)
+    {
         gpointer value = nullptr;
         g_object_get(G_OBJECT(encoder_element), "user-config", &value, NULL);
         encoder_config_t *config = reinterpret_cast<encoder_config_t *>(value);
@@ -44,7 +46,8 @@ static GstPadProbeReturn encoder_probe_callback(GstPad *pad, GstPadProbeInfo *in
         hailo_config.rate_control.quantization.qp_hdr = 45;
         g_object_set(G_OBJECT(encoder_element), "user-config", config, NULL);
     }
-    else if (counter % 600 == 0) {
+    else if (counter % 600 == 0)
+    {
         gpointer value = nullptr;
         g_object_get(G_OBJECT(encoder_element), "user-config", &value, NULL);
         encoder_config_t *config = reinterpret_cast<encoder_config_t *>(value);
@@ -59,7 +62,6 @@ static GstPadProbeReturn encoder_probe_callback(GstPad *pad, GstPadProbeInfo *in
     gst_object_unref(encoder_element);
     return GST_PAD_PROBE_OK;
 }
-
 
 /**
  * Create the gstreamer pipeline as string
@@ -86,15 +88,20 @@ std::string create_pipeline_string(std::string codec)
     pipeline = "v4l2src name=src_element device=/dev/video0 io-mode=dmabuf ! "
                "video/x-raw,format=NV12,width=1920,height=1080, framerate=30/1 ! "
                "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-               "hailoencoder config-file-path=" + config_file_path + " name=enco ! " + codec + "parse config-interval=-1 ! "
+               "hailoencoder config-file-path=" +
+               config_file_path + " name=enco ! " + codec +
+               "parse config-interval=-1 ! "
                "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-               "video/x-" + codec + ",framerate=30/1 ! "
+               "video/x-" +
+               codec +
+               ",framerate=30/1 ! "
                "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-               "fpsdisplaysink fps-update-interval=2000 name=display_sink text-overlay=false video-sink=\"filesink location=test."
-               + output_format + " name=hailo_sink\""
+               "fpsdisplaysink fps-update-interval=2000 name=display_sink text-overlay=false video-sink=\"filesink "
+               "location=test." +
+               output_format +
+               " name=hailo_sink\""
                " sync=true signal-fps-measurements=true";
 
-                                           
     std::cout << "Pipeline:" << std::endl;
     std::cout << "gst-launch-1.0 " << pipeline << std::endl;
 
@@ -130,7 +137,8 @@ void set_probes(GstElement *pipeline)
     // extract pads from elements
     GstPad *pad_encoder = gst_element_get_static_pad(encoder, "sink");
     // set probes
-    gst_pad_add_probe(pad_encoder, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)encoder_probe_callback, pipeline, NULL);
+    gst_pad_add_probe(pad_encoder, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)encoder_probe_callback, pipeline,
+                      NULL);
     // free resources
     gst_object_unref(encoder);
 }
@@ -148,18 +156,19 @@ int main(int argc, char *argv[])
     auto result = options.parse(argc, argv);
     std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options, codec);
 
-    for (ArgumentType argument: argument_handling_results)
+    for (ArgumentType argument : argument_handling_results)
     {
-        switch (argument) {
-            case ArgumentType::Help:
-                return 0;
-            case ArgumentType::Codec:
-                break;
-            case ArgumentType::PrintFPS:
-                print_fps = true;
-                break;
-            case ArgumentType::Error:
-                return 1;
+        switch (argument)
+        {
+        case ArgumentType::Help:
+            return 0;
+        case ArgumentType::Codec:
+            break;
+        case ArgumentType::PrintFPS:
+            print_fps = true;
+            break;
+        case ArgumentType::Error:
+            return 1;
         }
     }
 

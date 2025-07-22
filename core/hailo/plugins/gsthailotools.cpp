@@ -33,8 +33,7 @@
 #include "dsp/gsthailovideoscale.hpp"
 #endif
 
-static gboolean
-plugin_init(GstPlugin *plugin)
+static gboolean plugin_init(GstPlugin *plugin)
 {
     gst_element_register(plugin, "hailooverlay", GST_RANK_PRIMARY, GST_TYPE_HAILO_OVERLAY);
     gst_element_register(plugin, "hailofilter", GST_RANK_PRIMARY, GST_TYPE_HAILO_FILTER);
@@ -68,5 +67,5 @@ plugin_init(GstPlugin *plugin)
     return TRUE;
 }
 
-GST_PLUGIN_DEFINE(GST_VERSION_MAJOR, GST_VERSION_MINOR, hailotools, "hailo tools plugin", plugin_init,
-                  VERSION, "unknown", PACKAGE, "https://hailo.ai/")
+GST_PLUGIN_DEFINE(GST_VERSION_MAJOR, GST_VERSION_MINOR, hailotools, "hailo tools plugin", plugin_init, VERSION,
+                  "unknown", PACKAGE, "https://hailo.ai/")

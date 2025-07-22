@@ -1,10 +1,10 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 // Catch2 includes
-#define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
-#include "catch.hpp"       // This includes the catch2 header-only library, no further includes needed for catch2
+#define CATCH_CONFIG_MAIN // This tells Catch to provide a main() - only do this in one cpp file
+#include "catch.hpp"      // This includes the catch2 header-only library, no further includes needed for catch2
 
 // General cpp includes
 #include <iostream>
@@ -33,12 +33,13 @@
     std::cout << buffer.GetString() << std::endl;
 */
 
-
-TEST_CASE( "The encode_json can encode Hailo Objects to a JSON object", "[encode_json]" ) {
+TEST_CASE("The encode_json can encode Hailo Objects to a JSON object", "[encode_json]")
+{
     // Create a dummy roi
     HailoBBox main_bbox = HailoBBox(0, 0, 1, 1);
 
-    SECTION( "Detections are encoded with all their properties." ) {
+    SECTION("Detections are encoded with all their properties.")
+    {
         // Create a main roi to fill with a detection
         HailoROI main_roi = HailoROI(main_bbox);
         HailoROIPtr main_roi_ptr = std::make_shared<HailoROI>(main_roi);
@@ -52,16 +53,17 @@ TEST_CASE( "The encode_json can encode Hailo Objects to a JSON object", "[encode
         rapidjson::Document doc = encode_json::encode_hailo_roi(main_roi_ptr);
 
         // Check that the detection is encoded
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["confidence"].GetDouble() == Approx(1.0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["class_id"].GetInt() == -1 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["label"].GetString() == std::string("car") );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["xmin"].GetDouble() == Approx(0.1) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["ymin"].GetDouble() == Approx(0.8) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["width"].GetDouble() == Approx(0.3) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["height"].GetDouble() == Approx(0.1) );
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["confidence"].GetDouble() == Approx(1.0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["class_id"].GetInt() == -1);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["label"].GetString() == std::string("car"));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["xmin"].GetDouble() == Approx(0.1));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["ymin"].GetDouble() == Approx(0.8));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["width"].GetDouble() == Approx(0.3));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["height"].GetDouble() == Approx(0.1));
     }
 
-    SECTION( "Classifications are encoded with all their properties." ) {
+    SECTION("Classifications are encoded with all their properties.")
+    {
         // Create a main roi to fill with random detections
         HailoROI main_roi = HailoROI(main_bbox);
         HailoROIPtr main_roi_ptr = std::make_shared<HailoROI>(main_roi);
@@ -74,13 +76,15 @@ TEST_CASE( "The encode_json can encode Hailo Objects to a JSON object", "[encode
         rapidjson::Document doc = encode_json::encode_hailo_roi(main_roi_ptr);
 
         // Check that the classification is encoded
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassification"]["confidence"].GetDouble() == Approx(1.0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassification"]["class_id"].GetInt() == -1 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassification"]["classification_type"].GetString() == std::string("ocr") );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassification"]["label"].GetString() == std::string("123456789") );
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassification"]["confidence"].GetDouble() == Approx(1.0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassification"]["class_id"].GetInt() == -1);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassification"]["classification_type"].GetString() ==
+              std::string("ocr"));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassification"]["label"].GetString() == std::string("123456789"));
     }
 
-    SECTION( "Landmarks are encoded with all their properties." ) {
+    SECTION("Landmarks are encoded with all their properties.")
+    {
         // Create a main roi to fill with random detections
         HailoROI main_roi = HailoROI(main_bbox);
         HailoROIPtr main_roi_ptr = std::make_shared<HailoROI>(main_roi);
@@ -97,22 +101,23 @@ TEST_CASE( "The encode_json can encode Hailo Objects to a JSON object", "[encode
         rapidjson::Document doc = encode_json::encode_hailo_roi(main_roi_ptr);
 
         // Check that the landmarks are encoded
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["landmarks_type"].GetString() == std::string("pose") );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["threshold"].GetDouble() == Approx(0.5) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][0]["x"].GetDouble() == Approx(0.1) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][0]["y"].GetDouble() == Approx(0.2) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][0]["confidence"].GetDouble() == Approx(0.3) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][1]["x"].GetDouble() == Approx(0.4) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][1]["y"].GetDouble() == Approx(0.5) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][1]["confidence"].GetDouble() == Approx(0.6) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][2]["x"].GetDouble() == Approx(0.7) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][2]["y"].GetDouble() == Approx(0.8) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][2]["confidence"].GetDouble() == Approx(0.9) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["pairs"][0][0] == 0 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["pairs"][0][1] == 2 );
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["landmarks_type"].GetString() == std::string("pose"));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["threshold"].GetDouble() == Approx(0.5));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][0]["x"].GetDouble() == Approx(0.1));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][0]["y"].GetDouble() == Approx(0.2));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][0]["confidence"].GetDouble() == Approx(0.3));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][1]["x"].GetDouble() == Approx(0.4));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][1]["y"].GetDouble() == Approx(0.5));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][1]["confidence"].GetDouble() == Approx(0.6));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][2]["x"].GetDouble() == Approx(0.7));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][2]["y"].GetDouble() == Approx(0.8));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["points"][2]["confidence"].GetDouble() == Approx(0.9));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["pairs"][0][0] == 0);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoLandmarks"]["pairs"][0][1] == 2);
     }
 
-    SECTION( "Tiles are encoded with all their properties." ) {
+    SECTION("Tiles are encoded with all their properties.")
+    {
         // Create a main roi to fill with random detections
         HailoROI main_roi = HailoROI(main_bbox);
         HailoROIPtr main_roi_ptr = std::make_shared<HailoROI>(main_roi);
@@ -126,18 +131,19 @@ TEST_CASE( "The encode_json can encode Hailo Objects to a JSON object", "[encode
         rapidjson::Document doc = encode_json::encode_hailo_roi(main_roi_ptr);
 
         // Check that the tiles are encoded
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["index"] == 0 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["layer"] == 3 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["mode"] == 1 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["overlap_x_axis"].GetDouble() == Approx(0.1) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["overlap_y_axis"].GetDouble() == Approx(0.2) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["HailoBBox"]["xmin"].GetDouble() == Approx(0.0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["HailoBBox"]["ymin"].GetDouble() == Approx(0.0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["HailoBBox"]["width"].GetDouble() == Approx(0.5) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["HailoBBox"]["height"].GetDouble() == Approx(0.5) );
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["index"] == 0);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["layer"] == 3);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["mode"] == 1);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["overlap_x_axis"].GetDouble() == Approx(0.1));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["overlap_y_axis"].GetDouble() == Approx(0.2));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["HailoBBox"]["xmin"].GetDouble() == Approx(0.0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["HailoBBox"]["ymin"].GetDouble() == Approx(0.0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["HailoBBox"]["width"].GetDouble() == Approx(0.5));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoTileROI"]["HailoBBox"]["height"].GetDouble() == Approx(0.5));
     }
 
-    SECTION( "Unique IDs are encoded with all their properties." ) {
+    SECTION("Unique IDs are encoded with all their properties.")
+    {
         // Create a main roi to fill with random detections
         HailoROI main_roi = HailoROI(main_bbox);
         HailoROIPtr main_roi_ptr = std::make_shared<HailoROI>(main_roi);
@@ -152,138 +158,143 @@ TEST_CASE( "The encode_json can encode Hailo Objects to a JSON object", "[encode
         rapidjson::Document doc = encode_json::encode_hailo_roi(main_roi_ptr);
 
         // Check that the ids are encoded
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoUniqueID"]["unique_id"] == 1913 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoUniqueID"]["mode"] == TRACKING_ID );
-        CHECK( doc["HailoROI"]["SubObjects"][1]["HailoUniqueID"]["unique_id"] == 1996 );
-        CHECK( doc["HailoROI"]["SubObjects"][1]["HailoUniqueID"]["mode"] == GLOBAL_ID );
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoUniqueID"]["unique_id"] == 1913);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoUniqueID"]["mode"] == TRACKING_ID);
+        CHECK(doc["HailoROI"]["SubObjects"][1]["HailoUniqueID"]["unique_id"] == 1996);
+        CHECK(doc["HailoROI"]["SubObjects"][1]["HailoUniqueID"]["mode"] == GLOBAL_ID);
     }
 
-    SECTION( "Depth Masks are encoded with all their properties." ) {
+    SECTION("Depth Masks are encoded with all their properties.")
+    {
         // Create a main roi to fill with random detections
         HailoROI main_roi = HailoROI(main_bbox);
         HailoROIPtr main_roi_ptr = std::make_shared<HailoROI>(main_roi);
 
         // Create and add a test depth mask
-        std::vector<float> data= {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+        std::vector<float> data = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
         hailo_common::add_object(main_roi_ptr, std::make_shared<HailoDepthMask>(std::move(data), 10, 1, 1.0));
 
         // Encode the JSON
         rapidjson::Document doc = encode_json::encode_hailo_roi(main_roi_ptr);
 
         // Check that the ids are encoded
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["mask_width"] == 10 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["mask_height"] == 1 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["transparency"].GetDouble() == Approx(1.0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][0].GetDouble() == Approx(0.0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][1].GetDouble() == Approx(0.1) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][2].GetDouble() == Approx(0.2) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][3].GetDouble() == Approx(0.3) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][4].GetDouble() == Approx(0.4) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][5].GetDouble() == Approx(0.5) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][6].GetDouble() == Approx(0.6) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][7].GetDouble() == Approx(0.7) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][8].GetDouble() == Approx(0.8) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][9].GetDouble() == Approx(0.9) );
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["mask_width"] == 10);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["mask_height"] == 1);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["transparency"].GetDouble() == Approx(1.0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][0].GetDouble() == Approx(0.0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][1].GetDouble() == Approx(0.1));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][2].GetDouble() == Approx(0.2));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][3].GetDouble() == Approx(0.3));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][4].GetDouble() == Approx(0.4));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][5].GetDouble() == Approx(0.5));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][6].GetDouble() == Approx(0.6));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][7].GetDouble() == Approx(0.7));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][8].GetDouble() == Approx(0.8));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDepthMask"]["data"][9].GetDouble() == Approx(0.9));
     }
 
-    SECTION( "Class Masks are encoded with all their properties." ) {
+    SECTION("Class Masks are encoded with all their properties.")
+    {
         // Create a main roi to fill with random detections
         HailoROI main_roi = HailoROI(main_bbox);
         HailoROIPtr main_roi_ptr = std::make_shared<HailoROI>(main_roi);
 
         // Create and add a test depth mask
-        std::vector<uint8_t> data= {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        std::vector<uint8_t> data = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         hailo_common::add_object(main_roi_ptr, std::make_shared<HailoClassMask>(std::move(data), 10, 1, 1.0));
 
         // Encode the JSON
         rapidjson::Document doc = encode_json::encode_hailo_roi(main_roi_ptr);
 
         // Check that the ids are encoded
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["mask_width"] == 10 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["mask_height"] == 1 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["transparency"].GetDouble() == Approx(1.0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][0].GetDouble() == Approx(0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][1].GetDouble() == Approx(1) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][2].GetDouble() == Approx(2) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][3].GetDouble() == Approx(3) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][4].GetDouble() == Approx(4) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][5].GetDouble() == Approx(5) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][6].GetDouble() == Approx(6) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][7].GetDouble() == Approx(7) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][8].GetDouble() == Approx(8) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][9].GetDouble() == Approx(9) );
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["mask_width"] == 10);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["mask_height"] == 1);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["transparency"].GetDouble() == Approx(1.0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][0].GetDouble() == Approx(0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][1].GetDouble() == Approx(1));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][2].GetDouble() == Approx(2));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][3].GetDouble() == Approx(3));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][4].GetDouble() == Approx(4));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][5].GetDouble() == Approx(5));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][6].GetDouble() == Approx(6));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][7].GetDouble() == Approx(7));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][8].GetDouble() == Approx(8));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoClassMask"]["data"][9].GetDouble() == Approx(9));
     }
 
-
-    SECTION( "Conf Class Masks are encoded with all their properties." ) {
+    SECTION("Conf Class Masks are encoded with all their properties.")
+    {
         // Create a main roi to fill with random detections
         HailoROI main_roi = HailoROI(main_bbox);
         HailoROIPtr main_roi_ptr = std::make_shared<HailoROI>(main_roi);
 
         // Create and add a test depth mask
-        std::vector<float> data= {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+        std::vector<float> data = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
         hailo_common::add_object(main_roi_ptr, std::make_shared<HailoConfClassMask>(std::move(data), 10, 1, 1.0, 11));
 
         // Encode the JSON
         rapidjson::Document doc = encode_json::encode_hailo_roi(main_roi_ptr);
 
         // Check that the ids are encoded
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["mask_width"] == 10 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["mask_height"] == 1 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["transparency"].GetDouble() == Approx(1.0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["class_id"] == 11 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][0].GetDouble() == Approx(0.0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][1].GetDouble() == Approx(0.1) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][2].GetDouble() == Approx(0.2) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][3].GetDouble() == Approx(0.3) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][4].GetDouble() == Approx(0.4) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][5].GetDouble() == Approx(0.5) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][6].GetDouble() == Approx(0.6) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][7].GetDouble() == Approx(0.7) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][8].GetDouble() == Approx(0.8) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][9].GetDouble() == Approx(0.9) );
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["mask_width"] == 10);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["mask_height"] == 1);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["transparency"].GetDouble() == Approx(1.0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["class_id"] == 11);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][0].GetDouble() == Approx(0.0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][1].GetDouble() == Approx(0.1));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][2].GetDouble() == Approx(0.2));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][3].GetDouble() == Approx(0.3));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][4].GetDouble() == Approx(0.4));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][5].GetDouble() == Approx(0.5));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][6].GetDouble() == Approx(0.6));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][7].GetDouble() == Approx(0.7));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][8].GetDouble() == Approx(0.8));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoConfClassMask"]["data"][9].GetDouble() == Approx(0.9));
     }
 
-    SECTION( "Conf Class Masks are encoded with all their properties." ) {
+    SECTION("Conf Class Masks are encoded with all their properties.")
+    {
         // Create a main roi to fill with random detections
         HailoROI main_roi = HailoROI(main_bbox);
         HailoROIPtr main_roi_ptr = std::make_shared<HailoROI>(main_roi);
 
         // Create and add a test depth mask
-        std::vector<float> data= {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+        std::vector<float> data = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
         hailo_common::add_object(main_roi_ptr, std::make_shared<HailoMatrix>(std::move(data), 1, 10, 1));
 
         // Encode the JSON
         rapidjson::Document doc = encode_json::encode_hailo_roi(main_roi_ptr);
 
         // Check that the ids are encoded
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["width"] == 10 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["height"] == 1 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["features"] == 1 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][0].GetDouble() == Approx(0.0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][1].GetDouble() == Approx(0.1) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][2].GetDouble() == Approx(0.2) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][3].GetDouble() == Approx(0.3) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][4].GetDouble() == Approx(0.4) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][5].GetDouble() == Approx(0.5) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][6].GetDouble() == Approx(0.6) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][7].GetDouble() == Approx(0.7) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][8].GetDouble() == Approx(0.8) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][9].GetDouble() == Approx(0.9) );
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["width"] == 10);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["height"] == 1);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["features"] == 1);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][0].GetDouble() == Approx(0.0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][1].GetDouble() == Approx(0.1));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][2].GetDouble() == Approx(0.2));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][3].GetDouble() == Approx(0.3));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][4].GetDouble() == Approx(0.4));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][5].GetDouble() == Approx(0.5));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][6].GetDouble() == Approx(0.6));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][7].GetDouble() == Approx(0.7));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][8].GetDouble() == Approx(0.8));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoMatrix"]["data"][9].GetDouble() == Approx(0.9));
     }
-
 }
 
-TEST_CASE( "The encode_json can encode Hailo Objects with complex schemes", "[encode_json]" ) {
+TEST_CASE("The encode_json can encode Hailo Objects with complex schemes", "[encode_json]")
+{
     // Create a dummy roi
     HailoBBox main_bbox = HailoBBox(0, 0, 1, 1);
 
-    SECTION( "Nested objects are encoded with all their properties." ) {
+    SECTION("Nested objects are encoded with all their properties.")
+    {
         // Create a main roi to fill with random detections
         HailoROI main_roi = HailoROI(main_bbox);
         HailoROIPtr main_roi_ptr = std::make_shared<HailoROI>(main_roi);
 
-        // Create an LPR example: vehicle detection that contains a license plate detection, that contains an ocr classification
+        // Create an LPR example: vehicle detection that contains a license plate detection, that contains an ocr
+        // classification
         HailoBBox car_bbox = HailoBBox(0.1, 0.8, 0.3, 0.1); // The car bbox
         HailoDetection car = HailoDetection(car_bbox, "car", 1.0);
         HailoBBox license_plate_bbox = HailoBBox(0.15, 0.85, 0.1, 0.05); // The license plate bbox
@@ -295,17 +306,22 @@ TEST_CASE( "The encode_json can encode Hailo Objects with complex schemes", "[en
 
         // Encode the JSON
         rapidjson::Document doc = encode_json::encode_hailo_roi(main_roi_ptr);
-        
+
         // Check that the ids are encoded
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["confidence"].GetDouble() == Approx(1.0) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["class_id"].GetInt() == -1 );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["label"].GetString() == std::string("car") );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["xmin"].GetDouble() == Approx(0.1) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["ymin"].GetDouble() == Approx(0.8) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["width"].GetDouble() == Approx(0.3) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["height"].GetDouble() == Approx(0.1) );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["SubObjects"][0]["HailoDetection"]["label"].GetString() == std::string("license_plate") );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["SubObjects"][0]["HailoDetection"]["SubObjects"][0]["HailoClassification"]["label"].GetString() == std::string("123456789") );
-        CHECK( doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["SubObjects"][0]["HailoDetection"]["SubObjects"][0]["HailoClassification"]["classification_type"].GetString() == std::string("ocr") );
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["confidence"].GetDouble() == Approx(1.0));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["class_id"].GetInt() == -1);
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["label"].GetString() == std::string("car"));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["xmin"].GetDouble() == Approx(0.1));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["ymin"].GetDouble() == Approx(0.8));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["width"].GetDouble() == Approx(0.3));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["HailoBBox"]["height"].GetDouble() == Approx(0.1));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["SubObjects"][0]["HailoDetection"]["label"]
+                  .GetString() == std::string("license_plate"));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["SubObjects"][0]["HailoDetection"]["SubObjects"][0]
+                 ["HailoClassification"]["label"]
+                     .GetString() == std::string("123456789"));
+        CHECK(doc["HailoROI"]["SubObjects"][0]["HailoDetection"]["SubObjects"][0]["HailoDetection"]["SubObjects"][0]
+                 ["HailoClassification"]["classification_type"]
+                     .GetString() == std::string("ocr"));
     }
 }

@@ -11,21 +11,23 @@
 
 std::mutex CVMatSingleton::mutex_;
 
-CVMatSingleton& CVMatSingleton::GetInstance()
+CVMatSingleton &CVMatSingleton::GetInstance()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     static CVMatSingleton instance;
     return instance;
 }
 
-void CVMatSingleton::set_mat_at_key(int key, cv::Mat mat) {
+void CVMatSingleton::set_mat_at_key(int key, cv::Mat mat)
+{
     std::lock_guard<std::mutex> lock(mutex_);
     _mat_map[key] = mat.clone();
 }
 
-cv::Mat CVMatSingleton::get_mat_at_key(int key) {
+cv::Mat CVMatSingleton::get_mat_at_key(int key)
+{
     std::lock_guard<std::mutex> lock(mutex_);
-    if ( _mat_map.find(key) == _mat_map.end() )
+    if (_mat_map.find(key) == _mat_map.end())
     {
         return cv::Mat{};
     }

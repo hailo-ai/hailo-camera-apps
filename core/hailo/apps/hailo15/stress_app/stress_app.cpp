@@ -46,15 +46,15 @@
 #define HOST_IP "10.0.0.2"
 
 // AI Pipeline Params
-#define AI_VISION_SINK "sink0" // The streamid from frontend to 4K stream that shows vision results 
-#define AI_SINK "sink3" // The streamid from frontend to AI
+#define AI_VISION_SINK "sink0" // The streamid from frontend to 4K stream that shows vision results
+#define AI_SINK "sink3"        // The streamid from frontend to AI
 // Detection AI Params
-#define YOLO_HEF_FILE "/home/root/apps/ai_example_app/resources/yolov5s_personface_nv12.hef"
+#define YOLO_HEF_FILE "/home/root/apps/ai_example_app/resources/yolov8n_personface_nv12.hef"
 #define DETECTION_AI_STAGE "yolo_detection"
 // Detection Postprocess Params
 #define POST_STAGE "yolo_post"
 #define YOLO_POST_SO "/usr/lib/hailo-post-processes/libyolo_hailortpp_post.so"
-#define YOLO_FUNC_NAME "yolov5s_personface"
+#define YOLO_FUNC_NAME "yolov8n_personface"
 // Aggregator Params
 #define RESULTS_AGGREGATOR_STAGE "results_aggregator"
 #define AGGREGATOR_STAGE "aggregator"
@@ -68,9 +68,8 @@
 #define TILLING_INPUT_HEIGHT 1080
 #define TILLING_OUTPUT_WIDTH 640
 #define TILLING_OUTPUT_HEIGHT 640
-std::vector<HailoBBox> TILES = {{0.0,0.0,0.6,0.6},  {0.4,0,0.6,0.6},  
-                                {0, 0.4, 0.6, 0.6},  {0.4, 0.4, 0.6, 0.6}, 
-                                {0.0, 0.0, 1.0, 1.0}};
+std::vector<HailoBBox> TILES = {
+    {0.0, 0.0, 0.6, 0.6}, {0.4, 0, 0.6, 0.6}, {0, 0.4, 0.6, 0.6}, {0.4, 0.4, 0.6, 0.6}, {0.0, 0.0, 1.0, 1.0}};
 
 // Bbox crop Parms
 #define BBOX_CROP_STAGE "bbox_crops"
@@ -94,7 +93,8 @@ std::vector<HailoBBox> TILES = {{0.0,0.0,0.6,0.6},  {0.4,0,0.6,0.6},
 // Macro that turns coverts stream ids to port #s
 #define PORT_FROM_ID(id) std::to_string(5000 + std::stoi(id.substr(4)) * 2)
 
-enum class ArgumentType {
+enum class ArgumentType
+{
     Help,
     PrintFPS,
     PrintLatency,
@@ -110,78 +110,96 @@ enum class ArgumentType {
     Error
 };
 
-void print_help(const cxxopts::Options &options) {
+void print_help(const cxxopts::Options &options)
+{
     std::cout << options.help() << std::endl;
 }
 
 cxxopts::Options build_arg_parser()
 {
-  cxxopts::Options options("AI pipeline app");
-  options.add_options()
-  ("h, help", "Show this help")
-  ("t, timeout", "Time to run", cxxopts::value<int>()->default_value("300"))
-  ("p, print-fps", "Print FPS",  cxxopts::value<bool>()->default_value("false"))
-  ("l, print-latency", "Print Latency", cxxopts::value<bool>()->default_value("false"))
-  ("c, config-file-path", "media library Configuration Path", cxxopts::value<std::string>()->default_value(MEDIALIB_CONFIG_PATH))
-  ("s, skip-drawing", "Skip drawing", cxxopts::value<bool>()->default_value("false"))
-  ("f, full-landmarks", "Draw all landmarks (default draws only eyes for face landmarks)", cxxopts::value<bool>()->default_value("false"))
-  ("ai-pipeline", "will the ai pipeline be added to the overall pipeline", cxxopts::value<bool>()->default_value("false"))
-  ("leaky-ai-queues", "turn the ai queues to leaky", cxxopts::value<bool>()->default_value("false"))
-  ("toggle-hdr", "hdr will toggle to on/off each reset if true and when toggle denoise is false", cxxopts::value<bool>()->default_value("false"))
-  ("stream-to-file", "stream to file instead of udp", cxxopts::value<bool>()->default_value("false"))
-  ("num-of-resets", "number of frontend during the test", cxxopts::value<int>()->default_value("0"));
+    cxxopts::Options options("AI pipeline app");
+    options.add_options()("h, help", "Show this help")("t, timeout", "Time to run",
+                                                       cxxopts::value<int>()->default_value("300"))(
+        "p, print-fps", "Print FPS", cxxopts::value<bool>()->default_value("false"))(
+        "l, print-latency", "Print Latency", cxxopts::value<bool>()->default_value("false"))(
+        "c, config-file-path", "media library Configuration Path",
+        cxxopts::value<std::string>()->default_value(MEDIALIB_CONFIG_PATH))(
+        "s, skip-drawing", "Skip drawing", cxxopts::value<bool>()->default_value("false"))(
+        "f, full-landmarks", "Draw all landmarks (default draws only eyes for face landmarks)",
+        cxxopts::value<bool>()->default_value("false"))("ai-pipeline",
+                                                        "will the ai pipeline be added to the overall pipeline",
+                                                        cxxopts::value<bool>()->default_value("false"))(
+        "leaky-ai-queues", "turn the ai queues to leaky", cxxopts::value<bool>()->default_value("false"))(
+        "toggle-hdr", "hdr will toggle to on/off each reset if true and when toggle denoise is false",
+        cxxopts::value<bool>()->default_value("false"))("stream-to-file", "stream to file instead of udp",
+                                                        cxxopts::value<bool>()->default_value("false"))(
+        "num-of-resets", "number of frontend during the test", cxxopts::value<int>()->default_value("0"));
 
-  return options;
+    return options;
 }
 
-std::vector<ArgumentType> handle_arguments(const cxxopts::ParseResult &result, const cxxopts::Options &options) {
+std::vector<ArgumentType> handle_arguments(const cxxopts::ParseResult &result, const cxxopts::Options &options)
+{
     std::vector<ArgumentType> arguments;
 
-    if (result.count("help")) {
+    if (result.count("help"))
+    {
         print_help(options);
         arguments.push_back(ArgumentType::Help);
     }
 
-    if (result.count("print-fps")) {
+    if (result.count("print-fps"))
+    {
         arguments.push_back(ArgumentType::PrintFPS);
     }
 
-    if (result.count("timeout")) {
+    if (result.count("timeout"))
+    {
         arguments.push_back(ArgumentType::Timeout);
     }
 
-    if (result.count("print-latency")) {
+    if (result.count("print-latency"))
+    {
         arguments.push_back(ArgumentType::PrintLatency);
     }
 
-    if (result.count("config-file-path")) {
+    if (result.count("config-file-path"))
+    {
         arguments.push_back(ArgumentType::Config);
     }
 
-    if (result.count("skip-drawing")) {
+    if (result.count("skip-drawing"))
+    {
         arguments.push_back(ArgumentType::SkipDrawing);
     }
 
-    if (result.count("full-landmarks")) {
+    if (result.count("full-landmarks"))
+    {
         arguments.push_back(ArgumentType::FullLandmarks);
     }
-    if (result.count("ai-pipeline")) {
+    if (result.count("ai-pipeline"))
+    {
         arguments.push_back(ArgumentType::AiPipeline);
     }
-    if (result.count("leaky-ai-queues")) {
+    if (result.count("leaky-ai-queues"))
+    {
         arguments.push_back(ArgumentType::LeakyAiQueues);
     }
-    if (result.count("toggle-hdr")) {
+    if (result.count("toggle-hdr"))
+    {
         arguments.push_back(ArgumentType::ToggleHdr);
     }
-    if (result.count("num-of-resets")) {
+    if (result.count("num-of-resets"))
+    {
         arguments.push_back(ArgumentType::NumOfResets);
     }
-    if (result.count("stream-to-file")) {
+    if (result.count("stream-to-file"))
+    {
         arguments.push_back(ArgumentType::StreamToFile);
     }
     // Handle unrecognized options
-    for (const auto &unrecognized : result.unmatched()) {
+    for (const auto &unrecognized : result.unmatched())
+    {
         std::cerr << "Error: Unrecognized option or argument: " << unrecognized << std::endl;
         return {ArgumentType::Error};
     }
@@ -241,7 +259,6 @@ struct AppResources
     }
 };
 
-
 /**
  * @brief Subscribe elements within the application pipeline.
  *
@@ -269,15 +286,16 @@ void subscribe_to_frontend(std::shared_ptr<AppResources> app_resources)
         {
             std::cout << "subscribing ai pipeline to frontend for '" << s.id << "'" << std::endl;
             // Subscribe tiling to frontend
-            app_resources->frontend->subscribe_to_stream(s.id, 
+            app_resources->frontend->subscribe_to_stream(
+                s.id,
                 std::static_pointer_cast<ConnectedStage>(app_resources->pipeline->get_stage_by_name(TILLING_STAGE)));
         }
         else if ((s.id == AI_VISION_SINK) && (app_resources->ai_pipeline))
         {
             std::cout << "subscribing to frontend for '" << s.id << "'" << std::endl;
             // Subscribe tiling aggregator to frontend
-            app_resources->frontend->subscribe_to_stream(s.id, 
-                std::static_pointer_cast<ConnectedStage>(app_resources->pipeline->get_stage_by_name(TEE_STAGE)));
+            app_resources->frontend->subscribe_to_stream(
+                s.id, std::static_pointer_cast<ConnectedStage>(app_resources->pipeline->get_stage_by_name(TEE_STAGE)));
         }
         else
         {
@@ -302,7 +320,7 @@ std::string get_output_paths(const std::string &id)
  * @param id The ID of the output stream.
  * @param app_resources Shared pointer to the application's resources.
  */
-void create_encoder_and_outputs(const std::string& id, std::shared_ptr<AppResources> app_resources)
+void create_encoder_and_outputs(const std::string &id, std::shared_ptr<AppResources> app_resources)
 {
     // Create and configure encoder
     std::string enc_name = "enc_" + id;
@@ -316,7 +334,8 @@ void create_encoder_and_outputs(const std::string& id, std::shared_ptr<AppResour
         throw std::runtime_error("Failed to configure encoder");
     }
     app_resources->pipeline->add_stage(app_resources->encoders[id], StageType::SINK);
-    if (app_resources->stream_to_file) {
+    if (app_resources->stream_to_file)
+    {
         std::string output_file_path = get_output_paths(id);
         delete_output_file(output_file_path);
         std::string file_name = "output_file_" + id;
@@ -331,7 +350,9 @@ void create_encoder_and_outputs(const std::string& id, std::shared_ptr<AppResour
         }
         app_resources->pipeline->add_stage(app_resources->output_files[id], StageType::SINK);
         app_resources->encoders[id]->add_subscriber(app_resources->output_files[id]);
-    } else {
+    }
+    else
+    {
         // Create and conifgure udp
         std::string udp_name = "udp_" + id;
         std::cout << "Creating udp " << udp_name << std::endl;
@@ -349,7 +370,6 @@ void create_encoder_and_outputs(const std::string& id, std::shared_ptr<AppResour
         // Subscribe udp to encoder
         app_resources->encoders[id]->add_subscriber(app_resources->udp_outputs[id]);
     }
-
 }
 
 /**
@@ -412,46 +432,49 @@ void configure_frontend_and_encoders(std::shared_ptr<AppResources> app_resources
 void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
 {
     // AI Pipeline Stages
-    std::shared_ptr<TeeStage> tee_stage = std::make_shared<TeeStage>(TEE_STAGE, 2, app_resources->leaky_ai_queues, app_resources->print_fps);
-    std::shared_ptr<TillingCropStage> tilling_stage = std::make_shared<TillingCropStage>(TILLING_STAGE,50, TILLING_INPUT_WIDTH, TILLING_INPUT_HEIGHT,
-                                                                                        TILLING_OUTPUT_WIDTH, TILLING_OUTPUT_HEIGHT,
-                                                                                        "", DETECTION_AI_STAGE, TILES,
-                                                                                        5, true, app_resources->print_fps, StagePoolMode::BLOCKING);
-    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50 ,"device0", 5, 10, 5, false, 
-                                                                                             std::chrono::milliseconds(100), app_resources->print_fps, StagePoolMode::BLOCKING);
-    std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, "", 5, false, app_resources->print_fps);
-    std::shared_ptr<AggregatorStage> agg_stage = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE, false, 5,
-                                                                                   TEE_STAGE, 2, true,
-                                                                                   POST_STAGE, 5, false,
-                                                                                   true, false, 0.3, 0.1,
-                                                                                   app_resources->print_fps);
-    std::shared_ptr<BBoxCropStage> bbox_crop_stage = std::make_shared<BBoxCropStage>(BBOX_CROP_STAGE, 150, BBOX_CROP_INPUT_WIDTH, BBOX_CROP_INPUT_HEIGHT,
-                                                                                    BBOX_CROP_OUTPUT_WIDTH, BBOX_CROP_OUTPUT_HEIGHT,
-                                                                                    AGGREGATOR_STAGE_2, LANDMARKS_AI_STAGE, BBOX_CROP_LABEL, 1, app_resources->leaky_ai_queues, 
-                                                                                    app_resources->print_fps, StagePoolMode::BLOCKING);
-    std::shared_ptr<HailortAsyncStage> landmarks_stage = std::make_shared<HailortAsyncStage>(LANDMARKS_AI_STAGE, LANDMARKS_HEF_FILE, 100, 201 ,"device0", 1, 50, 1, false,
-                                                                                             std::chrono::milliseconds(100), app_resources->print_fps, StagePoolMode::BLOCKING);
-    std::shared_ptr<PostprocessStage> landmarks_post_stage = std::make_shared<PostprocessStage>(LANDMARKS_POST_STAGE, LANDMARKS_POST_SO, LANDMARKS_FUNC_NAME, "", 100, app_resources->leaky_ai_queues, app_resources->print_fps);
-    std::shared_ptr<AggregatorStage> agg_stage_2 = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE_2, true, 
-                                                                                     BBOX_CROP_STAGE, 3, false,
-                                                                                     LANDMARKS_POST_STAGE, 100, false,
-                                                                                     false, false, 0.3, 0.1,
-                                                                                     app_resources->print_fps);
-    
-    std::shared_ptr<AggregatorStage> results_agg_stage = std::make_shared<AggregatorStage>(RESULTS_AGGREGATOR_STAGE, false, 1,
-                                                                                    TEE_STAGE, 2, true,
-                                                                                    AGGREGATOR_STAGE_2, 2, false,
-                                                                                    false, false, 0.3, 0.1,
-                                                                                    app_resources->print_fps);
-    std::shared_ptr<PersistStage> tracker_stage = std::make_shared<PersistStage>(TRACKER_STAGE, 3, 1, false, app_resources->print_fps);
-    std::shared_ptr<OverlayStage> overlay_stage = std::make_shared<OverlayStage>(OVERLAY_STAGE, app_resources->skip_drawing, !app_resources->full_landmarks, LANDMARKS_RANGE_MIN, LANDMARKS_RANGE_MAX, 1, app_resources->leaky_ai_queues, app_resources->print_fps);
+    std::shared_ptr<TeeStage> tee_stage =
+        std::make_shared<TeeStage>(TEE_STAGE, 2, app_resources->leaky_ai_queues, app_resources->print_fps);
+    std::shared_ptr<TillingCropStage> tilling_stage = std::make_shared<TillingCropStage>(
+        TILLING_STAGE, 50, TILLING_INPUT_WIDTH, TILLING_INPUT_HEIGHT, TILLING_OUTPUT_WIDTH, TILLING_OUTPUT_HEIGHT, "",
+        DETECTION_AI_STAGE, TILES, 5, true, app_resources->print_fps, StagePoolMode::BLOCKING);
+    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(
+        DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50, "device0", 5, 10, 5, false, std::chrono::milliseconds(100),
+        app_resources->print_fps, StagePoolMode::BLOCKING);
+    std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(
+        POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, "", 5, false, app_resources->print_fps);
+    std::shared_ptr<AggregatorStage> agg_stage =
+        std::make_shared<AggregatorStage>(AGGREGATOR_STAGE, false, 5, TEE_STAGE, 2, true, POST_STAGE, 5, false, true,
+                                          false, 0.3, 0.1, app_resources->print_fps);
+    std::shared_ptr<BBoxCropStage> bbox_crop_stage = std::make_shared<BBoxCropStage>(
+        BBOX_CROP_STAGE, 150, BBOX_CROP_INPUT_WIDTH, BBOX_CROP_INPUT_HEIGHT, BBOX_CROP_OUTPUT_WIDTH,
+        BBOX_CROP_OUTPUT_HEIGHT, AGGREGATOR_STAGE_2, LANDMARKS_AI_STAGE, BBOX_CROP_LABEL, 1,
+        app_resources->leaky_ai_queues, app_resources->print_fps, StagePoolMode::BLOCKING);
+    std::shared_ptr<HailortAsyncStage> landmarks_stage = std::make_shared<HailortAsyncStage>(
+        LANDMARKS_AI_STAGE, LANDMARKS_HEF_FILE, 100, 201, "device0", 1, 50, 1, false, std::chrono::milliseconds(100),
+        app_resources->print_fps, StagePoolMode::BLOCKING);
+    std::shared_ptr<PostprocessStage> landmarks_post_stage =
+        std::make_shared<PostprocessStage>(LANDMARKS_POST_STAGE, LANDMARKS_POST_SO, LANDMARKS_FUNC_NAME, "", 100,
+                                           app_resources->leaky_ai_queues, app_resources->print_fps);
+    std::shared_ptr<AggregatorStage> agg_stage_2 =
+        std::make_shared<AggregatorStage>(AGGREGATOR_STAGE_2, true, BBOX_CROP_STAGE, 3, false, LANDMARKS_POST_STAGE,
+                                          100, false, false, false, 0.3, 0.1, app_resources->print_fps);
+
+    std::shared_ptr<AggregatorStage> results_agg_stage =
+        std::make_shared<AggregatorStage>(RESULTS_AGGREGATOR_STAGE, false, 1, TEE_STAGE, 2, true, AGGREGATOR_STAGE_2, 2,
+                                          false, false, false, 0.3, 0.1, app_resources->print_fps);
+    std::shared_ptr<PersistStage> tracker_stage =
+        std::make_shared<PersistStage>(TRACKER_STAGE, 3, 1, false, app_resources->print_fps);
+    std::shared_ptr<OverlayStage> overlay_stage =
+        std::make_shared<OverlayStage>(OVERLAY_STAGE, app_resources->skip_drawing, !app_resources->full_landmarks,
+                                       LANDMARKS_RANGE_MIN, LANDMARKS_RANGE_MAX, 1, app_resources->leaky_ai_queues,
+                                       std::unordered_set<int>{}, nullptr, app_resources->print_fps);
 
     // Add stages to pipeline
     app_resources->pipeline->add_stage(tee_stage);
     app_resources->pipeline->add_stage(results_agg_stage);
     app_resources->pipeline->add_stage(tracker_stage);
     app_resources->pipeline->add_stage(overlay_stage);
-    
+
     app_resources->pipeline->add_stage(agg_stage);
     app_resources->pipeline->add_stage(tilling_stage);
     app_resources->pipeline->add_stage(detection_stage);
@@ -461,8 +484,8 @@ void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
     app_resources->pipeline->add_stage(landmarks_post_stage);
     app_resources->pipeline->add_stage(agg_stage_2);
 
-    // Subscribe stages to each other  
-    // AI Pipeline stages  
+    // Subscribe stages to each other
+    // AI Pipeline stages
     tee_stage->add_subscriber(agg_stage);
     tilling_stage->add_subscriber(detection_stage);
     detection_stage->add_subscriber(detection_post_stage);
@@ -495,27 +518,26 @@ void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
 int main(int argc, char *argv[])
 {
     {
-        // App resources 
+        // App resources
         std::shared_ptr<AppResources> app_resources = std::make_shared<AppResources>();
         app_resources->medialib_config_path = MEDIALIB_CONFIG_PATH;
 
         // register signal SIGINT and signal handler
-        signal_utils::register_signal_handler([app_resources](int signal)
-        { 
+        signal_utils::register_signal_handler([app_resources](int signal) {
             std::cout << "Stopping Pipeline..." << std::endl;
             REFERENCE_CAMERA_LOG_INFO("Stopping Pipeline...");
             // Stop pipeline
             app_resources->pipeline->stop_pipeline();
             app_resources->clear();
-            // terminate program  
-            exit(0); 
+            // terminate program
+            exit(0);
         });
 
         // Parse user arguments
         cxxopts::Options options = build_arg_parser();
         auto result = options.parse(argc, argv);
         std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options);
-        int timeout  = result["timeout"].as<int>();
+        int timeout = result["timeout"].as<int>();
 
         for (ArgumentType argument : argument_handling_results)
         {
@@ -543,7 +565,7 @@ int main(int argc, char *argv[])
             case ArgumentType::AiPipeline:
                 app_resources->ai_pipeline = true;
                 break;
-            case ArgumentType::LeakyAiQueues:    
+            case ArgumentType::LeakyAiQueues:
                 app_resources->leaky_ai_queues = true;
                 break;
             case ArgumentType::ToggleHdr:
@@ -559,7 +581,7 @@ int main(int argc, char *argv[])
                 return 1;
             }
         }
-        
+
         // Create pipeline
         app_resources->pipeline = std::make_shared<Pipeline>();
 
@@ -581,8 +603,8 @@ int main(int argc, char *argv[])
         REFERENCE_CAMERA_LOG_INFO("Started playing for {} seconds.", timeout);
 
         bool g_hdr_enabled = false;
-        std::string sdr_profile= "sdr";
-        std::string hdr_profile= "hdr";
+        std::string sdr_profile = "sdr";
+        std::string hdr_profile = "hdr";
         if (app_resources->num_of_resets > 0)
         {
             int interval = timeout / app_resources->num_of_resets;
@@ -590,10 +612,12 @@ int main(int argc, char *argv[])
             {
                 std::this_thread::sleep_for(std::chrono::seconds(interval));
                 std::cout << "Restarting stream" << std::endl;
-                if (app_resources->toggle_hdr) {
+                if (app_resources->toggle_hdr)
+                {
                     app_resources->media_library->set_profile(g_hdr_enabled ? hdr_profile : sdr_profile);
                 }
-                else {
+                else
+                {
                     app_resources->frontend->deinit();
                 }
                 app_resources->frontend->init();
@@ -601,7 +625,6 @@ int main(int argc, char *argv[])
         }
         else
             std::this_thread::sleep_for(std::chrono::seconds(timeout));
-
 
         // Stop pipeline
         std::cout << "Stopping." << std::endl;

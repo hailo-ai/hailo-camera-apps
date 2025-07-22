@@ -28,7 +28,8 @@
  * @return std::vector<STrack>
  *         The translated Stracks.
  */
-inline std::vector<STrack> JDETracker::hailo_detections_to_stracks(std::vector<HailoDetectionPtr> &inputs, int frame_id, std::vector<hailo_object_t> hailo_objects_blacklist)
+inline std::vector<STrack> JDETracker::hailo_detections_to_stracks(std::vector<HailoDetectionPtr> &inputs, int frame_id,
+                                                                   std::vector<hailo_object_t> hailo_objects_blacklist)
 {
     std::vector<STrack> detections(inputs.size());
     for (uint i = 0; i < inputs.size(); i++)
@@ -52,7 +53,8 @@ inline std::vector<STrack> JDETracker::hailo_detections_to_stracks(std::vector<H
  *         The translated HailoDetectionPtr.
  *
  */
-inline std::vector<HailoDetectionPtr> JDETracker::stracks_to_hailo_detections(std::vector<STrack> &stracks, bool debug = false)
+inline std::vector<HailoDetectionPtr> JDETracker::stracks_to_hailo_detections(std::vector<STrack> &stracks,
+                                                                              bool debug = false)
 {
     std::vector<HailoDetectionPtr> objects;
     objects.reserve(stracks.size());
@@ -88,7 +90,8 @@ inline std::vector<HailoDetectionPtr> JDETracker::stracks_to_hailo_detections(st
             // Strack tlwh is stored as top-left, width-height: xmin,ymin,width,height
             HailoBBox bbox(stracks[i].m_tlwh[0], stracks[i].m_tlwh[1], stracks[i].m_tlwh[2], stracks[i].m_tlwh[3]);
             // HailoDetection is constructed as HailoDetection(HailoBBox, label, confidence)
-            objects.emplace_back(std::make_shared<HailoDetection>(HailoDetection(bbox, "tracked", stracks[i].m_confidence)));
+            objects.emplace_back(
+                std::make_shared<HailoDetection>(HailoDetection(bbox, "tracked", stracks[i].m_confidence)));
         }
     }
 

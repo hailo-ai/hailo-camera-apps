@@ -8,8 +8,7 @@ std::string read_string_from_file(const char *file_path)
     file_to_read.open(file_path);
     if (!file_to_read.is_open())
         throw std::runtime_error("config path is not valid");
-    std::string file_string((std::istreambuf_iterator<char>(file_to_read)),
-                            std::istreambuf_iterator<char>());
+    std::string file_string((std::istreambuf_iterator<char>(file_to_read)), std::istreambuf_iterator<char>());
     file_to_read.close();
     std::cout << "Read config from file: " << file_path << std::endl;
     return file_string;

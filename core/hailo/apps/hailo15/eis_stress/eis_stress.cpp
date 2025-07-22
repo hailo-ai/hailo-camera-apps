@@ -11,7 +11,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <cxxopts/cxxopts.hpp>
-#include <filesystem> 
+#include <filesystem>
 #include "media_library/encoder.hpp"
 #include "media_library/frontend.hpp"
 #include "chaos_app/utils/common.hpp"
@@ -24,52 +24,47 @@
 #include "hailo/tappas/reference_camera/postprocess_stage.hpp"
 #include "hailo/tappas/reference_camera/overlay_stage.hpp"
 
-
-
 using json = nlohmann::json;
 
 #define FRONTEND_CONFIG_FILE "/home/root/apps/basic_security_camera_streaming/resources/configs/frontend_config.json"
 #define EIS_TEST_CONFIG_FILE "/home/root/apps/tests/eis_stress_frontend.json"
 #define BACKUP_ENCODER_CONFIG_FILE "/tmp/encoder_config_example.json"
-#define ENCODER_OSD_CONFIG_FILE "/home/root/apps/basic_security_camera_streaming/resources/configs/encoder_config_4k_no_osd.json"
+#define ENCODER_OSD_CONFIG_FILE                                                                                        \
+    "/home/root/apps/basic_security_camera_streaming/resources/configs/encoder_config_4k_no_osd.json"
 
 // AI Pipeline Params
 #define AI_SINK "sink3" // The streamid from frontend to AI
 // Detection AI Params
-#define YOLO_HEF_FILE "/home/root/apps/ai_example_app/resources/yolov5s_personface_nv12.hef"
+#define YOLO_HEF_FILE "/home/root/apps/ai_example_app/resources/yolov8n_personface_nv12.hef"
 #define DETECTION_AI_STAGE "yolo_detection"
 // Detection Postprocess Params
 #define POST_STAGE "yolo_post"
 #define YOLO_POST_SO "/usr/lib/hailo-post-processes/libyolo_hailortpp_post.so"
-#define YOLO_FUNC_NAME "yolov5s_personface"
+#define YOLO_FUNC_NAME "yolov8n_personface"
 // Overlay stage
 #define OVERLAY_STAGE "OverLay"
 // Callback Params
 #define AI_CALLBACK_STAGE "ai_to_encoder"
 
-std::map<output_stream_id_t, bool> g_osd_is_set = {{"sink0", false}, {"sink1", false}, {"sink2", false}, {"sink3", false}};
-std::vector<std::string> encoder_configurations
-    = {"/tmp/encoder_config_example_4k.json",
-       "/tmp/encoder_config_example_fhd.json",
-       "/tmp/encoder_config_example_hd.json",
-       "/tmp/encoder_config_example_sd.json"};
-std::vector<std::string> outputs_files
-    = {"/var/volatile/tmp/eis_stress_sink0.h264",
-       "/var/volatile/tmp/eis_stress_sink1.h264",
-       "/var/volatile/tmp/eis_stress_sink2.h264",
-       "/var/volatile/tmp/eis_stress_sink3.h264"};
-std::map<std::string, Resolution> resolutions_map = {
-    {"4k", {3840, 2160, 15, 15, 8000000}},
-    {"fhd", {1920, 1080, 15, 15, 8000000}},
-    {"hd", {1280, 720, 30, 20, 8000000}},
-    {"sd", {640, 640, 30, 30, 8000000}}};
-
+std::map<output_stream_id_t, bool> g_osd_is_set = {
+    {"sink0", false}, {"sink1", false}, {"sink2", false}, {"sink3", false}};
+std::vector<std::string> encoder_configurations = {
+    "/tmp/encoder_config_example_4k.json", "/tmp/encoder_config_example_fhd.json",
+    "/tmp/encoder_config_example_hd.json", "/tmp/encoder_config_example_sd.json"};
+std::vector<std::string> outputs_files = {
+    "/var/volatile/tmp/eis_stress_sink0.h264", "/var/volatile/tmp/eis_stress_sink1.h264",
+    "/var/volatile/tmp/eis_stress_sink2.h264", "/var/volatile/tmp/eis_stress_sink3.h264"};
+std::map<std::string, Resolution> resolutions_map = {{"4k", {3840, 2160, 15, 15, 8000000}},
+                                                     {"fhd", {1920, 1080, 15, 15, 8000000}},
+                                                     {"hd", {1280, 720, 30, 20, 8000000}},
+                                                     {"sd", {640, 640, 30, 30, 8000000}}};
 
 std::string font_path = "/usr/share/fonts/ttf/LiberationMono-Bold.ttf";
 osd::rgba_color_t red_argb = {255, 0, 0, 255};
 osd::rgba_color_t blue_argb = {0, 0, 255, 255};
 osd::rgba_color_t white_argb = {255, 255, 255, 255};
-osd::TextOverlay text_overlay("text_overlay", 0.4, 0.4, "EIS ON!!!!", red_argb, blue_argb, 60.0f, 1, 1, font_path, 0, osd::rotation_alignment_policy_t::CENTER);
+osd::TextOverlay text_overlay("text_overlay", 0.4, 0.4, "EIS ON!!!!", red_argb, blue_argb, 60.0f, 1, 1, font_path, 0,
+                              osd::rotation_alignment_policy_t::CENTER);
 
 static bool g_encoder_is_running = false;
 static bool g_pipeline_is_running = false;
@@ -92,26 +87,28 @@ struct MediaLibrary
 };
 std::shared_ptr<MediaLibrary> m_media_lib;
 
-
-struct ParsedOptions {
+struct ParsedOptions
+{
     int no_change_frames;
     int test_time;
     int number_of_resets;
     bool run_over_day;
 };
 
-ParsedOptions parseArguments(int argc, char* argv[]) {
+ParsedOptions parseArguments(int argc, char *argv[])
+{
     cxxopts::Options options("ProgramName", "Program Help String");
-    options.add_options()
-        ("h,help", "Print usage")
-        ("test-time", "how much time to run in seconds", cxxopts::value<int>()->default_value("300"))
-        ("frames-to-skip", "Number before we do before changing the eis", cxxopts::value<int>()->default_value("30"))
-        ("number-of-resets", "Number of reset we expect to use.", cxxopts::value<int>()->default_value("450"))
-        ("run-over-day", "If set to true will enable/disable denoise hdr depeding on the day time.", cxxopts::value<bool>()->default_value("false"));
-    
+    options.add_options()("h,help", "Print usage")("test-time", "how much time to run in seconds",
+                                                   cxxopts::value<int>()->default_value("300"))(
+        "frames-to-skip", "Number before we do before changing the eis", cxxopts::value<int>()->default_value("30"))(
+        "number-of-resets", "Number of reset we expect to use.", cxxopts::value<int>()->default_value("450"))(
+        "run-over-day", "If set to true will enable/disable denoise hdr depeding on the day time.",
+        cxxopts::value<bool>()->default_value("false"));
+
     auto result = options.parse(argc, argv);
 
-    if (result.count("help")) {
+    if (result.count("help"))
+    {
         std::cout << options.help() << std::endl;
         exit(0);
     }
@@ -153,17 +150,18 @@ void on_signal_callback(int signum)
     exit(signum);
 }
 
-
-int create_frontend_object(std::shared_ptr<MediaLibrary> m_media_lib){
+int create_frontend_object(std::shared_ptr<MediaLibrary> m_media_lib)
+{
     std::string frontend_config_string = read_string_from_file(EIS_TEST_CONFIG_FILE);
     tl::expected<MediaLibraryFrontendPtr, media_library_return> frontend_expected = MediaLibraryFrontend::create();
-    if (!frontend_expected.has_value()) {
+    if (!frontend_expected.has_value())
+    {
         std::cout << "Failed to create frontend" << std::endl;
         return 1;
     }
 
     m_media_lib->frontend = frontend_expected.value();
-    if (m_media_lib->frontend->set_config(frontend_config_string ) != MEDIA_LIBRARY_SUCCESS)
+    if (m_media_lib->frontend->set_config(frontend_config_string) != MEDIA_LIBRARY_SUCCESS)
     {
         std::cout << "Failed to configure frontend" << std::endl;
         return 1;
@@ -171,58 +169,67 @@ int create_frontend_object(std::shared_ptr<MediaLibrary> m_media_lib){
     return 0;
 }
 
-void setup_frontend() {
+void setup_frontend()
+{
     std::string reference_config_str = read_string_from_file(FRONTEND_CONFIG_FILE);
     json frontend_config = json::parse(reference_config_str);
 
     // Set the next configuration as defaul
     // Dewrap off, FOV 1
     frontend_config["dewarp"]["enabled"] = true;
-    frontend_config["dewarp"]["sensor_calib_path"] = "/home/root/apps/resources/cam_intrinsics.txt";
+    frontend_config["dewarp"]["sensor_calib_path"] =
+        "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/shared/calibration/cam_intrinsics.txt";
     // EIS on, gyro on
     frontend_config["eis"]["enabled"] = true;
     frontend_config["gyro"]["enabled"] = true;
 
     // Output 4k 15fps, fhd 15fps, hd 30 fps, sd 30 fps
-    frontend_config["application_input_streams"]["resolutions"] = {{{"width", resolutions_map["4k"].width},
-                                                       {"height", resolutions_map["4k"].height},
-                                                       {"framerate", resolutions_map["4k"].framerate},
-                                                       {"pool_max_buffers", resolutions_map["4k"].pool_max_buffers}},
-                                                       {{"width", resolutions_map["fhd"].width},
-                                                       {"height", resolutions_map["fhd"].height},
-                                                       {"framerate", resolutions_map["fhd"].framerate},
-                                                       {"pool_max_buffers", resolutions_map["fhd"].pool_max_buffers}},
-                                                       {{"width", resolutions_map["hd"].width},
-                                                       {"height", resolutions_map["hd"].height},
-                                                       {"framerate", resolutions_map["hd"].framerate},
-                                                       {"pool_max_buffers", resolutions_map["hd"].pool_max_buffers}},
-                                                       {{"width", resolutions_map["sd"].width},
-                                                       {"height", resolutions_map["sd"].height},
-                                                       {"framerate", resolutions_map["sd"].framerate},
-                                                       {"pool_max_buffers", resolutions_map["sd"].pool_max_buffers}}};
+    frontend_config["application_input_streams"]["resolutions"] = {
+        {{"width", resolutions_map["4k"].width},
+         {"height", resolutions_map["4k"].height},
+         {"framerate", resolutions_map["4k"].framerate},
+         {"pool_max_buffers", resolutions_map["4k"].pool_max_buffers}},
+        {{"width", resolutions_map["fhd"].width},
+         {"height", resolutions_map["fhd"].height},
+         {"framerate", resolutions_map["fhd"].framerate},
+         {"pool_max_buffers", resolutions_map["fhd"].pool_max_buffers}},
+        {{"width", resolutions_map["hd"].width},
+         {"height", resolutions_map["hd"].height},
+         {"framerate", resolutions_map["hd"].framerate},
+         {"pool_max_buffers", resolutions_map["hd"].pool_max_buffers}},
+        {{"width", resolutions_map["sd"].width},
+         {"height", resolutions_map["sd"].height},
+         {"framerate", resolutions_map["sd"].framerate},
+         {"pool_max_buffers", resolutions_map["sd"].pool_max_buffers}}};
     // Rotation 180
     frontend_config["flip"]["enabled"] = true;
-    
+
     // Denoise on
     frontend_config["denoise"]["enabled"] = false;
-    
+
     writeFileContent(EIS_TEST_CONFIG_FILE, frontend_config.dump());
 }
 
-int create_encoder_configuration_files(){
+int create_encoder_configuration_files()
+{
     // Copy frontend configuration file as reference
-    try {
-        std::filesystem::copy_file(ENCODER_OSD_CONFIG_FILE, BACKUP_ENCODER_CONFIG_FILE, std::filesystem::copy_options::overwrite_existing);
-    } catch (const std::filesystem::filesystem_error& e) {
+    try
+    {
+        std::filesystem::copy_file(ENCODER_OSD_CONFIG_FILE, BACKUP_ENCODER_CONFIG_FILE,
+                                   std::filesystem::copy_options::overwrite_existing);
+    }
+    catch (const std::filesystem::filesystem_error &e)
+    {
         std::cerr << "Error copying file: " << e.what() << '\n';
         return 1;
     }
 
     std::string reference_encoder_config_str = read_string_from_file(BACKUP_ENCODER_CONFIG_FILE);
     json encoder_config = json::parse(reference_encoder_config_str);
-    
+
     int index = 0;
-    for (const auto& [key, resolution] : resolutions_map) {
+    for (const auto &[key, resolution] : resolutions_map)
+    {
         encoder_config["encoding"]["input_stream"]["width"] = resolution.width;
         encoder_config["encoding"]["input_stream"]["height"] = resolution.height;
         encoder_config["encoding"]["input_stream"]["framerate"] = resolution.framerate;
@@ -234,32 +241,38 @@ int create_encoder_configuration_files(){
     return 0;
 }
 
-int create_encoder_objects(std::shared_ptr<MediaLibrary> m_media_lib){
+int create_encoder_objects(std::shared_ptr<MediaLibrary> m_media_lib)
+{
     auto streams = m_media_lib->frontend->get_outputs_streams();
-    if (!streams.has_value()) {
+    if (!streams.has_value())
+    {
         std::cout << "Failed to get stream ids" << std::endl;
         throw std::runtime_error("Failed to get stream ids");
     }
-    
+
     uint i = 0;
-    for (auto s : streams.value()) {
+    for (auto s : streams.value())
+    {
         std::string encoder_config_string = read_string_from_file(encoder_configurations[i].c_str());
         tl::expected<MediaLibraryEncoderPtr, media_library_return> encoder_expected = MediaLibraryEncoder::create();
-        if (!encoder_expected.has_value()) {
+        if (!encoder_expected.has_value())
+        {
             std::cout << "Failed to create encoder" << std::endl;
             return 1;
         }
         m_media_lib->encoders[s.id] = encoder_expected.value();
         if (m_media_lib->encoders[s.id]->set_config(encoder_config_string) != MEDIA_LIBRARY_SUCCESS)
-	{
+        {
             std::cout << "Failed to configure encoder osd" << std::endl;
             return 1;
-	}
+        }
 
         std::string output_file_path = outputs_files[i];
         delete_output_file(output_file_path);
-        m_media_lib->output_files[s.id].open(output_file_path.c_str(), std::ios::out | std::ios::binary | std::ios::app);
-        if (!m_media_lib->output_files[s.id].good()) {
+        m_media_lib->output_files[s.id].open(output_file_path.c_str(),
+                                             std::ios::out | std::ios::binary | std::ios::app);
+        if (!m_media_lib->output_files[s.id].good())
+        {
             std::cerr << "Error occurred while opening file" << std::endl;
             return 1;
         }
@@ -269,10 +282,13 @@ int create_encoder_objects(std::shared_ptr<MediaLibrary> m_media_lib){
     return 0;
 }
 
-void create_ai_pipelines(){
+void create_ai_pipelines()
+{
     m_media_lib->pipeline = std::make_shared<Pipeline>();
-    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50 ,"device0", 10, 20, 8, false, std::chrono::milliseconds(100), false);
-    std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, "", 5, false, false);
+    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(
+        DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50, "device0", 10, 20, 8, false, std::chrono::milliseconds(100), false);
+    std::shared_ptr<PostprocessStage> detection_post_stage =
+        std::make_shared<PostprocessStage>(POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, "", 5, false, false);
     std::shared_ptr<OverlayStage> overlay_stage = std::make_shared<OverlayStage>(OVERLAY_STAGE, 1, false, false);
     std::shared_ptr<CallbackStage> sink_stage = std::make_shared<CallbackStage>(AI_CALLBACK_STAGE, 1, false);
     m_media_lib->pipeline->add_stage(detection_stage);
@@ -285,8 +301,8 @@ void create_ai_pipelines(){
     overlay_stage->add_subscriber(sink_stage);
 }
 
-
-int setup() {
+int setup()
+{
     int return_value = 0;
     // Create media lib pointer for tests
     m_media_lib = std::make_shared<MediaLibrary>();
@@ -295,7 +311,8 @@ int setup() {
 
     // Create frontend object
     return_value = create_frontend_object(m_media_lib);
-    if (return_value != 0) {
+    if (return_value != 0)
+    {
         return return_value;
     }
 
@@ -304,7 +321,8 @@ int setup() {
 
     // Create encoder configuration files
     return_value = create_encoder_configuration_files();
-    if (return_value != 0) {
+    if (return_value != 0)
+    {
         return return_value;
     }
 
@@ -313,27 +331,32 @@ int setup() {
     return 0;
 }
 
-void clean(bool g_pipeline_is_running, bool g_encoder_is_running, std::streambuf* originalBuffer) {
+void clean(bool g_pipeline_is_running, bool g_encoder_is_running, std::streambuf *originalBuffer)
+{
 
-    if (g_pipeline_is_running) {
+    if (g_pipeline_is_running)
+    {
         std::cout << "Stopping" << std::endl;
         m_media_lib->frontend->stop();
-        m_media_lib->frontend=NULL;
+        m_media_lib->frontend = NULL;
     }
 
-    if (g_ai_set) {
+    if (g_ai_set)
+    {
         std::cout << "Stopping ai pipeline" << std::endl;
         m_media_lib->pipeline->stop_pipeline();
         m_media_lib->pipeline = NULL;
     }
 
     std::cout << "Stopping encoder" << std::endl;
-    for (auto &entry : m_media_lib->encoders) {
+    for (auto &entry : m_media_lib->encoders)
+    {
         entry.second->stop();
     }
 
     std::cout << "Stopping file writing" << std::endl;
-    for (auto &entry : m_media_lib->output_files) {
+    for (auto &entry : m_media_lib->output_files)
+    {
         entry.second.close();
     }
 
@@ -341,7 +364,8 @@ void clean(bool g_pipeline_is_running, bool g_encoder_is_running, std::streambuf
 }
 
 // Function to convert an integer to three boolean values
-std::tuple<bool, bool, bool> getBooleanValues(int value) {
+std::tuple<bool, bool, bool> getBooleanValues(int value)
+{
     // Ensure the value is within a range of 0 to 7 (3 bits)
     value = value & 0b111; // Mask to only keep the last 3 bits
 
@@ -352,7 +376,8 @@ std::tuple<bool, bool, bool> getBooleanValues(int value) {
     return {b1, b2, b3};
 }
 
-void subscribe_frontend(std::shared_ptr<MediaLibrary> m_media_lib, uint no_change_frames){
+void subscribe_frontend(std::shared_ptr<MediaLibrary> m_media_lib, uint no_change_frames)
+{
     auto streams = m_media_lib->frontend->get_outputs_streams();
     if (!streams.has_value() || streams->empty())
     {
@@ -360,35 +385,35 @@ void subscribe_frontend(std::shared_ptr<MediaLibrary> m_media_lib, uint no_chang
         return;
     }
     FrontendCallbacksMap fe_callbacks;
-    for (const auto& s : *streams)
+    for (const auto &s : *streams)
     {
         std::cout << "subscribing to frontend for '" << s.id << "'" << std::endl;
-        if(s.id == AI_SINK){
+        if (s.id == AI_SINK)
+        {
             m_media_lib->pipeline->get_stage_by_name(DETECTION_AI_STAGE)->add_queue(s.id);
-            fe_callbacks[s.id] = [s, m_media_lib, no_change_frames](HailoMediaLibraryBufferPtr buffer, size_t size)
-            {
+            fe_callbacks[s.id] = [s, m_media_lib, no_change_frames](HailoMediaLibraryBufferPtr buffer, size_t size) {
                 BufferPtr wrapped_buffer = std::make_shared<Buffer>(buffer);
                 m_media_lib->pipeline->get_stage_by_name(DETECTION_AI_STAGE)->push(wrapped_buffer, s.id);
             };
         }
-        else{
-            fe_callbacks[s.id] = [s, m_media_lib, no_change_frames](HailoMediaLibraryBufferPtr buffer, size_t size)
-            {
+        else
+        {
+            fe_callbacks[s.id] = [s, m_media_lib, no_change_frames](HailoMediaLibraryBufferPtr buffer, size_t size) {
                 g_total_frame_counter++;
-                if ((g_total_frame_counter > 10) && ((g_total_frame_counter % no_change_frames) == 0) && g_pipeline_is_running)
+                if ((g_total_frame_counter > 10) && ((g_total_frame_counter % no_change_frames) == 0) &&
+                    g_pipeline_is_running)
                 {
                     g_inside_frame_counter++;
-                    
+
                     frontend_config_t config = m_media_lib->frontend->get_config().value();
                     config.ldc_config.eis_config.enabled = !config.ldc_config.eis_config.enabled;
-                    
 
                     auto [gyro_status, eis_status, stabilize_status] = getBooleanValues(g_inside_frame_counter);
                     config.ldc_config.gyro_config.enabled = gyro_status;
                     config.ldc_config.eis_config.enabled = eis_status;
                     config.ldc_config.eis_config.stabilize = stabilize_status;
-                    
-                    if(m_media_lib->frontend->set_config(config) != MEDIA_LIBRARY_SUCCESS)
+
+                    if (m_media_lib->frontend->set_config(config) != MEDIA_LIBRARY_SUCCESS)
                     {
                         std::cout << "Error!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
                     }
@@ -406,76 +431,82 @@ void subscribe_frontend(std::shared_ptr<MediaLibrary> m_media_lib, uint no_chang
 void subscribe_elements(std::shared_ptr<MediaLibrary> m_media_lib, uint no_change_frames)
 {
     subscribe_frontend(m_media_lib, no_change_frames);
-    
+
     // Connect encoders to file writing
     for (const auto &[streamId, encoder] : m_media_lib->encoders)
     {
         std::cout << "subscribing to encoder for '" << streamId << "'" << std::endl;
-        encoder->subscribe(
-            [m_media_lib, streamId](HailoMediaLibraryBufferPtr buffer, size_t size)
+        encoder->subscribe([m_media_lib, streamId](HailoMediaLibraryBufferPtr buffer, size_t size) {
+            auto config = m_media_lib->frontend->get_config().value();
+            auto osd_blender = m_media_lib->encoders[streamId]->get_osd_blender();
+            if (!g_osd_is_set[streamId])
             {
-                auto config = m_media_lib->frontend->get_config().value();
-                auto osd_blender = m_media_lib->encoders[streamId]->get_blender();
-                if (!g_osd_is_set[streamId]){
-                    osd::TextOverlay eis_overlay("eis_status", 0.7, 0.7, "EIS_ON!!!!!!!!!!!!!!!!!1", red_argb, blue_argb, 60.0f, 1, 1, font_path, 0, osd::rotation_alignment_policy_t::CENTER);
-                    osd_blender->add_overlay(eis_overlay);
-                    osd_blender->set_overlay_enabled("eis_status", true);
-                    g_osd_is_set[streamId] = true;
-                }
-
-                if (config.ldc_config.eis_config.enabled != g_osd_eis_status || 
-                    config.ldc_config.gyro_config.enabled != g_osd_gyro_status){
-                    auto text_overlay_ptr = osd_blender->get_overlay("eis_status");
-                    auto text_overlay = std::static_pointer_cast<osd::TextOverlay>(text_overlay_ptr.value());
-                    
-                    if (config.ldc_config.eis_config.enabled) {
-                        text_overlay->label = "EIS_ON!!!!!!!!!!!!!!!!!1";
-                    }
-                    else{
-                        text_overlay->label = "EIS_OFF!!!!!!!!!!!!!!!!!1";
-                    }
-                    if (config.ldc_config.gyro_config.enabled) {
-                        text_overlay->label = text_overlay->label + "GYRO_ON!!!!!!!!!!!!!!!!!1";
-                    }
-                    else{
-                        text_overlay->label = text_overlay->label + "GYRO_OFF!!!!!!!!!!!!!!!!!1";
-                    }
-                    if (config.ldc_config.eis_config.stabilize) {
-                        text_overlay->label = text_overlay->label + "STABILIZE_ON!!!!!!!!!!!!!!!!!1";
-                    }
-                    else{
-                        text_overlay->label = text_overlay->label + "STABILIZE_OFF!!!!!!!!!!!!!!!!!1";
-                    }
-                    osd_blender->set_overlay(*text_overlay);
-                    g_osd_eis_status = config.ldc_config.eis_config.enabled;
-                    g_osd_gyro_status = config.ldc_config.gyro_config.enabled;
-                    }
-                write_encoded_data(buffer, size, m_media_lib->output_files[streamId]);
+                osd::TextOverlay eis_overlay("eis_status", 0.7, 0.7, "EIS_ON!!!!!!!!!!!!!!!!!1", red_argb, blue_argb,
+                                             60.0f, 1, 1, font_path, 0, osd::rotation_alignment_policy_t::CENTER);
+                osd_blender->add_overlay(eis_overlay);
+                osd_blender->set_overlay_enabled("eis_status", true);
+                g_osd_is_set[streamId] = true;
             }
-        );
+
+            if (config.ldc_config.eis_config.enabled != g_osd_eis_status ||
+                config.ldc_config.gyro_config.enabled != g_osd_gyro_status)
+            {
+                auto text_overlay_ptr = osd_blender->get_overlay("eis_status");
+                auto text_overlay = std::static_pointer_cast<osd::TextOverlay>(text_overlay_ptr.value());
+
+                if (config.ldc_config.eis_config.enabled)
+                {
+                    text_overlay->label = "EIS_ON!!!!!!!!!!!!!!!!!1";
+                }
+                else
+                {
+                    text_overlay->label = "EIS_OFF!!!!!!!!!!!!!!!!!1";
+                }
+                if (config.ldc_config.gyro_config.enabled)
+                {
+                    text_overlay->label = text_overlay->label + "GYRO_ON!!!!!!!!!!!!!!!!!1";
+                }
+                else
+                {
+                    text_overlay->label = text_overlay->label + "GYRO_OFF!!!!!!!!!!!!!!!!!1";
+                }
+                if (config.ldc_config.eis_config.stabilize)
+                {
+                    text_overlay->label = text_overlay->label + "STABILIZE_ON!!!!!!!!!!!!!!!!!1";
+                }
+                else
+                {
+                    text_overlay->label = text_overlay->label + "STABILIZE_OFF!!!!!!!!!!!!!!!!!1";
+                }
+                osd_blender->set_overlay(*text_overlay);
+                g_osd_eis_status = config.ldc_config.eis_config.enabled;
+                g_osd_gyro_status = config.ldc_config.gyro_config.enabled;
+            }
+            write_encoded_data(buffer, size, m_media_lib->output_files[streamId]);
+        });
     }
-    
+
     // Subscribe ai stage to encoder
     std::cout << "subscribing ai pipeline to encoder " << std::endl;
-    CallbackStagePtr ai_sink_stage = std::static_pointer_cast<CallbackStage>(m_media_lib->pipeline->get_stage_by_name(AI_CALLBACK_STAGE));
+    CallbackStagePtr ai_sink_stage =
+        std::static_pointer_cast<CallbackStage>(m_media_lib->pipeline->get_stage_by_name(AI_CALLBACK_STAGE));
     ai_sink_stage->set_callback(
-        [m_media_lib](BufferPtr data)
-        {
-            m_media_lib->encoders[AI_SINK]->add_buffer(data->get_buffer());
-        });    
+        [m_media_lib](BufferPtr data) { m_media_lib->encoders[AI_SINK]->add_buffer(data->get_buffer()); });
 }
 
-void check_if_enable_extra_features(){
+void check_if_enable_extra_features()
+{
     uint startHour = 8;
     uint endHour = 19;
     // Get current time
     std::time_t timestamp = time(NULL);
-    std::tm* localTime = std::localtime(&timestamp);
+    std::tm *localTime = std::localtime(&timestamp);
 
     // Extract the hour
     uint currentHour = localTime->tm_hour;
     // Check if the current hour is between startHour and endHour
-    if (startHour < currentHour && currentHour < endHour && g_denoise_enabled == false) {
+    if (startHour < currentHour && currentHour < endHour && g_denoise_enabled == false)
+    {
         g_denoise_enabled = true;
         g_hdr_enabled = false;
         // Read the config file
@@ -485,11 +516,12 @@ void check_if_enable_extra_features(){
         // Enabled denoise during next run
         frontend_config["denoise"]["enabled"] = true;
         frontend_config["hdr"]["enabled"] = false;
-        
+
         // Write the new config file
         writeFileContent(EIS_TEST_CONFIG_FILE, frontend_config.dump());
-
-    } else {
+    }
+    else
+    {
         g_denoise_enabled = false;
         g_hdr_enabled = true;
         // Read the config file
@@ -499,22 +531,24 @@ void check_if_enable_extra_features(){
         // Enabled denoise during next run, enable once eis and HDR are working
         frontend_config["denoise"]["enabled"] = false;
         // frontend_config["hdr"]["enabled"] = true;
-        
+
         // Write the new config file
         writeFileContent(EIS_TEST_CONFIG_FILE, frontend_config.dump());
     }
 }
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[])
+{
     ParsedOptions options = parseArguments(argc, argv);
 
     int result = setup();
     int time_in_between_reset = int(options.test_time / options.number_of_resets);
-    if (result != 0) {
+    if (result != 0)
+    {
         std::cout << "Failed to initialize test" << std::endl;
         return 1;
     }
-    subscribe_elements(m_media_lib, options.no_change_frames);    
+    subscribe_elements(m_media_lib, options.no_change_frames);
 
     std::cout << "Starting encoder and frontend" << std::endl;
     for (const auto &[streamId, encoder] : m_media_lib->encoders)
@@ -527,20 +561,23 @@ int main(int argc, char *argv[]){
     m_media_lib->frontend->start();
     g_pipeline_is_running = true;
 
-    std::cout << "Running test for " << options.test_time <<    " seconds" << std::endl;
-    for(int i=0; i<options.number_of_resets; i++){
-        std::cout << "Running test for " << time_in_between_reset <<    " seconds then stopping and restarting pipeline" << std::endl;
+    std::cout << "Running test for " << options.test_time << " seconds" << std::endl;
+    for (int i = 0; i < options.number_of_resets; i++)
+    {
+        std::cout << "Running test for " << time_in_between_reset << " seconds then stopping and restarting pipeline"
+                  << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(time_in_between_reset));
-        if (options.run_over_day) {
+        if (options.run_over_day)
+        {
             check_if_enable_extra_features();
         }
-        
+
         std::cout << "Reseting frontent iteration " << i + 1 << std::endl;
         g_pipeline_is_running = false;
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         m_media_lib->frontend->stop();
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        m_media_lib->frontend=NULL;
+        m_media_lib->frontend = NULL;
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         create_frontend_object(m_media_lib);
         subscribe_frontend(m_media_lib, options.no_change_frames);

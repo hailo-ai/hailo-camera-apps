@@ -10,7 +10,7 @@ using namespace pybind11::literals;
 
 PYBIND11_MODULE(face_detection, face_detection)
 {
-    //Face Detction POSTPROCESS
+    // Face Detction POSTPROCESS
     {
         py::class_<FaceDetectionParams>(face_detection, "FaceDetectionParams");
     }

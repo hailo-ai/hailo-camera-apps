@@ -6,33 +6,31 @@
 #include "hailo_common.hpp"
 #include <algorithm>
 
-
 #define DETECTOR_WIDTH 1920
 #define DETECTOR_HEIGHT 1080
-
-#define CROP_MAX_WIDTH 3840
-#define CROP_MAX_HEIGHT 2160
 
 /**
  * @brief Base class for DSP crop stages, responsible for handling common cropping and resizing operations.
  */
 class DspBaseCropStage : public ConnectedStage
 {
-protected:
+  protected:
     MediaLibraryBufferPoolPtr m_buffer_pool; /**< Buffer pool for managing media library buffers */
-    int m_output_pool_size; /**< Size of the output buffer pool */
-    int m_input_width;  /**< Width of the input data */
-    int m_input_height; /**< Height of the input data */
-    int m_output_width; /**< Width of the output data */
-    int m_output_hight; /**< Height of the output data */
+    int m_output_pool_size;                  /**< Size of the output buffer pool */
+    int m_input_width;                       /**< Width of the input data */
+    int m_input_height;                      /**< Height of the input data */
+    int m_output_width;                      /**< Width of the output data */
+    int m_output_hight;                      /**< Height of the output data */
 
     std::string m_main_subscriber; /**< Name of the main subscriber */
-    std::string m_sub_subscriber; /**< Name of the sub-subscriber */
+    std::string m_sub_subscriber;  /**< Name of the sub-subscriber */
     std::condition_variable m_available_buffers_cv;
     std::mutex m_buff_pool_mutex;
 
     StagePoolMode m_pool_mode; //< Pool mode for the buffer pool used in this stage
-public:
+    int m_crop_every_x_frames; // Crop every n frames (default 1)
+    int m_frame_counter;       // Internal frame counter
+  public:
     /**
      * @brief Constructor to initialize the stage with specified parameters.
      * @param name Name of the stage.
@@ -46,17 +44,19 @@ public:
      * @param queue_size Size of the queue.
      * @param leaky Boolean flag for leaky behavior.
      * @param print_fps Boolean flag for printing FPS.
+     * @param crop_every_n_frames Crop every n frames (default 1)
      */
-    DspBaseCropStage(std::string name, int output_pool_size, int input_width, int input_height, 
-                    int output_width, int output_height,
-                    std::string main_sub_name, std::string sub_sub_name,
-                    size_t queue_size, bool leaky = false, bool print_fps=false,
-                    StagePoolMode pool_mode=StagePoolMode::FAIL_ON_EMPTY_POOL) : ConnectedStage(name, queue_size, leaky, print_fps),
-                                          m_output_pool_size(output_pool_size), m_input_width(input_width), m_input_height(input_height), 
-                                          m_output_width(output_width), m_output_hight(output_height),
-                                          m_main_subscriber(main_sub_name), m_sub_subscriber(sub_sub_name), m_pool_mode(pool_mode) {}
+    DspBaseCropStage(std::string name, int output_pool_size, int input_width, int input_height, int output_width,
+                     int output_height, std::string main_sub_name, std::string sub_sub_name, size_t queue_size,
+                     bool leaky = false, bool print_fps = false,
+                     StagePoolMode pool_mode = StagePoolMode::FAIL_ON_EMPTY_POOL, size_t crop_every_x_frames = 1)
+        : ConnectedStage(name, queue_size, leaky, print_fps), m_output_pool_size(output_pool_size),
+          m_input_width(input_width), m_input_height(input_height), m_output_width(output_width),
+          m_output_hight(output_height), m_main_subscriber(main_sub_name), m_sub_subscriber(sub_sub_name),
+          m_pool_mode(pool_mode), m_crop_every_x_frames(crop_every_x_frames), m_frame_counter(0)
+    {
+    }
 
-    
     /**
      * @brief Prepares cropping dimensions for a single bounding box.
      * @param bbox Bounding box for cropping.
@@ -65,35 +65,39 @@ public:
     virtual void prepare_single_crop_dim(HailoBBox bbox, std::vector<dsp_crop_api_t> &crop_resize_dims)
     {
         dsp_crop_api_t crop_resize_dim = {
-            .start_x = (size_t)std::clamp((bbox.xmin() * m_input_width), (float)0.0, ((float)m_input_width) - (float)1.0), 
-            .start_y = (size_t)std::clamp((bbox.ymin() * m_input_height), (float)0.0, ((float)m_input_height) - (float)1.0),
-            .end_x = (size_t)std::clamp(((bbox.xmin() * m_input_width) + (bbox.width() * m_input_width)), (float)1.0, (float)m_input_width),
-            .end_y = (size_t)std::clamp(((bbox.ymin() * m_input_height) + (bbox.height() * m_input_height)), (float)1.0, (float)m_input_height),
+            .start_x =
+                (size_t)std::clamp((bbox.xmin() * m_input_width), (float)0.0, ((float)m_input_width) - (float)1.0),
+            .start_y =
+                (size_t)std::clamp((bbox.ymin() * m_input_height), (float)0.0, ((float)m_input_height) - (float)1.0),
+            .end_x = (size_t)std::clamp(((bbox.xmin() * m_input_width) + (bbox.width() * m_input_width)), (float)1.0,
+                                        (float)m_input_width),
+            .end_y = (size_t)std::clamp(((bbox.ymin() * m_input_height) + (bbox.height() * m_input_height)), (float)1.0,
+                                        (float)m_input_height),
         };
 
         /* DSP API can't get dimension that are not even */
-        if (crop_resize_dim.start_x % 2  != 0)
+        if (crop_resize_dim.start_x % 2 != 0)
             crop_resize_dim.start_x += 1;
-        
-        if (crop_resize_dim.start_y % 2  != 0)
+
+        if (crop_resize_dim.start_y % 2 != 0)
             crop_resize_dim.start_y += 1;
-        
-        if (crop_resize_dim.end_x % 2  != 0)
+
+        if (crop_resize_dim.end_x % 2 != 0)
             crop_resize_dim.end_x += 1;
-        
-        if (crop_resize_dim.end_y % 2  != 0)
+
+        if (crop_resize_dim.end_y % 2 != 0)
             crop_resize_dim.end_y += 1;
 
         crop_resize_dims.push_back(crop_resize_dim);
     }
-    
+
     /**
      * @brief Prepares crop dimensions for the input buffer.
      * @param input_buffer Input buffer.
      * @param crop_resize_dims Vector to store crop dimensions.
      */
     virtual void prepare_crops(BufferPtr input_buffer, std::vector<dsp_crop_api_t> &crop_resize_dims) = 0;
-    
+
     /**
      * @brief Gets the bounding box for a specific crop.
      * @param index Index of the crop.
@@ -105,20 +109,27 @@ public:
      * @brief Performs post-processing after cropping.
      * @param input_buffer Input buffer.
      */
-    virtual void post_crop(BufferPtr input_buffer) {}
+    virtual void post_crop(BufferPtr input_buffer)
+    {
+    }
 
     /**
      * @brief Performs pre-processing before cropping.
      * @param input_buffer Input buffer.
      */
-    virtual void pre_crop(BufferPtr input_buffer) {}
+    virtual void pre_crop(BufferPtr input_buffer)
+    {
+    }
 
     /**
      * @brief Gets the ROI for a specific crop.
      * @param index Index of the crop.
      * @return ROI of the crop.
      */
-    virtual HailoROIPtr get_crop_roi(int index) { return nullptr; }
+    virtual HailoROIPtr get_crop_roi(int index)
+    {
+        return nullptr;
+    }
 
     /**
      * @brief Processes the data buffer, performing cropping and resizing.
@@ -127,6 +138,21 @@ public:
      */
     AppStatus process(BufferPtr data) override
     {
+        // Check if we're cropping every x frames
+        m_frame_counter++;
+        if (m_crop_every_x_frames > 1 && (m_frame_counter % m_crop_every_x_frames) != 0)
+        {
+            CroppingMetadataPtr cropping_meta = std::make_shared<CroppingMetadata>(0);
+            data->add_metadata(cropping_meta);
+            data->add_time_stamp(m_stage_name);
+            set_duration(data);
+            send_to_specific_subsciber(m_main_subscriber, data);
+            m_debug_counters->increment_output_frames();
+            return AppStatus::SUCCESS;
+        }
+        if (m_frame_counter == m_crop_every_x_frames)
+            m_frame_counter = 0;
+
         dsp_status status;
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -137,8 +163,10 @@ public:
         m_debug_counters->increment_input_frames();
         prepare_crops(data, crop_resize_dims);
 
-        std::size_t num_crops_allowed = std::min(crop_resize_dims.size(), (std::size_t)m_buffer_pool->get_available_buffers_count());
-        if (num_crops_allowed < crop_resize_dims.size()) {
+        std::size_t num_crops_allowed =
+            std::min(crop_resize_dims.size(), (std::size_t)m_buffer_pool->get_available_buffers_count());
+        if (num_crops_allowed < crop_resize_dims.size())
+        {
             int num_drops = (crop_resize_dims.size() - num_crops_allowed);
             m_debug_counters->increment_by_val_extra_counter(num_drops, static_cast<int>(CropsExtraCounters::DROPPED));
         }
@@ -153,24 +181,35 @@ public:
             if (m_buffer_pool->acquire_buffer(cropped_buffer) != MEDIA_LIBRARY_SUCCESS)
             {
                 m_debug_counters->increment_failed_acquire_buffer();
-                if (m_pool_mode == StagePoolMode::FAIL_ON_EMPTY_POOL) {
-                    for (auto& buffer : cropped_buffers) {
+                if (m_pool_mode == StagePoolMode::FAIL_ON_EMPTY_POOL)
+                {
+                    for (auto &buffer : cropped_buffers)
+                    {
                         buffer.reset();
                         m_debug_counters->increment_extra_counter(static_cast<int>(CropsExtraCounters::DROPPED));
                     }
                     return AppStatus::BUFFER_ALLOCATION_ERROR;
-                } else if (m_pool_mode == StagePoolMode::BLOCKING) {
+                }
+                else if (m_pool_mode == StagePoolMode::BLOCKING)
+                {
                     std::unique_lock<std::mutex> lock(m_buff_pool_mutex);
-                    m_available_buffers_cv.wait(lock, [this, cropped_buffer] { return m_buffer_pool->acquire_buffer(cropped_buffer) == MEDIA_LIBRARY_SUCCESS; });
-                } else {
+                    m_available_buffers_cv.wait(lock, [this, cropped_buffer] {
+                        return m_buffer_pool->acquire_buffer(cropped_buffer) == MEDIA_LIBRARY_SUCCESS;
+                    });
+                }
+                else
+                {
                     /* Leaky */
-                    for (auto& buffer : cropped_buffers) {
+                    for (auto &buffer : cropped_buffers)
+                    {
                         buffer.reset();
                         m_debug_counters->increment_extra_counter(static_cast<int>(CropsExtraCounters::DROPPED));
                     }
                     return AppStatus::SUCCESS;
                 }
             }
+
+            cropped_buffer->copy_metadata_from(data->get_buffer());
 
             output_dsp_buffers.emplace_back(std::move(cropped_buffer->buffer_data->As<hailo_dsp_buffer_data_t>()));
             dsp_crop_resize_params_t crop_resize_params = {
@@ -192,7 +231,7 @@ public:
         };
 
         status = dsp_utils::perform_dsp_multi_resize(&multi_crop_resize_params);
-        if (status != DSP_SUCCESS) 
+        if (status != DSP_SUCCESS)
         {
             std::cerr << "Failed to perform dsp multi resize" << std::endl;
             REFERENCE_CAMERA_LOG_ERROR("Failed to perform dsp multi resize");
@@ -201,7 +240,7 @@ public:
 
         CroppingMetadataPtr cropping_meta = std::make_shared<CroppingMetadata>(cropped_buffers.size());
         data->add_metadata(cropping_meta);
-        
+
         data->add_time_stamp(m_stage_name);
         set_duration(data);
         send_to_specific_subsciber(m_main_subscriber, data);
@@ -217,20 +256,22 @@ public:
             // Set the ROI of the cropped buffer to the scale of the parent ROI
             // Note, this will make overlay incorrect if the bboxes are not flattened
             cropped_buffer_ptr->get_roi()->set_scaling_bbox(get_crop_bbox(i));
-            cropped_buffer_ptr->add_time_stamp(m_stage_name+"_"+ std::to_string(i));
+            cropped_buffer_ptr->add_time_stamp(m_stage_name + "_" + std::to_string(i));
 
             send_to_specific_subsciber(m_sub_subscriber, cropped_buffer_ptr);
         }
 
         post_crop(data);
-        
+
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        m_debug_counters->increment_by_val_extra_counter(crop_resize_dims.size(), static_cast<int>(CropsExtraCounters::CROPS));
+        m_debug_counters->increment_by_val_extra_counter(crop_resize_dims.size(),
+                                                         static_cast<int>(CropsExtraCounters::CROPS));
 
         if (m_print_fps)
         {
-            std::cout << m_stage_name << " crop and resize time = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() 
-                      << "[microseconds]" << "Number of crops: " << crop_resize_dims.size() << std::endl;
+            REFERENCE_CAMERA_LOG_DEBUG("{} crop and resize time = {}[microseconds] Number of crops: {}", m_stage_name,
+                                       std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count(),
+                                       crop_resize_dims.size());
         }
 
         return AppStatus::SUCCESS;
@@ -242,12 +283,12 @@ public:
  */
 class TillingCropStage : public DspBaseCropStage
 {
-private:
+  private:
     /**< Predefined bounding boxes for tiles */
     std::vector<HailoBBox> m_bbox_tiles;
     std::vector<HailoTileROIPtr> m_fhd_tiles; /**< Tile ROI pointers for FHD tiles */
 
-public:
+  public:
     /**
      * @brief Constructor to initialize the stage with specified parameters.
      * @param name Name of the stage.
@@ -262,13 +303,15 @@ public:
      * @param leaky Boolean flag for leaky behavior.
      * @param print_fps Boolean flag for printing FPS.
      */
-    TillingCropStage(std::string name, int output_pool_size, int input_width, int input_height, 
-                int output_width, int output_height,
-                std::string main_sub_name, std::string sub_sub_name, std::vector<HailoBBox> bbox_tiles,
-                size_t queue_size, bool leaky=false, bool print_fps=false, StagePoolMode pool_mode=StagePoolMode::FAIL_ON_EMPTY_POOL) : DspBaseCropStage(name, output_pool_size, input_width, input_height,
-                                                                        output_width, output_height,
-                                                                        main_sub_name, sub_sub_name,
-                                                                        queue_size, leaky, print_fps, pool_mode), m_bbox_tiles(bbox_tiles) {}
+    TillingCropStage(std::string name, int output_pool_size, int input_width, int input_height, int output_width,
+                     int output_height, std::string main_sub_name, std::string sub_sub_name,
+                     std::vector<HailoBBox> bbox_tiles, size_t queue_size, bool leaky = false, bool print_fps = false,
+                     StagePoolMode pool_mode = StagePoolMode::FAIL_ON_EMPTY_POOL, size_t crop_every_x_frames = 1)
+        : DspBaseCropStage(name, output_pool_size, input_width, input_height, output_width, output_height,
+                           main_sub_name, sub_sub_name, queue_size, leaky, print_fps, pool_mode, crop_every_x_frames),
+          m_bbox_tiles(bbox_tiles)
+    {
+    }
     /**
      * @brief Initializes the buffer pool and tile ROIs.
      * @return Status of the operation.
@@ -277,21 +320,22 @@ public:
     {
         auto bytes_per_line = dsp_utils::get_dsp_desired_stride_from_width(m_output_width);
         m_buffer_pool = std::make_shared<MediaLibraryBufferPool>(m_output_width, m_output_hight, HAILO_FORMAT_NV12,
-                                                                 m_output_pool_size, HAILO_MEMORY_TYPE_DMABUF, bytes_per_line, "tilling_buffer_pool");
+                                                                 m_output_pool_size, HAILO_MEMORY_TYPE_DMABUF,
+                                                                 bytes_per_line, "tilling_buffer_pool");
         m_debug_counters = std::make_shared<CropsCounters>(m_stage_name);
         if (m_buffer_pool->init() != MEDIA_LIBRARY_SUCCESS)
         {
             return AppStatus::DSP_OPERATION_ERROR;
         }
-        
+
         /* Create the HailoTileROI objects and the buffer pools we will have pool per tile */
         for (std::size_t i = 0; i < m_bbox_tiles.size(); ++i)
         {
-            const auto &tile_bbox = m_bbox_tiles[i]; 
+            const auto &tile_bbox = m_bbox_tiles[i];
             HailoTileROIPtr tile = std::make_shared<HailoTileROI>(tile_bbox, 0, 0, 0, 0, SINGLE_SCALE);
             m_fhd_tiles.push_back(tile);
         }
-       
+
         return AppStatus::SUCCESS;
     }
 
@@ -316,15 +360,139 @@ public:
      */
     HailoBBox get_crop_bbox(int index) override
     {
-        try {
+        try
+        {
             return m_fhd_tiles.at(index)->get_bbox();
-        } catch (const std::out_of_range& e) {
-             std::cerr << "Tilling index " << index << " is out of bounds: " << e.what() << std::endl;
-             REFERENCE_CAMERA_LOG_ERROR("Tilling index {} is out of bounds: ", index, e.what());
-             throw;
+        }
+        catch (const std::out_of_range &e)
+        {
+            std::cerr << "Tilling index " << index << " is out of bounds: " << e.what() << std::endl;
+            REFERENCE_CAMERA_LOG_ERROR("Tilling index {} is out of bounds: ", index, e.what());
+            throw;
         }
     }
+};
 
+class TillingCropStageBuild : public TillingCropStage
+{
+  public:
+    class Builder
+    {
+
+      private:
+        std::optional<std::string> m_stage_name;
+        int m_output_pool_size = -1;
+        int m_input_width = -1;
+        int m_input_height = -1;
+        int m_output_width = -1;
+        int m_output_height = -1;
+        std::optional<std::string> m_main_sub_name;
+        std::optional<std::string> m_sub_sub_name;
+        std::vector<HailoBBox> m_bbox_tiles;
+
+        size_t m_queue_size = 10;
+        bool m_leaky = false;
+        bool m_print_fps = false;
+        StagePoolMode m_pool_mode = StagePoolMode::FAIL_ON_EMPTY_POOL;
+        size_t m_crop_every_x_frames = 1;
+
+      public:
+        Builder &set_stage_name(std::string name)
+        {
+            m_stage_name = name;
+            return *this;
+        }
+        Builder &set_output_pool_size(int size)
+        {
+            m_output_pool_size = size;
+            return *this;
+        }
+        Builder &set_input_width(int size)
+        {
+            m_input_width = size;
+            return *this;
+        }
+        Builder &set_input_height(int size)
+        {
+            m_input_height = size;
+            return *this;
+        }
+        Builder &set_output_width(int size)
+        {
+            m_output_width = size;
+            return *this;
+        }
+        Builder &set_output_height(int size)
+        {
+            m_output_height = size;
+            return *this;
+        }
+
+        Builder &set_main_sub_name(std::string name)
+        {
+            m_main_sub_name = name;
+            return *this;
+        }
+        Builder &set_sub_sub_name(std::string name)
+        {
+            m_sub_sub_name = name;
+            return *this;
+        }
+        Builder &set_bbox_tiles(std::vector<HailoBBox> &bbox_tiles)
+        {
+            m_bbox_tiles = bbox_tiles;
+            return *this;
+        }
+
+        Builder &set_queue_size(size_t size)
+        {
+            m_queue_size = size;
+            return *this;
+        }
+        Builder &set_leaky_opt(bool activate)
+        {
+            m_leaky = activate;
+            return *this;
+        }
+        Builder &set_printfps_opt(bool activate)
+        {
+            m_print_fps = activate;
+            return *this;
+        }
+        Builder &set_pool_mode_opt(StagePoolMode mode)
+        {
+            m_pool_mode = mode;
+            return *this;
+        }
+        Builder &set_crop_every_x_frames(size_t crop_every_x_frames)
+        {
+            m_crop_every_x_frames = crop_every_x_frames;
+            return *this;
+        }
+
+        std::shared_ptr<TillingCropStage> buildptr() const
+        {
+            THROW_IF_MISSING(m_stage_name.has_value(), "set_stage_name");
+            THROW_IF_MISSING((m_output_pool_size > 0), "set_output_pool_size");
+            THROW_IF_MISSING((m_input_width > 0), "set_input_width");
+            THROW_IF_MISSING((m_input_height > 0), "set_input_height");
+            THROW_IF_MISSING((m_output_width > 0), "set_output_width");
+            THROW_IF_MISSING((m_output_height > 0), "set_output_height");
+            THROW_IF_MISSING(m_main_sub_name.has_value(), "set_main_sub_name");
+            THROW_IF_MISSING(m_sub_sub_name.has_value(), "set_sub_sub_name");
+            THROW_IF_MISSING(!m_bbox_tiles.empty(), "set_bbox_tiles");
+
+            return std::make_shared<TillingCropStage>(
+                m_stage_name.value(), m_output_pool_size, m_input_width, m_input_height, m_output_width,
+                m_output_height, m_main_sub_name.value(), m_sub_sub_name.value(), m_bbox_tiles, m_queue_size, m_leaky,
+                m_print_fps, m_pool_mode, m_crop_every_x_frames);
+        }
+    };
+
+    static Builder create()
+    {
+        return Builder();
+    }
 };
 
 /**
@@ -332,12 +500,11 @@ public:
  */
 class BBoxCropStage : public DspBaseCropStage
 {
-private:
+  private:
     std::vector<HailoBBox> m_detection_crops_bbox; /**< Bounding boxes for detected crops */
-    std::vector<HailoROIPtr> m_detection_rois; /**< ROI pointers for detections */
-    std::string m_target_label; /**< Target label for filtering detections */
-public:
-
+    std::vector<HailoROIPtr> m_detection_rois;     /**< ROI pointers for detections */
+    std::string m_target_label;                    /**< Target label for filtering detections */
+  public:
     /**
      * @brief Constructor to initialize the stage with specified parameters.
      * @param name Name of the stage.
@@ -353,13 +520,15 @@ public:
      * @param leaky Boolean flag for leaky behavior.
      * @param print_fps Boolean flag for printing FPS.
      */
-    BBoxCropStage(std::string name, int output_pool_size, int input_width, int input_height, 
-                int output_width, int output_height,
-                std::string main_sub_name, std::string sub_sub_name, std::string label,
-                size_t queue_size, bool leaky=false, bool print_fps=false, StagePoolMode pool_mode=StagePoolMode::FAIL_ON_EMPTY_POOL) : DspBaseCropStage(name, output_pool_size, input_width, input_height,
-                                                                        output_width, output_height,
-                                                                        main_sub_name, sub_sub_name,
-                                                                        queue_size, leaky, print_fps, pool_mode), m_target_label(label) { }
+    BBoxCropStage(std::string name, int output_pool_size, int input_width, int input_height, int output_width,
+                  int output_height, std::string main_sub_name, std::string sub_sub_name, std::string label,
+                  size_t queue_size, bool leaky = false, bool print_fps = false,
+                  StagePoolMode pool_mode = StagePoolMode::FAIL_ON_EMPTY_POOL, size_t crop_every_x_frames = 1)
+        : DspBaseCropStage(name, output_pool_size, input_width, input_height, output_width, output_height,
+                           main_sub_name, sub_sub_name, queue_size, leaky, print_fps, pool_mode, crop_every_x_frames),
+          m_target_label(label)
+    {
+    }
 
     /**
      * @brief Initializes the buffer pool.
@@ -369,7 +538,8 @@ public:
     {
         auto bytes_per_line = dsp_utils::get_dsp_desired_stride_from_width(m_output_width);
         m_buffer_pool = std::make_shared<MediaLibraryBufferPool>(m_output_width, m_output_hight, HAILO_FORMAT_NV12,
-                                                                 m_output_pool_size, HAILO_MEMORY_TYPE_DMABUF, bytes_per_line, "detection_buffer_pool");
+                                                                 m_output_pool_size, HAILO_MEMORY_TYPE_DMABUF,
+                                                                 bytes_per_line, "detection_buffer_pool");
         m_debug_counters = std::make_shared<CropsCounters>(m_stage_name);
         if (m_buffer_pool->init() != MEDIA_LIBRARY_SUCCESS)
         {
@@ -387,22 +557,21 @@ public:
     void prepare_crops(BufferPtr input_buffer, std::vector<dsp_crop_api_t> &crop_resize_dims) override
     {
         HailoROIPtr roi = input_buffer->get_roi();
-        
+
         for (auto detection : hailo_common::get_hailo_detections(roi))
         {
             if (detection->get_label() == m_target_label)
             {
                 auto detection_bbox = detection->get_bbox();
-    
+
                 m_detection_crops_bbox.push_back(detection_bbox);
                 m_detection_rois.push_back(detection);
-                
+
                 prepare_single_crop_dim(detection_bbox, crop_resize_dims);
-                
             }
         }
     }
-    
+
     /**
      * @brief Gets the bounding box for a specific detection.
      * @param index Index of the detection.
@@ -410,11 +579,14 @@ public:
      */
     HailoBBox get_crop_bbox(int index) override
     {
-        try {
+        try
+        {
             return m_detection_crops_bbox.at(index);
-        } catch (const std::out_of_range& e) {
+        }
+        catch (const std::out_of_range &e)
+        {
             std::cerr << "Cropped index " << index << " is out of bounds: " << e.what() << std::endl;
-            REFERENCE_CAMERA_LOG_ERROR("Cropped index {} is out of bounds:{} ", index, e.what()); 
+            REFERENCE_CAMERA_LOG_ERROR("Cropped index {} is out of bounds:{} ", index, e.what());
             throw;
         }
     }
@@ -426,9 +598,12 @@ public:
      */
     HailoROIPtr get_crop_roi(int index) override
     {
-        try {
+        try
+        {
             return m_detection_rois.at(index);
-        } catch (const std::out_of_range& e) {
+        }
+        catch (const std::out_of_range &e)
+        {
             std::cerr << "ROI index " << index << " is out of bounds: " << e.what() << std::endl;
             REFERENCE_CAMERA_LOG_ERROR("ROI index {} is out of bounds: {}", index, e.what());
             throw;
@@ -444,5 +619,126 @@ public:
         m_detection_crops_bbox.clear();
         m_detection_rois.clear();
     }
+};
 
+class BBoxCropStageBuild : public BBoxCropStage
+{
+  public:
+    class Builder
+    {
+
+      private:
+        std::optional<std::string> m_stage_name;
+        int m_output_pool_size = -1;
+        int m_input_width = -1;
+        int m_input_height = -1;
+        int m_output_width = -1;
+        int m_output_height = -1;
+        std::optional<std::string> m_main_sub_name;
+        std::optional<std::string> m_sub_sub_name;
+        std::optional<std::string> m_label;
+
+        size_t m_queue_size = 10;
+        bool m_leaky = false;
+        bool m_print_fps = false;
+        StagePoolMode m_pool_mode = StagePoolMode::FAIL_ON_EMPTY_POOL;
+        size_t m_crop_every_x_frames = 1;
+
+      public:
+        Builder &set_stage_name(std::string name)
+        {
+            m_stage_name = name;
+            return *this;
+        }
+        Builder &set_output_pool_size(int size)
+        {
+            m_output_pool_size = size;
+            return *this;
+        }
+        Builder &set_input_width(int size)
+        {
+            m_input_width = size;
+            return *this;
+        }
+        Builder &set_input_height(int size)
+        {
+            m_input_height = size;
+            return *this;
+        }
+        Builder &set_output_width(int size)
+        {
+            m_output_width = size;
+            return *this;
+        }
+        Builder &set_output_height(int size)
+        {
+            m_output_height = size;
+            return *this;
+        }
+
+        Builder &set_main_sub_name(std::string name)
+        {
+            m_main_sub_name = name;
+            return *this;
+        }
+        Builder &set_sub_sub_name(std::string name)
+        {
+            m_sub_sub_name = name;
+            return *this;
+        }
+        Builder &set_label(std::string label)
+        {
+            m_label = label;
+            return *this;
+        }
+
+        Builder &set_queue_size(size_t size)
+        {
+            m_queue_size = size;
+            return *this;
+        }
+        Builder &set_leaky_opt(bool activate)
+        {
+            m_leaky = activate;
+            return *this;
+        }
+        Builder &set_printfps_opt(bool activate)
+        {
+            m_print_fps = activate;
+            return *this;
+        }
+        Builder &set_pool_mode_opt(StagePoolMode mode)
+        {
+            m_pool_mode = mode;
+            return *this;
+        }
+        Builder &set_crop_every_x_frames(size_t crop_every_x_frames)
+        {
+            m_crop_every_x_frames = crop_every_x_frames;
+            return *this;
+        }
+
+        std::shared_ptr<BBoxCropStage> buildptr() const
+        {
+            THROW_IF_MISSING(m_stage_name.has_value(), "set_stage_name");
+            THROW_IF_MISSING((m_output_pool_size > 0), "set_output_pool_size");
+            THROW_IF_MISSING((m_input_width > 0), "set_input_width");
+            THROW_IF_MISSING((m_input_height > 0), "set_input_height");
+            THROW_IF_MISSING((m_output_width > 0), "set_output_width");
+            THROW_IF_MISSING((m_output_height > 0), "set_output_height");
+            THROW_IF_MISSING(m_main_sub_name.has_value(), "set_main_sub_name");
+            THROW_IF_MISSING(m_sub_sub_name.has_value(), "set_sub_sub_name");
+            THROW_IF_MISSING(m_label.has_value(), "set_label");
+
+            return std::make_shared<BBoxCropStage>(
+                m_stage_name.value(), m_output_pool_size, m_input_width, m_input_height, m_output_width,
+                m_output_height, m_main_sub_name.value(), m_sub_sub_name.value(), m_label.value(), m_queue_size,
+                m_leaky, m_print_fps, m_pool_mode, m_crop_every_x_frames);
+        }
+    };
+
+    static Builder create()
+    {
+        return Builder();
+    }
 };

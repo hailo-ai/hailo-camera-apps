@@ -24,8 +24,8 @@ function init_variables() {
 
     input_source=$DEFAULT_VIDEO_SOURCE
 
-    json_config_path_4k="$RESOURCES_DIR/configs/encoder_config_sink_4k.json"
-    json_config_path_hd="$RESOURCES_DIR/configs/encoder_config_sink_hd.json" 
+    json_config_path_max_sensor_res="$RESOURCES_DIR/configs/encoder_config_sink_4k.json"
+    json_config_path_hd="$RESOURCES_DIR/configs/encoder_config_sink_hd.json"
     json_config_path_sd="$RESOURCES_DIR/configs/encoder_config_sink_sd.json"
     
     frontend_config_file_path="$DEFAULT_FRONTEND_CONFIG_FILE_PATH"
@@ -47,6 +47,11 @@ function init_variables() {
     additonal_parameters=""
     video_format=$DEFAULT_FORMAT
     sync_pipeline=false
+
+    mode="daylight"
+    tuning_extension=""
+    project="hailo15h"
+    lens="theia_sl410m"
 }
 
 function print_help_if_needed() {
@@ -54,7 +59,6 @@ function print_help_if_needed() {
         if [ "$1" = "--help" ] || [ "$1" == "-h" ]; then
             print_usage
         fi
-
         shift
     done
 }
@@ -68,6 +72,10 @@ function print_usage() {
     echo "  --print-gst-launch         Print the ready gst-launch command without running it"
     echo "  -i --input-source          Set the input source (default $DEFAULT_VIDEO_SOURCE)"
     echo "  --vision-config-file-path  Set the frontend config file path (default $DEFAULT_FRONTEND_CONFIG_FILE_PATH)"
+    echo "  --mode                     mode (e.g., daylight)"
+    echo "  --tuning                   tuning extension - relevant only for denoise (e.g., _r0225)"
+    echo "  --project                  project name (e.g., hailo15h)"
+    echo "  --lens                     lens name (default theia_sl410m)"
     exit 0
 }
 
@@ -84,12 +92,23 @@ function parse_args() {
         elif [ "$1" = "--vision-config-file-path" ]; then
             frontend_config_file_path="$2"
             shift
+        elif [ "$1" = "--mode" ]; then
+            mode="$2"
+            shift
+        elif [ "$1" = "--tuning" ]; then
+            tuning_extension="$2"
+            shift
+        elif [ "$1" = "--project" ]; then
+            project="$2"
+            shift
+        elif [ "$1" = "--lens" ]; then
+            lens="$2"
+            shift
         else
             echo "Received invalid argument: $1. See expected arguments below:"
             print_usage
             exit 1
         fi
-
         shift
     done
 }
@@ -106,7 +125,7 @@ function create_pipeline() {
               udpsink host=10.0.0.2 sync=$sync_pipeline"
 
     FOUR_K_TO_ENCODER_BRANCH="queue leaky=no max-size-buffers=$max_buffers_size max-size-bytes=0 max-size-time=0 ! \
-                            hailoencodebin config-file-path=$json_config_path_4k ! \
+                            hailoencodebin config-file-path=$json_config_path_max_sensor_res ! \
                             video/x-h264 ! \
                             tee name=fourk_enc_tee \
                             fourk_enc_tee. ! \
@@ -141,10 +160,9 @@ function create_pipeline() {
                 sd_tee. ! \
                     queue leaky=no max-size-buffers=$max_buffers_size max-size-bytes=0 max-size-time=0 ! \
                     $FPS_DISP name=hailo_display_sd_enc "
-
 }
 
-/home/root/apps/clean_symlinks_config_isp.sh
+/home/root/apps/clean_symlinks_config_isp.sh --mode "$mode" --tuning "$tuning_extension" --project "$project" --lens "$lens"
 if [ $? -ne 0 ]; then
     echo "Failed to clean symlinks and copy ISP configuration files."
     exit 1

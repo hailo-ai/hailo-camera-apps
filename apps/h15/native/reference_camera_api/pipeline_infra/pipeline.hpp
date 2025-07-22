@@ -17,15 +17,14 @@ enum class StageType
 
 class Pipeline
 {
-private:
+  private:
     std::vector<StagePtr> m_stages;      // All stages, used for full queries (get and print)
     std::vector<StagePtr> m_gen_stages;  // For general type stages
     std::vector<StagePtr> m_src_stages;  // For source type stages
     std::vector<StagePtr> m_sink_stages; // For sink type stages
 
-public:
-
-    void add_stage(StagePtr stage, StageType type=StageType::GENERAL)
+  public:
+    void add_stage(StagePtr stage, StageType type = StageType::GENERAL)
     {
         switch (type)
         {

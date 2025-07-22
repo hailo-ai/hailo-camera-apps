@@ -1,4 +1,9 @@
 {
+    "privacy_mask": {
+        "mask_type": "COLOR",
+        "pixelization_size": 60,
+        "color_value": [0, 0, 0]
+    },
     "osd": {
         "image": [
             {
@@ -18,11 +23,7 @@
                 "id": "example_datetime1",
                 "font_size": 90,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 0.01,
                 "y": 0.93,
                 "z-index": 1,
@@ -36,11 +37,7 @@
                 "label": "4k stream",
                 "font_size": 70,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 0.9,
                 "y": 0.88,
                 "z-index": 1,
@@ -52,11 +49,7 @@
                 "label": "stream 0",
                 "font_size": 70,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 0.0,
                 "y": 0.0,
                 "z-index": 2,
@@ -146,7 +139,7 @@
                     "enable": true,
                     "period": 1,
                     "result_output_path": "bitrate.txt",
-                    "output_result_to_file": true
+                    "output_result_to_file": false
                 },
                 "cycle_monitor": {
                     "enable": true,

@@ -27,7 +27,8 @@
 static xt::xarray<float> gallery_get_xtensor(HailoMatrixPtr matrix)
 {
     // Adapt a HailoTensorPtr to an xarray (quantized)
-    xt::xarray<float> xtensor = xt::adapt(matrix->get_data().data(), matrix->size(), xt::no_ownership(), matrix->shape());
+    xt::xarray<float> xtensor =
+        xt::adapt(matrix->get_data().data(), matrix->size(), xt::no_ownership(), matrix->shape());
     return xt::squeeze(xtensor);
 }
 
@@ -46,7 +47,7 @@ static float gallery_one_dim_dot_product(xt::xarray<float> array1, xt::xarray<fl
 
 class Gallery
 {
-private:
+  private:
     // Each embedding is represented by HailoMatrixPtr
     // Each global_id has a vector of embeddings (I.e. vector of HailoMatrixPtr)
     // of all the embeddings related to this ID.
@@ -62,10 +63,10 @@ private:
     char *m_json_file_path;
     bool m_load_local_embeddings;
 
-public:
-    Gallery(float similarity_thr = 0.15, uint queue_size = 100) : m_similarity_thr(similarity_thr), m_queue_size(queue_size),
-                                                                  m_json_file(nullptr), m_save_new_embeddings(false),
-                                                                  m_json_file_path(nullptr), m_load_local_embeddings(false){};
+  public:
+    Gallery(float similarity_thr = 0.15, uint queue_size = 100)
+        : m_similarity_thr(similarity_thr), m_queue_size(queue_size), m_json_file(nullptr),
+          m_save_new_embeddings(false), m_json_file_path(nullptr), m_load_local_embeddings(false) {};
 
     static float get_distance(std::vector<HailoMatrixPtr> embeddings_queue, HailoMatrixPtr matrix)
     {
@@ -222,14 +223,17 @@ public:
             // Embedding found and matches a name, add it as a classifcation object.
             std::string classification_type = "recognition_result";
             auto existing_recognitions = hailo_common::get_hailo_classifications(detection, classification_type);
-            if (existing_recognitions.size() == 0 ||  existing_recognitions[0]->get_classification_type() != classification_type)
+            if (existing_recognitions.size() == 0 ||
+                existing_recognitions[0]->get_classification_type() != classification_type)
             {
-                detection->add_object(std::make_shared<HailoClassification>(classification_type, this->m_embedding_names[global_id - 1]));
+                detection->add_object(
+                    std::make_shared<HailoClassification>(classification_type, this->m_embedding_names[global_id - 1]));
             }
         }
     }
 
-    void update_embeddings_and_add_id_to_object(HailoMatrixPtr new_embedding, HailoDetectionPtr detection, const uint global_id, const int unique_id)
+    void update_embeddings_and_add_id_to_object(HailoMatrixPtr new_embedding, HailoDetectionPtr detection,
+                                                const uint global_id, const int unique_id)
     {
         // Attach global id to tracking id
         tracking_id_to_global_id[unique_id] = global_id;
@@ -249,7 +253,8 @@ public:
         if (tracking_id_to_global_id.find(track_id) != tracking_id_to_global_id.end())
         {
             // Global id to track already exists, add new embedding to global id
-            update_embeddings_and_add_id_to_object(new_embedding, detection, tracking_id_to_global_id[track_id], track_id);
+            update_embeddings_and_add_id_to_object(new_embedding, detection, tracking_id_to_global_id[track_id],
+                                                   track_id);
             if (this->m_load_local_embeddings)
                 handle_local_embedding(detection, tracking_id_to_global_id[track_id]);
             return;
@@ -304,8 +309,20 @@ public:
             new_embedding_to_global_id(new_embedding, detection, track_id);
         }
     };
-    void set_similarity_threshold(float thr) { this->m_similarity_thr = thr; };
-    void set_queue_size(uint size) { m_queue_size = size; };
-    float get_similarity_threshold() { return m_similarity_thr; };
-    uint get_queue_size() { return m_queue_size; };
+    void set_similarity_threshold(float thr)
+    {
+        this->m_similarity_thr = thr;
+    };
+    void set_queue_size(uint size)
+    {
+        m_queue_size = size;
+    };
+    float get_similarity_threshold()
+    {
+        return m_similarity_thr;
+    };
+    uint get_queue_size()
+    {
+        return m_queue_size;
+    };
 };

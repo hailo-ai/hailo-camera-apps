@@ -13,7 +13,8 @@
  * @param image The original picture (cv::Mat).
  * @param roi The ROI to modify
  * @return HailoBBox Adjusted HailoBBox to crop.
- * @note Original algorithm at https://github.com/cleardusk/3DDFA_V2/blob/9fdbea1eb97f762221f71f5c76f08f52296c6704/utils/functions.py#L85
+ * @note Original algorithm at
+ * https://github.com/cleardusk/3DDFA_V2/blob/9fdbea1eb97f762221f71f5c76f08f52296c6704/utils/functions.py#L85
  */
 HailoBBox algorithm_3ddfa(cv::Mat &image, const HailoBBox &roi)
 {

@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 /**
  * SECTION:element-hailoaggregator
  * @title: hailoaggregator
@@ -33,39 +33,26 @@ enum
     PROP_FLATTEN_DETECTIONS,
 };
 
-static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE("sink",
-                                                                    GST_PAD_SINK,
-                                                                    GST_PAD_ALWAYS,
-                                                                    GST_STATIC_CAPS_ANY);
+static GstStaticPadTemplate sink_template =
+    GST_STATIC_PAD_TEMPLATE("sink", GST_PAD_SINK, GST_PAD_ALWAYS, GST_STATIC_CAPS_ANY);
 
-static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE("src",
-                                                                   GST_PAD_SRC,
-                                                                   GST_PAD_ALWAYS,
-                                                                   GST_STATIC_CAPS_ANY);
+static GstStaticPadTemplate src_template =
+    GST_STATIC_PAD_TEMPLATE("src", GST_PAD_SRC, GST_PAD_ALWAYS, GST_STATIC_CAPS_ANY);
 
-#define _do_init \
-    GST_DEBUG_CATEGORY_INIT(gst_hailoaggregator_debug, "hailoaggregator", 0, "hailoaggregator element");
+#define _do_init GST_DEBUG_CATEGORY_INIT(gst_hailoaggregator_debug, "hailoaggregator", 0, "hailoaggregator element");
 #define gst_hailoaggregator_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE(GstHailoAggregator, gst_hailoaggregator, GST_TYPE_ELEMENT, _do_init);
 
-static void
-gst_hailoaggregator_get_property(GObject *object, guint prop_id,
-                                 GValue *value, GParamSpec *pspec);
-static void
-gst_hailoaggregator_set_property(GObject *object, guint prop_id,
-                                 const GValue *value, GParamSpec *pspec);
+static void gst_hailoaggregator_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
+static void gst_hailoaggregator_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec);
 
-static gboolean gst_hailoaggregator_sink_event(GstPad *pad,
-                                               GstObject *parent,
-                                               GstEvent *event);
+static gboolean gst_hailoaggregator_sink_event(GstPad *pad, GstObject *parent, GstEvent *event);
 static GstFlowReturn gst_hailoaggregator_chain_main(GstPad *pad, GstObject *parent, GstBuffer *buf);
 static GstFlowReturn gst_hailoaggregator_chain_sub(GstPad *pad, GstObject *parent, GstBuffer *buf);
 
-static gboolean gst_hailoaggregator_sink_query(GstPad *pad,
-                                                 GstObject *parent, GstQuery *query);
+static gboolean gst_hailoaggregator_sink_query(GstPad *pad, GstObject *parent, GstQuery *query);
 
-static void
-gst_hailoaggregator_class_init(GstHailoAggregatorClass *klass)
+static void gst_hailoaggregator_class_init(GstHailoAggregatorClass *klass)
 {
     GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
     GstElementClass *gstelement_class = GST_ELEMENT_CLASS(klass);
@@ -75,9 +62,7 @@ gst_hailoaggregator_class_init(GstHailoAggregatorClass *klass)
     gobject_class->set_property = gst_hailoaggregator_set_property;
     gobject_class->get_property = gst_hailoaggregator_get_property;
 
-    gst_element_class_set_static_metadata(gstelement_class,
-                                          "hailoaggregator - Cascading",
-                                          "Hailo/Tools",
+    gst_element_class_set_static_metadata(gstelement_class, "hailoaggregator - Cascading", "Hailo/Tools",
                                           "Aggregates related detections to the original Image",
                                           "hailo.ai <contact@hailo.ai>");
     gst_element_class_add_static_pad_template(gstelement_class, &sink_template);
@@ -87,13 +72,15 @@ gst_hailoaggregator_class_init(GstHailoAggregatorClass *klass)
     hailoaggregator_class->handle_sub_frame_roi = gst_hailoaggregator_handle_sub_frame_roi;
     gstelement_class->change_state = gst_hailoaggregator_change_state;
 
-    g_object_class_install_property(gobject_class, PROP_FLATTEN_DETECTIONS,
-                                    g_param_spec_boolean("flatten-detections", "Flatten detections", "perform a 'flattening' functionality on the detection metadata when receiving each frame", false,
-                                                         (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
+    g_object_class_install_property(
+        gobject_class, PROP_FLATTEN_DETECTIONS,
+        g_param_spec_boolean("flatten-detections", "Flatten detections",
+                             "perform a 'flattening' functionality on the detection metadata when receiving each frame",
+                             false,
+                             (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
 }
 
-static void
-gst_hailoaggregator_init(GstHailoAggregator *hailoaggregator)
+static void gst_hailoaggregator_init(GstHailoAggregator *hailoaggregator)
 {
     // Bypass Sinkpad
     hailoaggregator->sinkpad_main = gst_pad_new_from_static_template(&sink_template, "sink_0");
@@ -123,9 +110,7 @@ gst_hailoaggregator_init(GstHailoAggregator *hailoaggregator)
     hailoaggregator->eos_sub = false;
 }
 
-static void
-gst_hailoaggregator_set_property(GObject *object, guint prop_id,
-                                 const GValue *value, GParamSpec *pspec)
+static void gst_hailoaggregator_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec)
 {
     GstHailoAggregator *hailoaggregator = GST_HAILO_AGGREGATOR_CAST(object);
 
@@ -140,9 +125,7 @@ gst_hailoaggregator_set_property(GObject *object, guint prop_id,
     }
 }
 
-static void
-gst_hailoaggregator_get_property(GObject *object, guint prop_id, GValue *value,
-                                 GParamSpec *pspec)
+static void gst_hailoaggregator_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
 {
     GstHailoAggregator *hailoaggregator = GST_HAILO_AGGREGATOR_CAST(object);
 
@@ -165,8 +148,7 @@ gst_hailoaggregator_get_property(GObject *object, guint prop_id, GValue *value,
  * @param[in] user_data   The srcpad to send the event to.
  * @return Upon success, returns true. Otherwise, returns false.
  */
-static gboolean
-forward_events(GstPad *pad, GstEvent **event, gpointer user_data)
+static gboolean forward_events(GstPad *pad, GstEvent **event, gpointer user_data)
 {
     GstPad *srcpad = GST_PAD_CAST(user_data);
 
@@ -176,15 +158,13 @@ forward_events(GstPad *pad, GstEvent **event, gpointer user_data)
     return TRUE;
 }
 
-static gboolean gst_hailoaggregator_sink_query(GstPad *pad,
-                                                 GstObject *parent, GstQuery *query)
+static gboolean gst_hailoaggregator_sink_query(GstPad *pad, GstObject *parent, GstQuery *query)
 {
     GstHailoAggregator *hailoaggregator = GST_HAILO_AGGREGATOR_CAST(parent);
     gboolean ret = FALSE;
     switch (GST_QUERY_TYPE(query))
     {
-    case GST_QUERY_ALLOCATION:
-    {
+    case GST_QUERY_ALLOCATION: {
         GST_DEBUG_OBJECT(hailoaggregator, "Received allocation query from sinkpad in hailoaggregator");
         ret = gst_pad_peer_query(hailoaggregator->srcpad, query);
         if (!ret)
@@ -192,8 +172,7 @@ static gboolean gst_hailoaggregator_sink_query(GstPad *pad,
         ret = true;
         break;
     }
-    default:
-    {
+    default: {
         /* just call the default handler */
         ret = gst_pad_query_default(pad, parent, query);
         break;
@@ -211,14 +190,12 @@ static gboolean gst_hailoaggregator_sink_query(GstPad *pad,
  * @param[in] user_data   The srcpad to send the event to.
  * @return Upon success, returns true. Otherwise, returns false.
  */
-static gboolean
-gst_hailoaggregator_all_sinkpads_eos_unlocked(GstHailoAggregator *hailoaggregator)
+static gboolean gst_hailoaggregator_all_sinkpads_eos_unlocked(GstHailoAggregator *hailoaggregator)
 {
     return (hailoaggregator->eos_main && hailoaggregator->eos_sub);
 }
 
-static void
-gst_hailoaggregator_update_eos(GstHailoAggregator *hailoaggregator, GstPad *pad, bool eos)
+static void gst_hailoaggregator_update_eos(GstHailoAggregator *hailoaggregator, GstPad *pad, bool eos)
 {
     if (pad == hailoaggregator->sinkpad_main)
     {
@@ -230,8 +207,7 @@ gst_hailoaggregator_update_eos(GstHailoAggregator *hailoaggregator, GstPad *pad,
     }
 }
 
-static gboolean
-gst_hailoaggregator_sink_event(GstPad *pad, GstObject *parent, GstEvent *event)
+static gboolean gst_hailoaggregator_sink_event(GstPad *pad, GstObject *parent, GstEvent *event)
 {
     GstHailoAggregator *hailoaggregator = GST_HAILO_AGGREGATOR_CAST(parent);
     gboolean forward = TRUE;
@@ -298,8 +274,7 @@ gst_hailoaggregator_sink_event(GstPad *pad, GstObject *parent, GstEvent *event)
     return res;
 }
 
-static GstFlowReturn
-gst_hailoaggregator_chain_sub(GstPad *pad, GstObject *parent, GstBuffer *buf)
+static GstFlowReturn gst_hailoaggregator_chain_sub(GstPad *pad, GstObject *parent, GstBuffer *buf)
 {
     GstHailoAggregator *hailoaggregator = GST_HAILO_AGGREGATOR_CAST(parent);
     GstHailoAggregatorClass *hailoaggregator_class = GST_HAILO_AGGREGATOR_GET_CLASS(hailoaggregator);
@@ -332,8 +307,7 @@ gst_hailoaggregator_chain_sub(GstPad *pad, GstObject *parent, GstBuffer *buf)
     return GST_FLOW_OK;
 }
 
-static GstFlowReturn
-gst_hailoaggregator_chain_main(GstPad *pad, GstObject *parent, GstBuffer *buf)
+static GstFlowReturn gst_hailoaggregator_chain_main(GstPad *pad, GstObject *parent, GstBuffer *buf)
 {
     GstFlowReturn ret = GST_FLOW_ERROR;
     GstHailoAggregator *hailoaggregator = GST_HAILO_AGGREGATOR_CAST(parent);
@@ -354,13 +328,12 @@ gst_hailoaggregator_chain_main(GstPad *pad, GstObject *parent, GstBuffer *buf)
     }
     lock.unlock();
 
-    
     hailoaggregator_class->handle_main_roi_post_aggregation(hailoaggregator, hailo_roi);
 
     gst_pad_sticky_events_foreach(hailoaggregator->sinkpad_main, forward_events, hailoaggregator->srcpad);
 
     // Remove the cropping meta from the main frame.
-    if (! gst_buffer_remove_hailo_cropping_meta(buf))
+    if (!gst_buffer_remove_hailo_cropping_meta(buf))
     {
         GST_ERROR_OBJECT(hailoaggregator, "Failed to remove cropping meta from main frame");
     }
@@ -374,8 +347,9 @@ gst_hailoaggregator_chain_main(GstPad *pad, GstObject *parent, GstBuffer *buf)
  * Functionality to perform for each incoming sub frame.
  * Called from the chain_sub method before the releasing the mutex and the buffers.
  * Flatten detections from sub_buffer_roi sub to main_buffer_roi's scale.
- * Assure main_buffer_roi will contain the detections and that each detection scale and location will match the main_buffer_roi.
- * 
+ * Assure main_buffer_roi will contain the detections and that each detection scale and location will match the
+ * main_buffer_roi.
+ *
  * @param[in] hailoaggregator   GstHailoAggregator.
  * @param[in] sub_buffer_roi    HailoROIPtr, the ROI of the subframe taken from the metadata of the buffer.
  * @return void.
@@ -396,21 +370,21 @@ static void gst_hailoaggregator_handle_sub_frame_roi(GstHailoAggregator *hailoag
  * Functionality to perform after all frames are aggregated succesfully.
  * Called from the chain_main method before releasing the mutex and the buffers.
  * Base implementation does nothing, derived elements can override.
- * 
+ *
  * @param[in] hailoaggregator   GstHailoAggregator.
  * @param[in] hailo_roi    HailoROIPtr, the ROI of the main frame taken from the metadata of the buffer.
  * @return void.
  */
-static void gst_hailoaggregator_post_aggregation(GstHailoAggregator *hailoaggregator, HailoROIPtr hailo_roi) {}
+static void gst_hailoaggregator_post_aggregation(GstHailoAggregator *hailoaggregator, HailoROIPtr hailo_roi)
+{
+}
 
-static GstStateChangeReturn
-gst_hailoaggregator_change_state(GstElement *element, GstStateChange transition)
+static GstStateChangeReturn gst_hailoaggregator_change_state(GstElement *element, GstStateChange transition)
 {
     GstHailoAggregator *aggregator = GST_HAILO_AGGREGATOR(element);
     switch (transition)
     {
-    case GST_STATE_CHANGE_PAUSED_TO_READY:
-    {
+    case GST_STATE_CHANGE_PAUSED_TO_READY: {
         // Unlocking both condition variables in order to finish the chain function.
         // After that the pads can be freed by the change_state of base class.
         aggregator->cv_main.notify_all();

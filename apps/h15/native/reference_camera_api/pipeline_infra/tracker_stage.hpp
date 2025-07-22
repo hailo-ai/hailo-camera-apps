@@ -4,16 +4,22 @@
 #include "queue.hpp"
 #include "hailo_tracker.hpp"
 
+#define TRACKER_QUEUE_SIZE_DEFAULT (5)
 
 class TrackerStage : public ConnectedStage
 {
-private:
+  private:
     std::string m_tracker_name = "hailo_tracker";
     HailoTrackerParams m_tracker_params;
     int m_class_id;
-public:
-    TrackerStage(std::string name, size_t queue_size=5, bool leaky=false, int classification_id=-1, bool print_fps=false) : 
-        ConnectedStage(name, queue_size, leaky, print_fps), m_class_id(classification_id){}
+    bool m_block_non_tracked_class_id;
+
+  public:
+    TrackerStage(std::string name, size_t queue_size = TRACKER_QUEUE_SIZE_DEFAULT, bool leaky = false,
+                 int classification_id = -1, bool block_non_tracked_class_id = false, bool print_fps = false)
+        : ConnectedStage(name, queue_size, leaky, print_fps), m_class_id(classification_id), m_block_non_tracked_class_id(block_non_tracked_class_id)
+    {
+    }
 
     AppStatus init() override
     {
@@ -47,27 +53,98 @@ public:
         for (auto obj : hailo_roi->get_objects_typed(HAILO_DETECTION))
         {
             HailoDetectionPtr detection = std::dynamic_pointer_cast<HailoDetection>(obj);
+
             if ((m_class_id == -1) || (detection->get_class_id() == m_class_id))
             {
                 detections.push_back(detection);
                 hailo_roi->remove_object(detection);
             }
+            else if (m_block_non_tracked_class_id)
+            {
+                hailo_roi->remove_object(detection);
+            }
         }
 
         // Swap the detections in the roi with just the online tracked detections
-        std::vector<HailoDetectionPtr> online_detection_ptrs = HailoTracker::GetInstance().update(m_tracker_name, detections);
+        std::vector<HailoDetectionPtr> online_detection_ptrs =
+            HailoTracker::GetInstance().update(m_tracker_name, detections);
 
         hailo_common::add_detection_pointers(hailo_roi, online_detection_ptrs);
-        
+
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         if (m_print_fps)
         {
-            std::cout << "Tracker time = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[microseconds]" << std::endl;
+            std::cout << "Tracker time = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()
+                      << "[microseconds]" << std::endl;
         }
+        REFERENCE_CAMERA_LOG_TRACE("Tracker time = {}[microseconds]",
+                                   std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
         data->add_time_stamp(m_stage_name);
         set_duration(data);
         send_to_subscribers(data);
 
         return AppStatus::SUCCESS;
+    }
+};
+
+class TrackerStageBuild : public TrackerStage
+{
+  public:
+    class Builder
+    {
+
+      private:
+        std::optional<std::string> m_stage_name;
+        size_t m_queue_size = TRACKER_QUEUE_SIZE_DEFAULT;
+        bool m_leaky = false;
+        int m_classification_id = 1;
+        bool m_block_non_tracked_class_id = false;
+        bool m_print_fps = false;
+
+      public:
+        Builder &set_stage_name(std::string name)
+        {
+            m_stage_name = name;
+            return *this;
+        }
+        Builder &set_queue_size_opt(size_t size)
+        {
+            m_queue_size = size;
+            return *this;
+        }
+        Builder &set_leaky_opt(bool activate)
+        {
+            m_leaky = activate;
+            return *this;
+        }
+        Builder &set_classification_id(int id)
+        {
+            m_classification_id = id;
+            return *this;
+        }
+        Builder &set_block_non_tracked_classification_id(bool block)
+        {
+            m_block_non_tracked_class_id = block;
+            return *this;
+        }
+        Builder &set_printfps_opt(bool activate)
+        {
+            m_print_fps = activate;
+            return *this;
+        }
+
+        std::shared_ptr<TrackerStage> buildptr() const
+        {
+            THROW_IF_MISSING(m_stage_name.has_value(), "set_stage_name");
+
+            return std::make_shared<TrackerStage>(m_stage_name.value(), m_queue_size, m_leaky, 
+                                                  m_classification_id, m_block_non_tracked_class_id,
+                                                  m_print_fps);
+        }
+    };
+
+    static Builder create()
+    {
+        return Builder();
     }
 };

@@ -1,14 +1,14 @@
 {
-	"version": "1.0.0",
-	"default_profile": "Daylight",
-	"profiles": [
-		{
-			"name": "Daylight",
-			"config_file": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_profile.json"
-		},
+    "version": "1.0.0",
+    "default_profile": "Daylight",
+    "profiles": [
         {
-			"name": "HDR",
-			"config_file": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_profile_hdr.json"
-		}
-	]
+            "name": "Daylight",
+            "config_file": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_profile.json"
+        },
+        {
+            "name": "HDR",
+            "config_file": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_profile_hdr.json"
+        }
+    ]
 }

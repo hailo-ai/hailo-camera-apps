@@ -1,0 +1,10 @@
+{
+    "version": "1.0.0",
+    "default_profile": "Daylight",
+    "profiles": [
+        {
+            "name": "Daylight",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/case_studies/single_stream_daylight_profile.json"
+        }
+    ]
+}

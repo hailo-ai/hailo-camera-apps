@@ -12,7 +12,7 @@
 GST_DEBUG_CATEGORY_STATIC(gst_hailotileaggregator_debug);
 #define GST_CAT_DEFAULT gst_hailotileaggregator_debug
 
-#define _do_init \
+#define _do_init                                                                                                       \
     GST_DEBUG_CATEGORY_INIT(gst_hailotileaggregator_debug, "hailotileaggregator", 0, "hailotileaggregator element");
 
 enum
@@ -36,19 +36,18 @@ G_DEFINE_TYPE_WITH_CODE(GstHailoTileAggregator, gst_hailotileaggregator, GST_TYP
 
 static float iou_calc(const HailoBBox &box_1, const HailoBBox &box_2);
 static void nms(HailoROIPtr hailo_roi, const float iou_thr);
-static void gst_hailotileaggregator_set_property(GObject *object,
-                                                 guint prop_id, const GValue *value, GParamSpec *pspec);
-static void gst_hailotileaggregator_get_property(GObject *object,
-                                                 guint prop_id, GValue *value, GParamSpec *pspec);
+static void gst_hailotileaggregator_set_property(GObject *object, guint prop_id, const GValue *value,
+                                                 GParamSpec *pspec);
+static void gst_hailotileaggregator_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
 
 static void gst_hailotileaggregator_dispose(GObject *object);
 static void gst_hailotileaggregator_finalize(GObject *object);
 
 static void gst_hailotileaggregator_post_aggregation(GstHailoAggregator *hailoaggregator, HailoROIPtr hailo_roi);
-static void gst_hailotileaggregator_handle_sub_frame_roi(GstHailoAggregator *hailoaggregator, HailoROIPtr sub_buffer_roi);
+static void gst_hailotileaggregator_handle_sub_frame_roi(GstHailoAggregator *hailoaggregator,
+                                                         HailoROIPtr sub_buffer_roi);
 
-static void
-gst_hailotileaggregator_class_init(GstHailoTileAggregatorClass *klass)
+static void gst_hailotileaggregator_class_init(GstHailoTileAggregatorClass *klass)
 {
     GstElementClass *gstelement_class;
     GstHailoAggregatorClass *hailoaggregator_class;
@@ -66,27 +65,29 @@ gst_hailotileaggregator_class_init(GstHailoTileAggregatorClass *klass)
     hailoaggregator_class->handle_main_roi_post_aggregation = gst_hailotileaggregator_post_aggregation;
     hailoaggregator_class->handle_sub_frame_roi = gst_hailotileaggregator_handle_sub_frame_roi;
 
-    gst_element_class_set_static_metadata(gstelement_class,
-                                          "hailotileaggregator",
-                                          "Hailo/Tools",
+    gst_element_class_set_static_metadata(gstelement_class, "hailotileaggregator", "Hailo/Tools",
                                           "Aggregates related tiles to the original Image",
                                           "hailo.ai <contact@hailo.ai>");
 
-    g_object_class_install_property(gobject_class, PROP_IOU_THRESHOLD,
-                                    g_param_spec_float("iou-threshold", "NMS IOU Threshold", "threshold", 0, 1, DEFAULT_IOU_THRESHOLD,
-                                                       (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
+    g_object_class_install_property(
+        gobject_class, PROP_IOU_THRESHOLD,
+        g_param_spec_float("iou-threshold", "NMS IOU Threshold", "threshold", 0, 1, DEFAULT_IOU_THRESHOLD,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
 
-    g_object_class_install_property(gobject_class, PROP_BORDER_THRESHOLD,
-                                    g_param_spec_float("border-threshold", "Multi-scale remove exceeded objects functionality border threshold", "border threshold", 0, 1, DEFAULT_BORDER_THRESHOLD,
-                                                       (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
+    g_object_class_install_property(
+        gobject_class, PROP_BORDER_THRESHOLD,
+        g_param_spec_float("border-threshold", "Multi-scale remove exceeded objects functionality border threshold",
+                           "border threshold", 0, 1, DEFAULT_BORDER_THRESHOLD,
+                           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
 
-    g_object_class_install_property(gobject_class, PROP_REMOVE_LARGE_LANDSCAPE,
-                                    g_param_spec_boolean("remove-large-landscape", "Remove large landscape", "remove large landscape objects when running in multi-scale mode", true,
-                                                         (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
+    g_object_class_install_property(
+        gobject_class, PROP_REMOVE_LARGE_LANDSCAPE,
+        g_param_spec_boolean("remove-large-landscape", "Remove large landscape",
+                             "remove large landscape objects when running in multi-scale mode", true,
+                             (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
 }
 
-static void
-gst_hailotileaggregator_init(GstHailoTileAggregator *hailotileaggregator)
+static void gst_hailotileaggregator_init(GstHailoTileAggregator *hailotileaggregator)
 {
     hailotileaggregator->iou_threshold = DEFAULT_IOU_THRESHOLD;
     hailotileaggregator->border_threshold = DEFAULT_BORDER_THRESHOLD;
@@ -199,8 +200,7 @@ static void remove_exceeded_bboxes(HailoTileROIPtr hailo_tile_roi, float border_
     }
 }
 
-static void
-gst_hailotileaggregator_post_aggregation(GstHailoAggregator *hailoaggregator, HailoROIPtr hailo_roi)
+static void gst_hailotileaggregator_post_aggregation(GstHailoAggregator *hailoaggregator, HailoROIPtr hailo_roi)
 {
     GstHailoTileAggregator *hailotileaggregator = GST_HAILO_TILE_AGGREGATOR(hailoaggregator);
 
@@ -210,7 +210,7 @@ gst_hailotileaggregator_post_aggregation(GstHailoAggregator *hailoaggregator, Ha
     auto caps_st = gst_caps_get_structure(caps, 0);
     gst_structure_get_int(caps_st, "width", &frame_width);
     gst_structure_get_int(caps_st, "height", &frame_height);
-    if(hailo_roi == nullptr)
+    if (hailo_roi == nullptr)
         return;
     auto tiles = hailo_common::get_hailo_tiles(hailo_roi);
     if (tiles[0]->get_mode() == MULTI_SCALE && hailotileaggregator->remove_large_landscape)
@@ -220,8 +220,8 @@ gst_hailotileaggregator_post_aggregation(GstHailoAggregator *hailoaggregator, Ha
     nms(hailo_roi, hailotileaggregator->iou_threshold);
 }
 
-static void
-gst_hailotileaggregator_handle_sub_frame_roi(GstHailoAggregator *hailoaggregator, HailoROIPtr sub_buffer_roi)
+static void gst_hailotileaggregator_handle_sub_frame_roi(GstHailoAggregator *hailoaggregator,
+                                                         HailoROIPtr sub_buffer_roi)
 {
     HailoTileROIPtr hailo_tile_roi = std::dynamic_pointer_cast<HailoTileROI>(sub_buffer_roi);
     if (hailo_tile_roi->get_mode() == MULTI_SCALE)
@@ -267,8 +267,7 @@ void nms(HailoROIPtr hailo_roi, const float iou_thr)
 
     std::vector<HailoDetectionPtr> objects = hailo_common::get_hailo_detections(hailo_roi);
     std::sort(objects.begin(), objects.end(),
-              [](HailoDetectionPtr a, HailoDetectionPtr b)
-              { return a->get_confidence() > b->get_confidence(); });
+              [](HailoDetectionPtr a, HailoDetectionPtr b) { return a->get_confidence() > b->get_confidence(); });
 
     for (uint index = 0; index < objects.size(); index++)
     {

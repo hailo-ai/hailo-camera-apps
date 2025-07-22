@@ -7,12 +7,13 @@
 
 class HTTPServer
 {
-private:
+  private:
     class Impl;
     std::shared_ptr<Impl> m_impl;
 
-public:
-    using ExceptionHandler = std::function<void(const httplib::Request& req, httplib::Response& res, std::exception_ptr ep)>;
+  public:
+    using ExceptionHandler =
+        std::function<void(const httplib::Request &req, httplib::Response &res, std::exception_ptr ep)>;
 
     HTTPServer();
     static std::shared_ptr<HTTPServer> create();
@@ -25,8 +26,10 @@ public:
     void Post(const std::string &pattern, std::function<void(const nlohmann::json &)> callback);
     void Post(const std::string &pattern, std::function<nlohmann::json(const nlohmann::json &)> callback);
     void Post(const std::string &pattern, std::function<bool(const httplib::MultipartFormData &)> callback);
+    void Post(const std::string &pattern,
+              std::function<std::pair<nlohmann::json, int>(const nlohmann::json &)> callback);
     void Redirect(const std::string &pattern, const std::string &target);
     void Delete(const std::string &pattern, std::function<nlohmann::json(const nlohmann::json &)> callback);
     void set_cors();
-    void set_exception_handler(const ExceptionHandler& exception_handler);
+    void set_exception_handler(const ExceptionHandler &exception_handler);
 };

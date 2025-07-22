@@ -14,17 +14,19 @@
 #include "buffer.hpp"
 #include "udp_module.hpp"
 
+#define UDP_QUEUE_SIZE_DEFAULT (1)
+
 class UdpStage : public ConnectedStage
 {
-private:
+  private:
     std::string m_host;
     std::string m_port;
     EncodingType m_type;
     UdpModulePtr m_udp;
-    
-public:
-    inline UdpStage(std::string name, size_t queue_size = 1, bool leaky = false, bool print_fps = false) : 
-        ConnectedStage(name, queue_size, leaky, print_fps)
+
+  public:
+    inline UdpStage(std::string name, size_t queue_size = UDP_QUEUE_SIZE_DEFAULT, bool leaky = false, bool print_fps = false)
+        : ConnectedStage(name, queue_size, leaky, print_fps)
     {
     }
 
@@ -32,10 +34,12 @@ public:
     {
         if (m_udp == nullptr)
         {
-            tl::expected<UdpModulePtr, AppStatus> udp_expected = UdpModule::create(m_stage_name, host, port, type);
+            tl::expected<UdpModulePtr, AppStatus> udp_expected =
+                UdpModule::create(m_stage_name, host, port, type, m_print_fps);
             if (!udp_expected.has_value())
             {
                 std::cout << "Failed to create udp" << std::endl;
+                REFERENCE_CAMERA_LOG_ERROR("Failed to create udp");
                 return AppStatus::CONFIGURATION_ERROR;
             }
             m_udp = udp_expected.value();
@@ -97,4 +101,32 @@ public:
 
         return AppStatus::SUCCESS;
     }
+};
+
+
+class UdpStageBuild : public UdpStage
+{
+public:
+    class Builder {
+    
+    private:
+        std::optional<std::string>  m_stage_name;
+        size_t                      m_queue_size=UDP_QUEUE_SIZE_DEFAULT;
+        bool                        m_leaky=false;
+        bool                        m_print_fps=false;        
+    
+    public:
+        Builder& set_stage_name(std::string name) { m_stage_name=name; return *this;}
+        Builder& set_queue_size_opt(size_t size) { m_queue_size=size; return *this;}
+        Builder& set_leaky_opt(bool activate) { m_leaky=activate; return *this;}
+        Builder& set_printfps_opt(bool activate) { m_print_fps=activate; return *this;}
+
+        std::shared_ptr<UdpStage> buildptr() const { 
+            THROW_IF_MISSING(m_stage_name.has_value(), "set_stage_name");
+
+            return std::make_shared<UdpStage>(m_stage_name.value(), m_queue_size, m_leaky, m_print_fps);}
+    };
+
+    static Builder create() { return Builder(); }
+
 };

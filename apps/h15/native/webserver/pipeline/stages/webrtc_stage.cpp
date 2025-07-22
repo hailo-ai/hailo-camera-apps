@@ -1,17 +1,19 @@
 #include "webrtc_stage.hpp"
 
-WebrtcStage::WebrtcStage(std::string name, std::shared_ptr<WebRtcResource> webrtc_resource, size_t queue_size, bool leaky, bool print_fps)
-    : ConnectedStage(name, queue_size, leaky, print_fps),
-      m_rtp_converter(nullptr),
-      m_webrtc_resource(webrtc_resource),
-      m_running(false) {
+WebrtcStage::WebrtcStage(std::string name, std::shared_ptr<WebRtcResource> webrtc_resource, size_t queue_size,
+                         bool leaky, bool print_fps)
+    : ConnectedStage(name, queue_size, leaky, print_fps), m_rtp_converter(nullptr), m_webrtc_resource(webrtc_resource),
+      m_running(false)
+{
 }
 
-
-AppStatus WebrtcStage::create(EncodingType type) {
-    if (m_rtp_converter == nullptr) {
-        auto rtp_converter_expected = ConvertRtpModule::create(m_stage_name, type);
-        if (!rtp_converter_expected.has_value()) {
+AppStatus WebrtcStage::create(EncodingType type)
+{
+    if (m_rtp_converter == nullptr)
+    {
+        auto rtp_converter_expected = ConvertRtpModule::create(m_stage_name, type, m_print_fps);
+        if (!rtp_converter_expected.has_value())
+        {
             std::cerr << "Failed to create rtp converter" << std::endl;
             return AppStatus::CONFIGURATION_ERROR;
         }
@@ -21,8 +23,10 @@ AppStatus WebrtcStage::create(EncodingType type) {
     return AppStatus::SUCCESS;
 }
 
-AppStatus WebrtcStage::init() {
-    if (m_rtp_converter == nullptr) {
+AppStatus WebrtcStage::init()
+{
+    if (m_rtp_converter == nullptr)
+    {
         std::cerr << "rtp converter " << m_stage_name << " not configured. Call configure()" << std::endl;
         REFERENCE_CAMERA_LOG_ERROR("rtp converter {} not configured. Call configure()", m_stage_name);
         return AppStatus::UNINITIALIZED;
@@ -35,32 +39,40 @@ AppStatus WebrtcStage::init() {
     return AppStatus::SUCCESS;
 }
 
-AppStatus WebrtcStage::deinit() {
+AppStatus WebrtcStage::deinit()
+{
     m_running.store(false);
-    if (m_send_thread.joinable()) {
+    if (m_send_thread.joinable())
+    {
         m_send_thread.join();
     }
-    if (m_rtp_converter != nullptr) {
+    if (m_rtp_converter != nullptr)
+    {
         m_rtp_converter->stop();
     }
+    m_webrtc_resource->close_all_connections();
     return AppStatus::SUCCESS;
 }
 
-AppStatus WebrtcStage::configure(EncodingType type) {
+AppStatus WebrtcStage::configure(EncodingType type)
+{
     deinit();
     m_rtp_converter = nullptr;
     return create(type);
 }
 
-AppStatus WebrtcStage::process(BufferPtr data) {
-    if (m_rtp_converter == nullptr) {
+AppStatus WebrtcStage::process(BufferPtr data)
+{
+    if (m_rtp_converter == nullptr)
+    {
         std::cerr << "rtp converter " << m_stage_name << " not configured. Call configure()" << std::endl;
         REFERENCE_CAMERA_LOG_ERROR("rtp converter {} not configured. Call configure()", m_stage_name);
         return AppStatus::UNINITIALIZED;
     }
 
     auto metadata = data->get_metadata_of_type(MetadataType::SIZE);
-    if (metadata.empty()) {
+    if (metadata.empty())
+    {
         std::cerr << "rtp converter " << m_stage_name << " got buffer of unknown size, add SizeMeta" << std::endl;
         REFERENCE_CAMERA_LOG_ERROR("rtp converter {} got buffer of unknown size, add SizeMeta", m_stage_name);
         return AppStatus::PIPELINE_ERROR;
@@ -74,10 +86,13 @@ AppStatus WebrtcStage::process(BufferPtr data) {
     return AppStatus::SUCCESS;
 }
 
-void WebrtcStage::callback_worker() {
-    while (m_running.load()) {
-        GstSample* sample = m_rtp_converter->get_frame();
-        if (sample != nullptr) {
+void WebrtcStage::callback_worker()
+{
+    while (m_running.load())
+    {
+        GstSample *sample = m_rtp_converter->get_frame();
+        if (sample != nullptr)
+        {
             m_webrtc_resource->send_rtp_packet(sample);
             gst_sample_unref(sample);
         }

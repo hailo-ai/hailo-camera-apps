@@ -12,8 +12,18 @@ if [[ -z "$TAPPAS_WORKSPACE" ]]; then
   echo "No TAPPAS_WORKSPACE in environment found, using the default one $TAPPAS_WORKSPACE"
 fi
 
+function prepare_log_file(){
+    if [ -f $INSTALL_LOG ]
+        then
+           > $INSTALL_LOG
+    fi
+    echo "######### $(date) #########" >> $INSTALL_LOG
+}
+
 readonly GST_HAILO_BUILD_MODE='release'
 readonly VENV_NAME='hailo_tappas_venv'
+readonly INSTALL_LOG="env_setup.log"
+
 readonly VENV_PATH="$(pwd)"
 readonly INSTALLATION_DIR=/opt/hailo/tappas
 readonly TAPPAS_LIB_PATH=${INSTALLATION_DIR}/lib/$(uname -m)-linux-gnu
@@ -90,18 +100,7 @@ function python_venv_create_and_install() {
     source ${VENV_PATH}/$VENV_NAME/bin/activate
   fi
   # Install pip packages & Call the downloader script
-  pip3 install --upgrade pip 'setuptools<=66.0.0'
-  pip3 install -r $TAPPAS_WORKSPACE/core/requirements/requirements.txt
-  pip3 install -r $TAPPAS_WORKSPACE/core/requirements/gstreamer_requirements.txt
-  pip3 install -r $TAPPAS_WORKSPACE/downloader/requirements.txt
-  # if rpi5 (core_only) is set dont download apps data (TAPPAS Core mode)
-  if [ "$core_only" = false ]; then
-    if [[ ${apps_to_set} ]]; then
-      python3 $TAPPAS_WORKSPACE/downloader/main.py $target_platform --apps-list $apps_to_set
-    else
-      python3 $TAPPAS_WORKSPACE/downloader/main.py $target_platform
-    fi
-  fi
+  pip3 install pre-commit==4.2.0
 }
 
 function install_hailo() {
@@ -155,6 +154,7 @@ function set_gcc_version(){
 function check_systems_requirements(){
   GCC_VERSION=$gcc_version ./check_system_requirements.sh
   if [ "$?" != "0"  ]; then
+    echo "System requirements check failed, please check the logs---------------------------------------------------"
     exit 1
   fi
 }
@@ -250,16 +250,16 @@ function list_supported_apps(){
   exit 0
 }
 
+function install_pre_commit_hooks(){
+    echo "Installing pre-commit git hooks"
+    pre-commit install --allow-missing-config --hook-type pre-commit --hook-type pre-push >> $ 2>&1
+}
+
 function main() {
   uninstall
-  set_gcc_version
-  check_systems_requirements
-  verify_that_hailort_found_if_needed
+  prepare_log_file
   python_venv_create_and_install
-  $TAPPAS_WORKSPACE/scripts/build_scripts/clone_external_packages.sh
-  handle_bash_env
-  install_hailo
-  setup_pkg_config
+  install_pre_commit_hooks
   print_success
 }
 

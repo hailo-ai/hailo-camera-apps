@@ -31,9 +31,33 @@
 
 extern std::shared_ptr<spdlog::logger> _reference_camera_logger;
 
-#define REFERENCE_CAMERA_LOG_TRACE(...) do { SPDLOG_LOGGER_TRACE(_reference_camera_logger, __VA_ARGS__); } while(0)
-#define REFERENCE_CAMERA_LOG_DEBUG(...) do { SPDLOG_LOGGER_DEBUG(_reference_camera_logger, __VA_ARGS__); } while(0)
-#define REFERENCE_CAMERA_LOG_INFO(...) do { SPDLOG_LOGGER_INFO(_reference_camera_logger, __VA_ARGS__); } while(0)
-#define REFERENCE_CAMERA_LOG_WARN(...) do { SPDLOG_LOGGER_WARN(_reference_camera_logger, __VA_ARGS__); } while(0)
-#define REFERENCE_CAMERA_LOG_ERROR(...) do { SPDLOG_LOGGER_ERROR(_reference_camera_logger, __VA_ARGS__); } while(0)
-#define REFERENCE_CAMERA_LOG_CRITICAL(...) do { SPDLOG_LOGGER_CRITICAL(_reference_camera_logger, __VA_ARGS__); } while(0)
+#define REFERENCE_CAMERA_LOG_TRACE(...)                                                                                \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        SPDLOG_LOGGER_TRACE(_reference_camera_logger, __VA_ARGS__);                                                    \
+    } while (0)
+#define REFERENCE_CAMERA_LOG_DEBUG(...)                                                                                \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        SPDLOG_LOGGER_DEBUG(_reference_camera_logger, __VA_ARGS__);                                                    \
+    } while (0)
+#define REFERENCE_CAMERA_LOG_INFO(...)                                                                                 \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        SPDLOG_LOGGER_INFO(_reference_camera_logger, __VA_ARGS__);                                                     \
+    } while (0)
+#define REFERENCE_CAMERA_LOG_WARN(...)                                                                                 \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        SPDLOG_LOGGER_WARN(_reference_camera_logger, __VA_ARGS__);                                                     \
+    } while (0)
+#define REFERENCE_CAMERA_LOG_ERROR(...)                                                                                \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        SPDLOG_LOGGER_ERROR(_reference_camera_logger, __VA_ARGS__);                                                    \
+    } while (0)
+#define REFERENCE_CAMERA_LOG_CRITICAL(...)                                                                             \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        SPDLOG_LOGGER_CRITICAL(_reference_camera_logger, __VA_ARGS__);                                                 \
+    } while (0)

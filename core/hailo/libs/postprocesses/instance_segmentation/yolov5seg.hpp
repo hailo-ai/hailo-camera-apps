@@ -10,7 +10,7 @@
 __BEGIN_DECLS
 class Yolov5segParams
 {
-public:
+  public:
     float iou_threshold;
     float score_threshold;
     int num_anchors;
@@ -22,15 +22,14 @@ public:
     std::vector<xt::xarray<float>> grids;
     std::vector<xt::xarray<float>> anchor_grids;
 
-    Yolov5segParams() {
+    Yolov5segParams()
+    {
         iou_threshold = 0.6;
         score_threshold = 0.25;
         outputs_size = {20, 40, 80};
         outputs_name = {"yolov5n_seg/conv63", "yolov5n_seg/conv48", "yolov5n_seg/conv55", "yolov5n_seg/conv61"};
-        anchors = {{116, 90, 156, 198, 373, 326},
-                                            {30, 61, 62, 45, 59, 119},
-                                            {10, 13, 16, 30, 33, 23} };
-        input_shape = {640,640};
+        anchors = {{116, 90, 156, 198, 373, 326}, {30, 61, 62, 45, 59, 119}, {10, 13, 16, 30, 33, 23}};
+        input_shape = {640, 640};
         strides = {32, 16, 8};
     }
 };

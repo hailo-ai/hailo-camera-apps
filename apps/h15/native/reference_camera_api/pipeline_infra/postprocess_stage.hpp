@@ -31,31 +31,31 @@
 
 /**
  * @brief Class representing a post-processing stage in the connected stage pipeline.
- * 
+ *
  * This class is responsible for loading a shared object library, initializing it, and
  * applying post-processing functions to the data.
  */
 class PostprocessStage : public ConnectedStage
 {
-private:
+  private:
     // Library info
-    std::string m_so_path;          ///< Path to the shared object file.
-    std::string m_config_path;      ///< Path to the configuration file.
-    std::string m_function_name;    ///< Name of the function to be executed from the shared object file.
+    std::string m_so_path;       ///< Path to the shared object file.
+    std::string m_config_path;   ///< Path to the configuration file.
+    std::string m_function_name; ///< Name of the function to be executed from the shared object file.
 
     // Loaded libraries and params
-    void *m_loaded_lib;             ///< Handle to the loaded shared object library.
-    void *m_params;                 ///< Parameters for the post-processing function.
+    void *m_loaded_lib; ///< Handle to the loaded shared object library.
+    void *m_params;     ///< Parameters for the post-processing function.
 
     // Function handlers
-    void (*m_handler)(HailoROIPtr, void *);             ///< Function pointer to the post-processing function with parameters.
-    void (*m_handler_no_config)(HailoROIPtr);           ///< Function pointer to the post-processing function without parameters.
-    std::chrono::steady_clock::time_point m_last_time;  ///< Timestamp of the last processed frame.
+    void (*m_handler)(HailoROIPtr, void *);   ///< Function pointer to the post-processing function with parameters.
+    void (*m_handler_no_config)(HailoROIPtr); ///< Function pointer to the post-processing function without parameters.
+    std::chrono::steady_clock::time_point m_last_time; ///< Timestamp of the last processed frame.
 
-public:
+  public:
     /**
      * @brief Construct a new Postprocess Stage object.
-     * 
+     *
      * @param name Name of the stage.
      * @param so_path Path to the shared object file.
      * @param function_name Name of the function to be executed from the shared object file.
@@ -64,13 +64,17 @@ public:
      * @param leaky Whether the queue is leaky.
      * @param print_fps Whether to print frames per second information.
      */
-    PostprocessStage(std::string name, std::string so_path, std::string function_name=DEFAULT_FUNC_NAME, std::string config_path="", size_t queue_size=5, bool leaky=false, bool print_fps=false) : 
-        ConnectedStage(name, queue_size, leaky, print_fps), m_so_path(so_path), m_config_path(config_path), m_function_name(function_name) {}
+    PostprocessStage(std::string name, std::string so_path, std::string function_name = DEFAULT_FUNC_NAME,
+                     std::string config_path = "", size_t queue_size = 5, bool leaky = false, bool print_fps = false)
+        : ConnectedStage(name, queue_size, leaky, print_fps), m_so_path(so_path), m_config_path(config_path),
+          m_function_name(function_name)
+    {
+    }
 
     /**
-     * @brief Initialize the post-processing stage. by loading the provided so file with dlsym. 
+     * @brief Initialize the post-processing stage. by loading the provided so file with dlsym.
      * If the binary has an init function to load parameters then it is called.
-     * 
+     *
      * @return AppStatus Status of the initialization.
      */
     AppStatus init() override
@@ -95,7 +99,7 @@ public:
             m_handler_no_config = (void (*)(HailoROIPtr))dlsym(m_loaded_lib, m_function_name.c_str());
             m_params = nullptr;
         }
-        else 
+        else
         {
             // Call the init function to get the params
             m_params = init_func(m_config_path, m_function_name);
@@ -120,7 +124,7 @@ public:
 
     /**
      * @brief Deinitialize the post-processing stage loaded library.
-     * 
+     *
      * @return AppStatus Status of the deinitialization.
      */
     AppStatus deinit() override
@@ -141,18 +145,18 @@ public:
         {
             queue->flush();
         }
-    
+
         return AppStatus::SUCCESS;
     }
 
     /**
      * @brief Process the data in the buffer using the loaded library
-     * 
+     *
      * @param data Buffer containing the data to be processed.
      * @return AppStatus Status of the processing.
      */
     AppStatus process(BufferPtr data)
-    {    
+    {
         // Get the roi from the buffer
         HailoROIPtr hailo_roi = data->get_roi();
         m_debug_counters->increment_input_frames();
@@ -171,16 +175,88 @@ public:
 
         if (m_print_fps)
         {
-            std::cout << "Postprocess time (" << m_stage_name << ") = " << std::chrono::duration_cast<std::chrono::microseconds>(end - m_last_time).count() << "[microseconds]" << std::endl;
+            std::cout << "Postprocess time (" << m_stage_name
+                      << ") = " << std::chrono::duration_cast<std::chrono::microseconds>(end - m_last_time).count()
+                      << "[microseconds]" << std::endl;
             m_last_time = end;
         }
-        
-	    data->add_time_stamp(m_stage_name);
+        REFERENCE_CAMERA_LOG_DEBUG("Postprocess time ({}) = {}[microseconds]", m_stage_name,
+                                   std::chrono::duration_cast<std::chrono::microseconds>(end - m_last_time).count());
+
+        data->add_time_stamp(m_stage_name);
         set_duration(data);
 
-	    // Push the buffer to the next stage
+        // Push the buffer to the next stage
         send_to_subscribers(data);
         m_debug_counters->increment_output_frames();
         return AppStatus::SUCCESS;
+    }
+};
+
+class PostprocessStageBuild : public PostprocessStage
+{
+  public:
+    class Builder
+    {
+
+      private:
+        std::optional<std::string> m_stage_name;
+        std::optional<std::string> m_so_path;
+        std::string m_function_name = DEFAULT_FUNC_NAME;
+        std::string m_config_path = "";
+        size_t m_queue_size = 5;
+        bool m_leaky = false;
+        bool m_print_fps = false;
+
+      public:
+        Builder &set_stage_name(std::string name)
+        {
+            m_stage_name = name;
+            return *this;
+        }
+        Builder &set_so_path(std::string path)
+        {
+            m_so_path = path;
+            return *this;
+        }
+        Builder &set_function_name_opt(std::string func_name)
+        {
+            m_function_name = func_name;
+            return *this;
+        }
+        Builder &set_config_path_opt(std::string path)
+        {
+            m_config_path = path;
+            return *this;
+        }
+        Builder &set_queue_size_opt(size_t size)
+        {
+            m_queue_size = size;
+            return *this;
+        }
+        Builder &set_leaky_opt(bool activate)
+        {
+            m_leaky = activate;
+            return *this;
+        }
+        Builder &set_printfps_opt(bool activate)
+        {
+            m_print_fps = activate;
+            return *this;
+        }
+
+        std::shared_ptr<PostprocessStage> buildptr() const
+        {
+            THROW_IF_MISSING(m_stage_name.has_value(), "set_stage_name");
+            THROW_IF_MISSING(m_so_path.has_value(), "set_so_path");
+
+            return std::make_shared<PostprocessStage>(m_stage_name.value(), m_so_path.value(), m_function_name,
+                                                      m_config_path, m_queue_size, m_leaky, m_print_fps);
+        }
+    };
+
+    static Builder create()
+    {
+        return Builder();
     }
 };

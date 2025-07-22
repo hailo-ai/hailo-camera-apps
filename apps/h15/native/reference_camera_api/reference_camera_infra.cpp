@@ -15,5 +15,9 @@
 #include "pipeline_infra/udp_stage.hpp"
 #include "pipeline_infra/file_stage.hpp"
 #include "pipeline_infra/reference_camera_logger.hpp"
+#include "pipeline_infra/valve_stage.hpp"
+#include "pipeline_infra/freeze_stage.hpp"
+#include "pipeline_infra/tracker_traffic_ctrl_stage.hpp"
+#include "pipeline_infra/zmq_comm_stage.hpp"
 
 // Header consolidation file

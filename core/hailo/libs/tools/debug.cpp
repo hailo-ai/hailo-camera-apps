@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 #include <iostream>
 #include <map>
 #include <typeinfo>
@@ -54,7 +54,9 @@ void frame_counter_e(HailoROIPtr roi)
 // Print current time
 void time_a(HailoROIPtr roi)
 {
-    auto timenow = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    auto timenow =
+        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
     std::cout << "Timestamp A: " << timenow << std::endl;
 }
 
@@ -62,7 +64,9 @@ void time_a(HailoROIPtr roi)
 void time_b(HailoROIPtr roi)
 {
 
-    auto timenow = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    auto timenow =
+        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
     std::cout << "Timestamp B: " << timenow << std::endl;
 }
 
@@ -70,7 +74,9 @@ void time_b(HailoROIPtr roi)
 void time_c(HailoROIPtr roi)
 {
 
-    auto timenow = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    auto timenow =
+        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
     std::cout << "Timestamp C: " << timenow << std::endl;
 }
 
@@ -78,14 +84,18 @@ void time_c(HailoROIPtr roi)
 void time_d(HailoROIPtr roi)
 {
 
-    auto timenow = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    auto timenow =
+        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
     std::cout << "Timestamp D: " << timenow << std::endl;
 }
 
 // Print current time
 void time_e(HailoROIPtr roi)
 {
-    auto timenow = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    auto timenow =
+        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
     std::cout << "Timestamp E: " << timenow << std::endl;
 }
 
@@ -99,12 +109,45 @@ void sleep10(HailoROIPtr roi)
 float get_random(float M = 0, float N = 1)
 {
     // Change the random seed each time
-    auto seed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    srand(static_cast <unsigned> (seed));
+    auto seed =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    srand(static_cast<unsigned>(seed));
     if (M >= N)
         return M;
-    float random_f = M + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(N-M)));
+    float random_f = M + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (N - M)));
     return random_f;
+}
+
+// Each detection has fixed dimensions (1/10 of width and height of the bounding box)
+bool first_time = true;
+void generate_fixed_detections(HailoROIPtr roi)
+{
+    // Get the bounding limits for the new boxes
+    HailoBBox bbox_limit = roi->get_bbox();
+    float xmin_limit = bbox_limit.xmin();
+    float ymin_limit = bbox_limit.ymin();
+    float xmax_limit = bbox_limit.xmax();
+    float ymax_limit = bbox_limit.ymax();
+    // Calculate fixed dimensions for each detection
+    float detection_width = bbox_limit.width() / 10.0;
+    float detection_height = bbox_limit.height() / 10.0;
+    const char *env_value = std::getenv("DEBUG_NUM_DETECTIONS");
+    int num_detections_to_add = (env_value != nullptr) ? std::atoi(env_value) : 10;
+    const char *class_env_value = std::getenv("DEBUG_CLASS_NAME");
+    std::string class_name = (class_env_value != nullptr) ? class_env_value : "face";
+    float r_confidence = 0.9;
+    for (int i = 0; i < num_detections_to_add; i++)
+    {
+        float r_xmin = xmin_limit + (i % 5) * detection_width;           // Arrange in 5 columns
+        float r_ymin = ymin_limit + std::ceil(i / 5) * detection_height; // Arrange in 2 rows
+        // Clamp the values to ensure they stay within bounding box limits
+        r_xmin = CLAMP(r_xmin, xmin_limit, xmax_limit);
+        r_ymin = CLAMP(r_ymin, ymin_limit, ymax_limit);
+        HailoBBox r_bbox =
+            HailoBBox(r_xmin + detection_width, r_ymin + detection_height, detection_width, detection_height);
+        hailo_common::add_detection(roi, r_bbox, class_name, r_confidence);
+    }
 }
 
 // Generates a random (1-10) number of detections
@@ -125,10 +168,10 @@ void generate_random_detections(HailoROIPtr roi)
         // We generate random bboxes until we have a valid box (width/height > 0)
         // Once we have a valid box, then it can be added to the roi
         added_bbox = false;
-        while(!added_bbox)
+        while (!added_bbox)
         {
             // Generate random dimensions for the new detection
-            r_confidence = CLAMP(static_cast <float> (rand()) / static_cast <float> (RAND_MAX), 0.0, 1.0);
+            r_confidence = CLAMP(static_cast<float>(rand()) / static_cast<float>(RAND_MAX), 0.0, 1.0);
             r_xmin = CLAMP(get_random(xmin_limit, xmax_limit), xmin_limit, xmax_limit);
             r_ymin = CLAMP(get_random(ymin_limit, ymax_limit), ymin_limit, ymax_limit);
             r_xmax = CLAMP(get_random(r_xmin, xmax_limit), r_xmin, xmax_limit);
@@ -156,7 +199,7 @@ void generate_center_detection(HailoROIPtr roi)
 
     // We generate on box in the center of the roi with 50% width and height
     // Once we have a valid box, then it can be added to the roi
-    r_confidence = CLAMP(static_cast <float> (rand()) / static_cast <float> (RAND_MAX), 0.0, 1.0);
+    r_confidence = CLAMP(static_cast<float>(rand()) / static_cast<float>(RAND_MAX), 0.0, 1.0);
     r_xmin = bbox_limit.xmin() + (roi_width / 4);
     r_ymin = bbox_limit.ymin() + (roi_height / 4);
     HailoBBox r_bbox = HailoBBox(r_xmin, r_ymin, roi_width / 2, roi_height / 2);
@@ -177,7 +220,7 @@ void generate_bottom_detection(HailoROIPtr roi)
 
     // We generate on box in the bottom of the roi with 25% width and height
     // Once we have a valid box, then it can be added to the roi
-    r_confidence = CLAMP(static_cast <float> (rand()) / static_cast <float> (RAND_MAX), 0.0, 1.0);
+    r_confidence = CLAMP(static_cast<float>(rand()) / static_cast<float>(RAND_MAX), 0.0, 1.0);
     r_xmin = bbox_limit.xmin() + ((3 * roi_width) / 8);
     r_ymin = bbox_limit.ymin() + ((5 * roi_height) / 8);
     HailoBBox r_bbox = HailoBBox(r_xmin, r_ymin, roi_width / 4, roi_height / 4);
@@ -188,28 +231,29 @@ void generate_bottom_detection(HailoROIPtr roi)
 
 void print_roi_bboxs(HailoROIPtr roi)
 {
-    for(HailoDetectionPtr &detection : hailo_common::get_hailo_detections(roi))
+    for (HailoDetectionPtr &detection : hailo_common::get_hailo_detections(roi))
     {
         HailoBBox bbox = detection->get_bbox();
 
         std::cout << "-------" << std::endl;
-        std::cout << "Confidence: " << detection->get_confidence() << " Label: " << detection->get_label() << " ClassID: " << detection->get_class_id() << std::endl;
-        std::cout << "X: " << bbox.xmin() << " Y:" << bbox.ymin() <<  " Width:" << bbox.width() <<  " Height: " << bbox.height() << std::endl;
+        std::cout << "Confidence: " << detection->get_confidence() << " Label: " << detection->get_label()
+                  << " ClassID: " << detection->get_class_id() << std::endl;
+        std::cout << "X: " << bbox.xmin() << " Y:" << bbox.ymin() << " Width:" << bbox.width()
+                  << " Height: " << bbox.height() << std::endl;
         std::cout << "-------" << std::endl;
     }
 }
 
 void dump_tensors_to_npy(HailoROIPtr roi)
 {
-    for (auto const& [name, tensor] : roi->get_tensors_by_name())
+    for (auto const &[name, tensor] : roi->get_tensors_by_name())
     {
-	std::string output_name = name;
-	std::replace( output_name.begin(), output_name.end(), '/', '_');
+        std::string output_name = name;
+        std::replace(output_name.begin(), output_name.end(), '/', '_');
 
-        xt::xarray<uint8_t> xtensor = xt::adapt(tensor->data(), tensor->size(), xt::no_ownership(), tensor->shape());    
+        xt::xarray<uint8_t> xtensor = xt::adapt(tensor->data(), tensor->size(), xt::no_ownership(), tensor->shape());
         xt::dump_npy(output_name + ".npy", xtensor);
     }
-
 }
 
 // Do Nothing

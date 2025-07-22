@@ -21,14 +21,15 @@ void fast_depth(HailoROIPtr roi)
     xt::xarray<uint16_t> tensor_data = common::get_xtensor_uint16(tensor_ptr);
 
     // de-quantization of the xarray from uint16 to float32
-    xt::xarray<float> logits_dequantized = common::dequantize(tensor_data, tensor_ptr->vstream_info().quant_info.qp_scale, tensor_ptr->vstream_info().quant_info.qp_zp);
+    xt::xarray<float> logits_dequantized = common::dequantize(tensor_data, tensor_ptr->qp_scale(), tensor_ptr->qp_zp());
     // here, logits_dequantized containes the estimated depth of each pixel in meters.
 
     // allocate and memcpy to a new memory so it points to the right data
     std::vector<float> data(logits_dequantized.size());
     memcpy(data.data(), logits_dequantized.data(), sizeof(float) * logits_dequantized.size());
 
-    hailo_common::add_object(roi, std::make_shared<HailoDepthMask>(std::move(data), tensor_ptr->width(), tensor_ptr->height(), 1.0));
+    hailo_common::add_object(
+        roi, std::make_shared<HailoDepthMask>(std::move(data), tensor_ptr->width(), tensor_ptr->height(), 1.0));
 }
 
 void filter(HailoROIPtr roi)

@@ -5,26 +5,49 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <type_traits>
+#include <thread>
 #include "common/logger_macros.hpp"
 #include "events_utils.hpp"
 using namespace webserver::resources;
-class EventBus {
-public:
+class EventBus
+{
+  public:
+    void subscribe(EventType event_type, EventPriority prority, const ResourceChangeCallback &callback);
 
-    /**
-     * Subscribe to a specific event with a callback.
-     * @param event_name The name of the event to subscribe to.
-     * @param callback The function to be executed when the event is triggered.
-     */
-    void subscribe(EventType event_type, EventPriority prority, ResourceChangeCallback callback);
+    void subscribe(std::initializer_list<EventType> event_types, EventPriority priority,
+                   const ResourceChangeCallback &callback);
 
-    /**
-     * Notify all subscribers of a specific event.
-     * @param event_name The name of the event to trigger.
-     * @param data The data to pass to subscribers.
-     */
-    void notify(EventType event_type, std::shared_ptr<ResourceState> data);
+    void subscribe_async(EventType event_type, EventPriority priority, const ResourceChangeCallback &callback);
 
-private:
+    void subscribe_async(std::initializer_list<EventType> event_types, EventPriority priority,
+                         const ResourceChangeCallback &callback);
+
+    template <typename T, typename = std::enable_if_t<std::is_base_of<ResourceState, T>::value>>
+    void notify(EventType event_type, std::shared_ptr<T> data)
+    {
+        // Find the event type in the map
+        auto it = m_callbacks.find(event_type);
+        if (it != m_callbacks.end())
+        {
+            // Call the callbacks in order of priority
+            std::map<EventPriority, std::vector<ResourceChangeCallback>> &priority_callbacks = it->second;
+            for (auto &[priority, callbacks] : priority_callbacks)
+            {
+                WEBSERVER_LOG_DEBUG("Calling callbacks for event type {} with priority {}",
+                                    static_cast<nlohmann::json>(event_type).dump(), priority);
+                for (auto &callback : callbacks)
+                {
+                    WEBSERVER_LOG_DEBUG("Calling callback event type {} with priority {}",
+                                        static_cast<nlohmann::json>(event_type).dump(), priority);
+                    callback({event_type, data});
+                }
+                WEBSERVER_LOG_DEBUG("finished calling callback with priority {}", priority);
+            }
+            WEBSERVER_LOG_DEBUG("finished call all the callbacks");
+        }
+    }
+
+  private:
     std::unordered_map<EventType, std::map<EventPriority, std::vector<ResourceChangeCallback>>> m_callbacks;
 };

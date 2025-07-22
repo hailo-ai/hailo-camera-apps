@@ -5,8 +5,7 @@
 GST_DEBUG_CATEGORY_STATIC(gst_hailo_upload2_debug);
 #define GST_CAT_DEFAULT gst_hailo_upload2_debug
 
-#define _do_init \
-    GST_DEBUG_CATEGORY_INIT(gst_hailo_upload2_debug, "hailoupload2", 0, "Hailo Upload2");
+#define _do_init GST_DEBUG_CATEGORY_INIT(gst_hailo_upload2_debug, "hailoupload2", 0, "Hailo Upload2");
 #define gst_hailo_upload2_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE(GstHailoUpload2, gst_hailo_upload2, GST_TYPE_HAILO_DSP_BASE_TRANSFORM, _do_init);
 
@@ -15,8 +14,7 @@ static void gst_hailo_upload2_get_property(GObject *object, guint prop_id, GValu
 
 static gboolean gst_hailo_upload2_propose_allocation(GstBaseTransform *trans, GstQuery *decide_query, GstQuery *query);
 
-static void
-gst_hailo_upload2_class_init(GstHailoUpload2Class *klass)
+static void gst_hailo_upload2_class_init(GstHailoUpload2Class *klass)
 {
     GObjectClass *const object_class = G_OBJECT_CLASS(klass);
     GstBaseTransformClass *const base_transform_class = GST_BASE_TRANSFORM_CLASS(klass);
@@ -26,22 +24,18 @@ gst_hailo_upload2_class_init(GstHailoUpload2Class *klass)
 
     base_transform_class->propose_allocation = GST_DEBUG_FUNCPTR(gst_hailo_upload2_propose_allocation);
 
-    gst_element_class_set_static_metadata(GST_ELEMENT_CLASS(klass),
-                                          "Hailo Upload 2",
-                                          "Hailo/Tools",
-                                          "Manages a buffer pool using Hailo15 DSP memory, and propogates it upstream for pipeline usage.",
-                                          "hailo.ai <contact@hailo.ai>");
+    gst_element_class_set_static_metadata(
+        GST_ELEMENT_CLASS(klass), "Hailo Upload 2", "Hailo/Tools",
+        "Manages a buffer pool using Hailo15 DSP memory, and propogates it upstream for pipeline usage.",
+        "hailo.ai <contact@hailo.ai>");
 
     gst_element_class_add_pad_template(GST_ELEMENT_CLASS(klass),
-                                       gst_pad_template_new("src", GST_PAD_SRC, GST_PAD_ALWAYS,
-                                                            GST_CAPS_ANY));
+                                       gst_pad_template_new("src", GST_PAD_SRC, GST_PAD_ALWAYS, GST_CAPS_ANY));
     gst_element_class_add_pad_template(GST_ELEMENT_CLASS(klass),
-                                       gst_pad_template_new("sink", GST_PAD_SINK, GST_PAD_ALWAYS,
-                                                            GST_CAPS_ANY));
+                                       gst_pad_template_new("sink", GST_PAD_SINK, GST_PAD_ALWAYS, GST_CAPS_ANY));
 }
 
-static void
-gst_hailo_upload2_init(GstHailoUpload2 *self)
+static void gst_hailo_upload2_init(GstHailoUpload2 *self)
 {
 }
 
@@ -65,9 +59,7 @@ static void gst_hailo_upload2_get_property(GObject *object, guint prop_id, GValu
     }
 }
 
-static gboolean
-gst_hailo_upload2_propose_allocation (GstBaseTransform *trans,
-                                      GstQuery *decide_query, GstQuery *query)
+static gboolean gst_hailo_upload2_propose_allocation(GstBaseTransform *trans, GstQuery *decide_query, GstQuery *query)
 {
     GstHailoUpload2 *hailoupload = GST_HAILO_UPLOAD2(trans);
     GstHailoDspBaseTransform *dspbasetrans = GST_HAILO_DSP_BASE_TRANSFORM(trans);
@@ -81,7 +73,8 @@ gst_hailo_upload2_propose_allocation (GstBaseTransform *trans,
     gst_buffer_pool_config_get_params(config, NULL, &buffer_size, NULL, NULL);
     gst_structure_free(config);
 
-    gst_query_add_allocation_pool(query, buffer_pool, buffer_size, dspbasetrans->bufferpool_min_size, dspbasetrans->bufferpool_max_size);
+    gst_query_add_allocation_pool(query, buffer_pool, buffer_size, dspbasetrans->bufferpool_min_size,
+                                  dspbasetrans->bufferpool_max_size);
 
     gst_query_add_allocation_meta(query, GST_VIDEO_META_API_TYPE, NULL);
     ret = GST_BASE_TRANSFORM_CLASS(parent_class)->propose_allocation(trans, decide_query, query);

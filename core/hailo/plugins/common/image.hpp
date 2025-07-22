@@ -87,7 +87,8 @@ void resize_yuy2(cv::Mat &cropped_image, cv::Mat &resized_image, int interpolati
  *        Must be a supported opencv type
  *        (bilinear, nearest neighbors, etc...)
  */
-void resize_nv12(std::vector<cv::Mat> &cropped_image_vec, std::vector<cv::Mat> &resized_image_vec, int interpolation = cv::INTER_LINEAR);
+void resize_nv12(std::vector<cv::Mat> &cropped_image_vec, std::vector<cv::Mat> &resized_image_vec,
+                 int interpolation = cv::INTER_LINEAR);
 
 /**
  * @brief Resize an image using Letterbox strategy
@@ -107,7 +108,8 @@ void resize_nv12(std::vector<cv::Mat> &cropped_image_vec, std::vector<cv::Mat> &
  *        Must be a supported opencv type
  *        (bilinear, nearest neighbors, etc...)
  */
-HailoBBox resize_letterbox_rgb(cv::Mat &cropped_image, cv::Mat &resized_image, cv::Scalar color, int interpolation = cv::INTER_LINEAR);
+HailoBBox resize_letterbox_rgb(cv::Mat &cropped_image, cv::Mat &resized_image, cv::Scalar color,
+                               int interpolation = cv::INTER_LINEAR);
 
 /**
  * @brief Resize an NV12 image using Letterbox strategy
@@ -127,7 +129,9 @@ HailoBBox resize_letterbox_rgb(cv::Mat &cropped_image, cv::Mat &resized_image, c
  *        Must be a supported opencv type
  *        (bilinear, nearest neighbors, etc...)
  */
-HailoBBox resize_letterbox_nv12(std::vector<cv::Mat> &cropped_image_vec, std::vector<cv::Mat> &resized_image_vec, cv::Scalar color, int interpolation = cv::INTER_LINEAR);
+HailoBBox resize_letterbox_nv12(std::vector<cv::Mat> &cropped_image_vec, std::vector<cv::Mat> &resized_image_vec,
+                                cv::Scalar color, int interpolation = cv::INTER_LINEAR);
 __END_DECLS
 
-std::shared_ptr<HailoMat> get_mat_by_format(GstBuffer *buffer, GstVideoInfo *info, int line_thickness = 1, int font_thickness = 1);
+std::shared_ptr<HailoMat> get_mat_by_format(GstBuffer *buffer, GstVideoInfo *info, int line_thickness = 1,
+                                            int font_thickness = 1);

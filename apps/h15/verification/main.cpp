@@ -5,7 +5,8 @@
 #include <thread>
 #include <chrono>
 
-TEST_CASE( "1: All test cases reside in other .cpp files (empty)", "[multi-file:1]" ) {
+TEST_CASE("1: All test cases reside in other .cpp files (empty)", "[multi-file:1]")
+{
     std::system("pkill -9 -f camera-viewer-server");
     std::this_thread::sleep_for(std::chrono::seconds(2));
 }

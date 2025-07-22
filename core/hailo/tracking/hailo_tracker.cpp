@@ -13,12 +13,12 @@ std::mutex HailoTracker::mutex_;
 
 class HailoTracker::HailoTrackerPrivate
 {
-public:
+  public:
     std::map<std::string, JDETracker> trackers;
 };
 
-HailoTracker::HailoTracker() : priv(std::make_unique<HailoTrackerPrivate>()){};
-HailoTracker::~HailoTracker(){};
+HailoTracker::HailoTracker() : priv(std::make_unique<HailoTrackerPrivate>()) {};
+HailoTracker::~HailoTracker() {};
 HailoTracker &HailoTracker::GetInstance()
 {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -47,20 +47,14 @@ void HailoTracker::add_jde_tracker(const std::string &name, HailoTrackerParams t
 {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    priv->trackers.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                           std::forward_as_tuple(tracker_params.kalman_distance,
-                                                 tracker_params.iou_threshold,
-                                                 tracker_params.init_iou_threshold,
-                                                 tracker_params.keep_tracked_frames,
-                                                 tracker_params.keep_new_frames,
-                                                 tracker_params.keep_lost_frames,
-                                                 tracker_params.keep_past_metadata,
-                                                 tracker_params.std_weight_position,
-                                                 tracker_params.std_weight_position_box,
-                                                 tracker_params.std_weight_velocity,
-                                                 tracker_params.std_weight_velocity_box,
-                                                 tracker_params.debug,
-                                                 tracker_params.hailo_objects_blacklist));
+    priv->trackers.emplace(
+        std::piecewise_construct, std::forward_as_tuple(name),
+        std::forward_as_tuple(
+            tracker_params.kalman_distance, tracker_params.iou_threshold, tracker_params.init_iou_threshold,
+            tracker_params.keep_tracked_frames, tracker_params.keep_new_frames, tracker_params.keep_lost_frames,
+            tracker_params.keep_past_metadata, tracker_params.std_weight_position,
+            tracker_params.std_weight_position_box, tracker_params.std_weight_velocity,
+            tracker_params.std_weight_velocity_box, tracker_params.debug, tracker_params.hailo_objects_blacklist));
 }
 
 void HailoTracker::add_jde_tracker(const std::string &name)
@@ -75,6 +69,13 @@ std::vector<HailoDetectionPtr> HailoTracker::update(const std::string &name, std
     auto online_stracks = priv->trackers[name].update(inputs);
     bool debug = priv->trackers[name].get_debug();
     return JDETracker::stracks_to_hailo_detections(online_stracks, debug);
+}
+
+std::vector<HailoDetectionPtr> HailoTracker::get_online_stracks(const std::string &name)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto online_stracks = priv->trackers[name].get_tracked_stracks();
+    return JDETracker::stracks_to_hailo_detections(online_stracks);
 }
 
 void HailoTracker::add_object_to_track(const std::string &name, int track_id, HailoObjectPtr obj)
@@ -176,7 +177,8 @@ void HailoTracker::set_debug(const std::string &name, bool new_debug)
     priv->trackers[name].set_debug(new_debug);
 }
 
-void HailoTracker::set_hailo_objects_blacklist(const std::string &name, std::vector<hailo_object_t> hailo_objects_blacklist_vec)
+void HailoTracker::set_hailo_objects_blacklist(const std::string &name,
+                                               std::vector<hailo_object_t> hailo_objects_blacklist_vec)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     priv->trackers[name].set_hailo_objects_blacklist(hailo_objects_blacklist_vec);

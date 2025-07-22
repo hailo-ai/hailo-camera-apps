@@ -1,7 +1,7 @@
 # Project Declaration
 
 project('gst-hailo-tools', 'c', 'cpp',
-        version : '1.7.0',
+        version : '1.8.0',
         default_options : [ 'buildtype=release',
                             'c_std=c11', 'cpp_std=c++17']
        )
@@ -84,6 +84,17 @@ tracker_dep = dependency('hailo_tracker', method : 'pkg-config')
 tappas_general_dep = dependency('hailo_tappas_general', method : 'pkg-config')
 
 ################################################
+# Perfetto Dep
+################################################
+perfetto_dep = meson.get_compiler('cpp').find_library('perfetto', required: false, dirs: '/usr/lib/')
+
+if perfetto_dep.found()
+  hailo_lib_args += ['-DHAVE_PERFETTO']
+else
+  hailo_lib_args += ['-DPERFETTO_NOT_FOUND']
+endif
+
+################################################
 # MEDIA LIBRARY DEPS
 ################################################
 media_library_common_dep = dependency('hailo_media_library_common', method : 'pkg-config')
@@ -102,6 +113,7 @@ if target == 'all'
   subdir('reference_camera_api')
   subdir('ai_example_app')
   subdir('webserver')
+  subdir('case_studies')
   subdir('internals')
   subdir('cofigurations')
 elif target == 'api'
@@ -110,6 +122,7 @@ elif target == 'apps'
   reference_camera_dep = dependency('reference_camera_api', method : 'pkg-config')
   subdir('ai_example_app')
   subdir('webserver')
+  subdir('case_studies')
   subdir('internals')
   subdir('cofigurations')
 endif

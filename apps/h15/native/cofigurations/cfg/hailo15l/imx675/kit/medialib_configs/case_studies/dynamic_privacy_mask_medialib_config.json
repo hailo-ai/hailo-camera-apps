@@ -1,0 +1,10 @@
+{
+    "version": "1.0.0",
+    "default_profile": "Daylight",
+    "profiles": [
+        {
+            "name": "Daylight",
+            "config_file": "/etc/imaging/cfg/hailo15l/imx675/kit/5mp/profiles/daylight/case_studies/dynamic_privacy_mask_daylight_profile.json"
+        }
+    ]
+}

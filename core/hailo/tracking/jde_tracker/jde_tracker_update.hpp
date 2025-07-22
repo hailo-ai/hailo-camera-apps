@@ -77,10 +77,8 @@ inline void keep_indices(std::vector<STrack *> &stracks, const std::vector<int> 
  *        The currently active stracks. All matched stracks
  *        will be added here.
  */
-inline void JDETracker::update_matches(std::vector<std::pair<int, int>> matches,
-                                       std::vector<STrack *> tracked_stracks,
-                                       std::vector<STrack> &detections,
-                                       std::vector<STrack> &activated_stracks)
+inline void JDETracker::update_matches(std::vector<std::pair<int, int>> matches, std::vector<STrack *> tracked_stracks,
+                                       std::vector<STrack> &detections, std::vector<STrack> &activated_stracks)
 {
     for (uint i = 0; i < matches.size(); i++)
     {
@@ -126,10 +124,8 @@ inline void JDETracker::update_matches(std::vector<std::pair<int, int>> matches,
  *        The list of new stracks.
  *
  */
-inline void JDETracker::update_unmatches(std::vector<STrack *> strack_pool,
-                                         std::vector<STrack> &tracked_stracks,
-                                         std::vector<STrack> &lost_stracks,
-                                         std::vector<STrack> &new_stracks)
+inline void JDETracker::update_unmatches(std::vector<STrack *> strack_pool, std::vector<STrack> &tracked_stracks,
+                                         std::vector<STrack> &lost_stracks, std::vector<STrack> &new_stracks)
 {
     for (uint i = 0; i < strack_pool.size(); i++)
     {
@@ -201,7 +197,8 @@ inline void JDETracker::update_unmatches(std::vector<STrack *> strack_pool,
  * @return std::vector<STrack>
  *         The currently tracked (and unconfirmed if report_unconfirmed) objects.
  */
-inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &inputs, bool report_unconfirmed = false, bool report_lost = false)
+inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &inputs, bool report_unconfirmed = false,
+                                              bool report_lost = false)
 {
     this->m_frame_id++;
     std::vector<STrack> detections;        // New detections in this update
@@ -219,10 +216,12 @@ inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &in
     //******************************************************************
     // Step 1: Prepare tracks for new detections
     //******************************************************************
-    detections = JDETracker::hailo_detections_to_stracks(inputs, this->m_frame_id, this->m_hailo_objects_blacklist); // Convert the new detections into STracks
+    detections = JDETracker::hailo_detections_to_stracks(
+        inputs, this->m_frame_id, this->m_hailo_objects_blacklist); // Convert the new detections into STracks
 
-    strack_pool = joint_strack_pointers(this->m_tracked_stracks, this->m_lost_stracks); // Pool together the tracked and lost stracks
-    STrack::multi_predict(strack_pool, this->m_kalman_filter);                          // Run Kalman Filter prediction step
+    strack_pool = joint_strack_pointers(this->m_tracked_stracks,
+                                        this->m_lost_stracks); // Pool together the tracked and lost stracks
+    STrack::multi_predict(strack_pool, this->m_kalman_filter); // Run Kalman Filter prediction step
 
     //******************************************************************
     // Step 2: First association, tracked with embedding
@@ -232,7 +231,8 @@ inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &in
     fuse_motion(distances, strack_pool, detections);        // Create the cost matrix
 
     // Use linear assignment to find matches
-    linear_assignment(distances, strack_pool.size(), detections.size(), this->m_kalman_dist_thr, matches, unmatched_tracked, unmatched_detections);
+    linear_assignment(distances, strack_pool.size(), detections.size(), this->m_kalman_dist_thr, matches,
+                      unmatched_tracked, unmatched_detections);
 
     // Update the matches
     update_matches(matches, strack_pool, detections, activated_stracks);
@@ -251,7 +251,8 @@ inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &in
     distances = iou_distance(strack_pool, detections);
 
     // Recalculate the linear assignment, this time use the iou threshold
-    linear_assignment(distances, strack_pool.size(), detections.size(), this->m_iou_thr, matches, unmatched_tracked, unmatched_detections);
+    linear_assignment(distances, strack_pool.size(), detections.size(), this->m_iou_thr, matches, unmatched_tracked,
+                      unmatched_detections);
 
     // Update the matches
     update_matches(matches, strack_pool, detections, activated_stracks);
@@ -269,13 +270,15 @@ inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &in
     // Use the unmatched_detections indices to get a vector of just the unmatched new detections again
     keep_indices(detections, unmatched_detections);
     std::vector<STrack> blank;
-    std::vector<STrack *> unconfirmed_pool = joint_strack_pointers(this->m_new_stracks, blank); // Prepare a pool of unconfirmed stracks
+    std::vector<STrack *> unconfirmed_pool =
+        joint_strack_pointers(this->m_new_stracks, blank); // Prepare a pool of unconfirmed stracks
 
     // Recalculate the iou distance, this time between unconfirmed stracks and the remaining detections
     distances = iou_distance(unconfirmed_pool, detections);
 
     // Recalculate the linear assignment, this time with the lower m_init_iou_thr threshold
-    linear_assignment(distances, unconfirmed_pool.size(), detections.size(), this->m_init_iou_thr, matches, unmatched_tracked, unmatched_detections);
+    linear_assignment(distances, unconfirmed_pool.size(), detections.size(), this->m_init_iou_thr, matches,
+                      unmatched_tracked, unmatched_detections);
 
     // Update the matches
     update_matches(matches, unconfirmed_pool, detections, activated_stracks);

@@ -11,11 +11,7 @@
                     "font_size": 0.02604166604578495,
                     "id": "example_datetime",
                     "rotation_policy": "CENTER",
-                    "text_color": [
-                        255,
-                        255,
-                        255
-                    ],
+                    "text_color": [255, 255, 255],
                     "x": 0,
                     "y": 0.93,
                     "z-index": 3
@@ -59,11 +55,7 @@
                     "id": "example_text1",
                     "label": "HailoAI",
                     "rotation_policy": "CENTER",
-                    "text_color": [
-                        255,
-                        255,
-                        255
-                    ],
+                    "text_color": [255, 255, 255],
                     "x": 0.78,
                     "y": 0.12,
                     "z-index": 1
@@ -80,11 +72,7 @@
                     "id": "example_text2",
                     "label": "Demo Application",
                     "rotation_policy": "CENTER",
-                    "text_color": [
-                        255,
-                        255,
-                        255
-                    ],
+                    "text_color": [255, 255, 255],
                     "x": 0,
                     "y": 0.01,
                     "z-index": 1

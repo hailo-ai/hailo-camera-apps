@@ -17,20 +17,16 @@ GST_DEBUG_CATEGORY_STATIC(gst_hailo_stream_router_debug);
 
 GType gst_hailo_stream_router_pad_get_type(void);
 // Define HailoStreamRouterPad type
-#define GST_TYPE_HAILO_STREAM_ROUTER_PAD \
-    (gst_hailo_stream_router_pad_get_type())
-#define GST_HAILO_STREAM_ROUTER_PAD(obj) \
+#define GST_TYPE_HAILO_STREAM_ROUTER_PAD (gst_hailo_stream_router_pad_get_type())
+#define GST_HAILO_STREAM_ROUTER_PAD(obj)                                                                               \
     (G_TYPE_CHECK_INSTANCE_CAST((obj), GST_TYPE_HAILO_STREAM_ROUTER_PAD, GstHailoStreamRouterPad))
-#define GST_HAILO_STREAM_ROUTER_PAD_CLASS(klass) \
+#define GST_HAILO_STREAM_ROUTER_PAD_CLASS(klass)                                                                       \
     (G_TYPE_CHECK_CLASS_CAST((klass), GST_TYPE_HAILO_STREAM_ROUTER_PAD, GstHailoStreamRouterPadClass))
-#define GST_IS_HAILO_STREAM_ROUTER_PAD(obj) \
-    (G_TYPE_CHECK_INSTANCE_TYPE((obj), GST_TYPE_HAILO_STREAM_ROUTER_PAD))
-#define GST_IS_HAILO_STREAM_ROUTER_PAD_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), GST_TYPE_HAILO_STREAM_ROUTER_PAD))
-#define GST_HAILO_STREAM_ROUTER_PAD_GET_CLASS(obj) \
+#define GST_IS_HAILO_STREAM_ROUTER_PAD(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), GST_TYPE_HAILO_STREAM_ROUTER_PAD))
+#define GST_IS_HAILO_STREAM_ROUTER_PAD_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), GST_TYPE_HAILO_STREAM_ROUTER_PAD))
+#define GST_HAILO_STREAM_ROUTER_PAD_GET_CLASS(obj)                                                                     \
     (G_TYPE_INSTANCE_GET_CLASS((obj), GST_TYPE_HAILO_STREAM_ROUTER_PAD, GstHailoStreamRouterPadClass))
-#define GST_HAILO_STREAM_ROUTER_PAD_CAST(obj) \
-    ((GstHailoStreamRouterPad *)(obj))
+#define GST_HAILO_STREAM_ROUTER_PAD_CAST(obj) ((GstHailoStreamRouterPad *)(obj))
 
 #define GST_HAILO_STREAM_ROUTER_MAX_INPUT_PADS 40
 
@@ -62,28 +58,23 @@ enum
 };
 
 // Pad Templates
-static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE("sink",
-                                                                    GST_PAD_SINK,
-                                                                    GST_PAD_ALWAYS,
-                                                                    GST_STATIC_CAPS_ANY);
+static GstStaticPadTemplate sink_template =
+    GST_STATIC_PAD_TEMPLATE("sink", GST_PAD_SINK, GST_PAD_ALWAYS, GST_STATIC_CAPS_ANY);
 
-static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE("src_%u",
-                                                                   GST_PAD_SRC,
-                                                                   GST_PAD_REQUEST,
-                                                                   GST_STATIC_CAPS_ANY);
+static GstStaticPadTemplate src_template =
+    GST_STATIC_PAD_TEMPLATE("src_%u", GST_PAD_SRC, GST_PAD_REQUEST, GST_STATIC_CAPS_ANY);
 
-static GstPad *gst_hailo_stream_router_request_new_pad(GstElement *element, GstPadTemplate *templ,
-                                                       const gchar *re_name, const GstCaps *caps);
+static GstPad *gst_hailo_stream_router_request_new_pad(GstElement *element, GstPadTemplate *templ, const gchar *re_name,
+                                                       const GstCaps *caps);
 static void gst_hailo_stream_router_release_pad(GstElement *element, GstPad *pad);
 
 static GstStateChangeReturn gst_hailo_stream_router_change_state(GstElement *element, GstStateChange transition);
 static GstFlowReturn gst_hailo_stream_router_sink_chain(GstPad *pad, GstObject *parent, GstBuffer *buffer);
 
-static void gst_hailo_stream_router_pad_set_property(GObject *object, guint prop_id,
-                                                     const GValue *value, GParamSpec *pspec);
+static void gst_hailo_stream_router_pad_set_property(GObject *object, guint prop_id, const GValue *value,
+                                                     GParamSpec *pspec);
 
-static void gst_hailo_stream_router_pad_get_property(GObject *object, guint prop_id,
-                                                     GValue *value, GParamSpec *pspec);
+static void gst_hailo_stream_router_pad_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
 
 static void gst_hailo_stream_router_dispose(GObject *object);
 static void gst_hailo_stream_router_reset(GstHailoStreamRouter *hailo_stream_router);
@@ -97,13 +88,12 @@ static void gst_hailo_stream_router_release_srcpad(const GValue *item, GstHailoS
 static void gst_hailo_stream_router_child_proxy_init(gpointer g_iface, gpointer iface_data);
 
 #define gst_hailo_stream_router_parent_class parent_class
-G_DEFINE_TYPE_WITH_CODE(GstHailoStreamRouter, gst_hailo_stream_router,
-                        GST_TYPE_ELEMENT,
-                        GST_DEBUG_CATEGORY_INIT(gst_hailo_stream_router_debug, "hailostreamrouter", 0, "Hailo Stream Router");
+G_DEFINE_TYPE_WITH_CODE(GstHailoStreamRouter, gst_hailo_stream_router, GST_TYPE_ELEMENT,
+                        GST_DEBUG_CATEGORY_INIT(gst_hailo_stream_router_debug, "hailostreamrouter", 0,
+                                                "Hailo Stream Router");
                         G_IMPLEMENT_INTERFACE(GST_TYPE_CHILD_PROXY, gst_hailo_stream_router_child_proxy_init));
 
-static void
-gst_hailo_stream_router_class_init(GstHailoStreamRouterClass *klass)
+static void gst_hailo_stream_router_class_init(GstHailoStreamRouterClass *klass)
 {
     GObjectClass *gobject_class = (GObjectClass *)klass;
     GstElementClass *gstelement_class = (GstElementClass *)klass;
@@ -118,23 +108,24 @@ gst_hailo_stream_router_class_init(GstHailoStreamRouterClass *klass)
     gstelement_class->change_state = GST_DEBUG_FUNCPTR(gst_hailo_stream_router_change_state);
 
     // Pad templates
-    gst_element_class_add_static_pad_template_with_gtype(gstelement_class, &src_template, GST_TYPE_HAILO_STREAM_ROUTER_PAD);
+    gst_element_class_add_static_pad_template_with_gtype(gstelement_class, &src_template,
+                                                         GST_TYPE_HAILO_STREAM_ROUTER_PAD);
 
     gst_element_class_add_static_pad_template(gstelement_class, &sink_template);
 
-    gst_element_class_set_static_metadata(gstelement_class, "Hailo Stream Router", "Generic",
-                                          "Hailo Stream Router", "Hailo");
+    gst_element_class_set_static_metadata(gstelement_class, "Hailo Stream Router", "Generic", "Hailo Stream Router",
+                                          "Hailo");
 
     g_type_class_ref(GST_TYPE_HAILO_STREAM_ROUTER_PAD);
 }
 
-static void
-gst_hailo_stream_router_init(GstHailoStreamRouter *hailo_stream_router)
+static void gst_hailo_stream_router_init(GstHailoStreamRouter *hailo_stream_router)
 {
     // Configure sink pad
     hailo_stream_router->sinkpad = gst_pad_new_from_static_template(&sink_template, "sink");
     // Initialize hash table (of key -> value: input stream name -> target src_pads)
-    hailo_stream_router->targets_table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify)g_array_unref);
+    hailo_stream_router->targets_table =
+        g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify)g_array_unref);
 
     // Initialize element mutex
     g_mutex_init(&hailo_stream_router->lock);
@@ -146,16 +137,14 @@ gst_hailo_stream_router_init(GstHailoStreamRouter *hailo_stream_router)
     gst_element_add_pad(GST_ELEMENT(hailo_stream_router), hailo_stream_router->sinkpad);
 }
 
-static void
-gst_hailo_stream_router_dispose(GObject *object)
+static void gst_hailo_stream_router_dispose(GObject *object)
 {
     GstHailoStreamRouter *hailo_stream_router = GST_HAILO_STREAM_ROUTER(object);
     gst_hailo_stream_router_reset(hailo_stream_router);
     G_OBJECT_CLASS(parent_class)->dispose(object);
 }
 
-static gpointer
-gst_pads_lookup(GstHailoStreamRouter *hailo_stream_router, const gchar *input_pad_name)
+static gpointer gst_pads_lookup(GstHailoStreamRouter *hailo_stream_router, const gchar *input_pad_name)
 {
     g_mutex_lock(&hailo_stream_router->lock);
     gpointer pads_ptr;
@@ -164,8 +153,8 @@ gst_pads_lookup(GstHailoStreamRouter *hailo_stream_router, const gchar *input_pa
     return pads_ptr;
 }
 
-static void
-insert_new_srcpad_to_target_pads_table(GstHailoStreamRouter *hailo_stream_router, GstHailoStreamRouterPad *router_srcpad)
+static void insert_new_srcpad_to_target_pads_table(GstHailoStreamRouter *hailo_stream_router,
+                                                   GstHailoStreamRouterPad *router_srcpad)
 {
     // Iterate over the input stream names configured in the pad's properties
     guint i;
@@ -189,7 +178,8 @@ insert_new_srcpad_to_target_pads_table(GstHailoStreamRouter *hailo_stream_router
         else
         {
             // Create a new GArray of pads and add router_srcpad to it
-            GArray *pads = g_array_sized_new(FALSE, FALSE, sizeof(GstHailoStreamRouterPad *), router_srcpad->num_input_streams);
+            GArray *pads =
+                g_array_sized_new(FALSE, FALSE, sizeof(GstHailoStreamRouterPad *), router_srcpad->num_input_streams);
             g_mutex_lock(&hailo_stream_router->lock);
             g_array_append_val(pads, router_srcpad);
             // Add input_pad_name as key and GArray of pads as value to the hash table if both doesn't already exist
@@ -199,8 +189,7 @@ insert_new_srcpad_to_target_pads_table(GstHailoStreamRouter *hailo_stream_router
     }
 }
 
-static void
-gst_hailo_stream_router_release_srcpad(const GValue *item, GstHailoStreamRouter *hailo_stream_router)
+static void gst_hailo_stream_router_release_srcpad(const GValue *item, GstHailoStreamRouter *hailo_stream_router)
 {
     GstPad *pad = GST_PAD(g_value_get_object(item));
     if (pad != NULL)
@@ -210,8 +199,7 @@ gst_hailo_stream_router_release_srcpad(const GValue *item, GstHailoStreamRouter 
     }
 }
 
-static void
-gst_hailo_stream_router_reset(GstHailoStreamRouter *hailo_stream_router)
+static void gst_hailo_stream_router_reset(GstHailoStreamRouter *hailo_stream_router)
 {
     g_mutex_lock(&hailo_stream_router->lock);
     GST_OBJECT_LOCK(hailo_stream_router);
@@ -233,9 +221,8 @@ gst_hailo_stream_router_reset(GstHailoStreamRouter *hailo_stream_router)
     it = gst_element_iterate_src_pads(GST_ELEMENT_CAST(hailo_stream_router));
     while (itret == GST_ITERATOR_OK || itret == GST_ITERATOR_RESYNC)
     {
-        itret =
-            gst_iterator_foreach(it,
-                                 (GstIteratorForeachFunction)gst_hailo_stream_router_release_srcpad, hailo_stream_router);
+        itret = gst_iterator_foreach(it, (GstIteratorForeachFunction)gst_hailo_stream_router_release_srcpad,
+                                     hailo_stream_router);
         if (itret == GST_ITERATOR_RESYNC)
             gst_iterator_resync(it);
     }
@@ -243,11 +230,11 @@ gst_hailo_stream_router_reset(GstHailoStreamRouter *hailo_stream_router)
     g_mutex_unlock(&hailo_stream_router->lock);
 }
 
-static gboolean
-gst_hailo_stream_router_sink_event(GstPad *pad, GstObject *parent, GstEvent *event)
+static gboolean gst_hailo_stream_router_sink_event(GstPad *pad, GstObject *parent, GstEvent *event)
 {
     gboolean res = TRUE;
-    if (GST_EVENT_TYPE(event) == GST_EVENT_FLUSH_START || GST_EVENT_TYPE(event) == GST_EVENT_FLUSH_STOP || GST_EVENT_TYPE(event) == GST_EVENT_EOS)
+    if (GST_EVENT_TYPE(event) == GST_EVENT_FLUSH_START || GST_EVENT_TYPE(event) == GST_EVENT_FLUSH_STOP ||
+        GST_EVENT_TYPE(event) == GST_EVENT_EOS)
     {
         res = gst_pad_event_default(pad, parent, event);
     }
@@ -259,8 +246,7 @@ gst_hailo_stream_router_sink_event(GstPad *pad, GstObject *parent, GstEvent *eve
     return res;
 }
 
-static GstStateChangeReturn
-gst_hailo_stream_router_change_state(GstElement *element, GstStateChange transition)
+static GstStateChangeReturn gst_hailo_stream_router_change_state(GstElement *element, GstStateChange transition)
 {
     GstStateChangeReturn result = GST_STATE_CHANGE_SUCCESS;
     GstHailoStreamRouter *hailo_stream_router = GST_HAILO_STREAM_ROUTER(element);
@@ -268,8 +254,7 @@ gst_hailo_stream_router_change_state(GstElement *element, GstStateChange transit
 
     switch (transition)
     {
-    case GST_STATE_CHANGE_READY_TO_PAUSED:
-    {
+    case GST_STATE_CHANGE_READY_TO_PAUSED: {
         // Prepare hash table of pads (key -> value: input stream name -> target src_pads)
         GList *item;
         // Iterate over the src_pads of the element
@@ -280,8 +265,7 @@ gst_hailo_stream_router_change_state(GstElement *element, GstStateChange transit
         }
         break;
     }
-    case GST_STATE_CHANGE_PAUSED_TO_READY:
-    {
+    case GST_STATE_CHANGE_PAUSED_TO_READY: {
         gst_hailo_stream_router_reset(hailo_stream_router);
         break;
     }
@@ -299,8 +283,7 @@ void gst_hailo_stream_router_finalize(GObject *object)
     G_OBJECT_CLASS(parent_class)->finalize(object);
 }
 
-static void
-gst_hailo_stream_router_pad_class_init(GstHailoStreamRouterPadClass *klass)
+static void gst_hailo_stream_router_pad_class_init(GstHailoStreamRouterPadClass *klass)
 {
     GObjectClass *gobject_class = (GObjectClass *)klass;
 
@@ -308,17 +291,15 @@ gst_hailo_stream_router_pad_class_init(GstHailoStreamRouterPadClass *klass)
     gobject_class->get_property = gst_hailo_stream_router_pad_get_property;
 
     // Install input-streams char* array property
-    g_object_class_install_property(gobject_class, PROP_PAD_INPUT_STREAMS,
-                                    gst_param_spec_array("input-streams", "Pad input streams",
-                                                         "Input streams of a srcpad",
-                                                         g_param_spec_string("input-stream-name", "Input stream name",
-                                                                             "Input stream", "",
-                                                                             (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)),
-                                                         (GParamFlags)(G_PARAM_READWRITE | GST_PARAM_CONTROLLABLE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property(
+        gobject_class, PROP_PAD_INPUT_STREAMS,
+        gst_param_spec_array("input-streams", "Pad input streams", "Input streams of a srcpad",
+                             g_param_spec_string("input-stream-name", "Input stream name", "Input stream", "",
+                                                 (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)),
+                             (GParamFlags)(G_PARAM_READWRITE | GST_PARAM_CONTROLLABLE | G_PARAM_STATIC_STRINGS)));
 }
 
-static void
-set_input_streams(GstHailoStreamRouterPad *current_pad, const GValue *value)
+static void set_input_streams(GstHailoStreamRouterPad *current_pad, const GValue *value)
 {
     // Insert the elements of Gvalue represents input streams into the char array 'input_streams'
     if (value == NULL)
@@ -340,13 +321,13 @@ set_input_streams(GstHailoStreamRouterPad *current_pad, const GValue *value)
     }
     else
     {
-        std::cerr << "initialization of element property input_streams: value is " << len << " and must be between 0 to " << GST_HAILO_STREAM_ROUTER_MAX_INPUT_PADS << std::endl;
+        std::cerr << "initialization of element property input_streams: value is " << len
+                  << " and must be between 0 to " << GST_HAILO_STREAM_ROUTER_MAX_INPUT_PADS << std::endl;
     }
     return;
 }
 
-static void
-get_input_streams(GstHailoStreamRouterPad *current_pad, GValue *value)
+static void get_input_streams(GstHailoStreamRouterPad *current_pad, GValue *value)
 {
     // Insert the elements of Gvalue represents input streams into the char array 'input_streams'
     if (value == NULL)
@@ -369,11 +350,9 @@ get_input_streams(GstHailoStreamRouterPad *current_pad, GValue *value)
         g_value_set_string(&val, current_pad->input_streams[i]);
         gst_value_array_append_and_take_value(value, &val);
     }
-
 }
 
-static void
-gst_hailo_stream_router_pad_init(GstHailoStreamRouterPad *pad)
+static void gst_hailo_stream_router_pad_init(GstHailoStreamRouterPad *pad)
 {
     // Initialize pad mutex
     g_mutex_init(&pad->lock);
@@ -394,8 +373,7 @@ gst_hailo_stream_router_pad_init(GstHailoStreamRouterPad *pad)
     g_mutex_unlock(&pad->lock);
 }
 
-static gboolean
-forward_events(GstPad *pad, GstEvent **event, gpointer user_data)
+static gboolean forward_events(GstPad *pad, GstEvent **event, gpointer user_data)
 {
     // This function pushes forward all events that are not EOS.
     GstPad *srcpad = GST_PAD_CAST(user_data);
@@ -414,8 +392,7 @@ forward_events(GstPad *pad, GstEvent **event, gpointer user_data)
  * @param buffer Incomming buffer (GstBuffer)
  * @return GstFlowReturn
  */
-static GstFlowReturn
-gst_hailo_stream_router_sink_chain(GstPad *pad, GstObject *parent, GstBuffer *buffer)
+static GstFlowReturn gst_hailo_stream_router_sink_chain(GstPad *pad, GstObject *parent, GstBuffer *buffer)
 {
     GstHailoStreamRouter *stream_router = GST_HAILO_STREAM_ROUTER(parent);
 
@@ -452,9 +429,8 @@ gst_hailo_stream_router_sink_chain(GstPad *pad, GstObject *parent, GstBuffer *bu
     return result;
 }
 
-static void
-gst_hailo_stream_router_pad_set_property(GObject *object, guint prop_id,
-                                         const GValue *value, GParamSpec *pspec)
+static void gst_hailo_stream_router_pad_set_property(GObject *object, guint prop_id, const GValue *value,
+                                                     GParamSpec *pspec)
 {
     GstHailoStreamRouterPad *pad = GST_HAILO_STREAM_ROUTER_PAD(object);
     g_return_if_fail(GST_IS_HAILO_STREAM_ROUTER_PAD(pad));
@@ -472,9 +448,7 @@ gst_hailo_stream_router_pad_set_property(GObject *object, guint prop_id,
     }
 }
 
-static void
-gst_hailo_stream_router_pad_get_property(GObject *object, guint prop_id,
-                                         GValue *value, GParamSpec *pspec)
+static void gst_hailo_stream_router_pad_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
 {
     GstHailoStreamRouterPad *pad = GST_HAILO_STREAM_ROUTER_PAD(object);
 
@@ -491,17 +465,15 @@ gst_hailo_stream_router_pad_get_property(GObject *object, guint prop_id,
     }
 }
 
-static GstPad *
-gst_hailo_stream_router_request_new_pad(GstElement *element, GstPadTemplate *templ,
-                                        const gchar *name, const GstCaps *caps)
+static GstPad *gst_hailo_stream_router_request_new_pad(GstElement *element, GstPadTemplate *templ, const gchar *name,
+                                                       const GstCaps *caps)
 {
     GstPad *newpad;
 
     GST_DEBUG_OBJECT(element, "requesting pad");
 
-    newpad = GST_PAD_CAST(g_object_new(GST_TYPE_HAILO_STREAM_ROUTER_PAD,
-                                       "name", name, "direction", templ->direction, "template", templ,
-                                       NULL));
+    newpad = GST_PAD_CAST(g_object_new(GST_TYPE_HAILO_STREAM_ROUTER_PAD, "name", name, "direction", templ->direction,
+                                       "template", templ, NULL));
 
     if (newpad == NULL)
     {
@@ -513,16 +485,14 @@ gst_hailo_stream_router_request_new_pad(GstElement *element, GstPadTemplate *tem
 
     gst_element_add_pad(element, newpad);
 
-    GST_DEBUG_OBJECT(element, "requested pad %s:%s",
-                     GST_DEBUG_PAD_NAME(newpad));
+    GST_DEBUG_OBJECT(element, "requested pad %s:%s", GST_DEBUG_PAD_NAME(newpad));
 
     gst_child_proxy_child_added(GST_CHILD_PROXY(element), G_OBJECT(newpad), name);
 
     return newpad;
 }
 
-static void
-gst_hailo_stream_router_release_pad(GstElement *element, GstPad *pad)
+static void gst_hailo_stream_router_release_pad(GstElement *element, GstPad *pad)
 {
     GstHailoStreamRouter *hailo_stream_router = GST_HAILO_STREAM_ROUTER(element);
     GST_DEBUG_OBJECT(hailo_stream_router, "releasing pad %s:%s", GST_DEBUG_PAD_NAME(pad));
@@ -531,8 +501,7 @@ gst_hailo_stream_router_release_pad(GstElement *element, GstPad *pad)
 }
 
 /* GstChildProxy implementation - for using pad properties */
-static guint
-gst_hailo_stream_router_child_proxy_get_children_count(GstChildProxy *child_proxy)
+static guint gst_hailo_stream_router_child_proxy_get_children_count(GstChildProxy *child_proxy)
 {
     guint count = 0;
     GstHailoStreamRouter *hailo_stream_router = GST_HAILO_STREAM_ROUTER(child_proxy);
@@ -545,9 +514,7 @@ gst_hailo_stream_router_child_proxy_get_children_count(GstChildProxy *child_prox
     return count;
 }
 
-static GObject *
-gst_hailo_stream_router_child_proxy_get_child_by_index(GstChildProxy *child_proxy,
-                                                       guint index)
+static GObject *gst_hailo_stream_router_child_proxy_get_child_by_index(GstChildProxy *child_proxy, guint index)
 {
     GstHailoStreamRouter *hailo_stream_router = GST_HAILO_STREAM_ROUTER(child_proxy);
     GObject *obj = NULL;
@@ -561,8 +528,7 @@ gst_hailo_stream_router_child_proxy_get_child_by_index(GstChildProxy *child_prox
     return obj;
 }
 
-static void
-gst_hailo_stream_router_child_proxy_init(gpointer g_iface, gpointer iface_data)
+static void gst_hailo_stream_router_child_proxy_init(gpointer g_iface, gpointer iface_data)
 {
     GstChildProxyInterface *iface = (GstChildProxyInterface *)g_iface;
 

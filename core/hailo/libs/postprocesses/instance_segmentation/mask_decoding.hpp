@@ -3,7 +3,6 @@
 #include "xtensor/xmath.hpp"
 #include "xtensor/xadapt.hpp"
 
-
 /**
  * @brief  Compute sigmoid, not in-place (lazy)
  */
@@ -16,7 +15,10 @@ auto xtensor_sigmoid(auto &tensor)
  * @brief sigmoid on a single float
  *
  *  */
-inline float sigmoid(float x) { return 1.0f / (1.0f + std::exp(-1.0 * x)); }
+inline float sigmoid(float x)
+{
+    return 1.0f / (1.0f + std::exp(-1.0 * x));
+}
 
 /**
  * @brief  Compute tensor dot product along specified axes for arrays.
@@ -89,10 +91,12 @@ void decode_masks(std::vector<HailoDetection> &objects, const xt::xarray<float> 
             return;
         }
         xt::xarray<int>::shape_type shape = {matrix->height()};
-        xt::xarray<float> mask_coefficients = xt::adapt(matrix->get_data().data(), matrix->height(), xt::no_ownership(), shape);
+        xt::xarray<float> mask_coefficients =
+            xt::adapt(matrix->get_data().data(), matrix->height(), xt::no_ownership(), shape);
 
         // Calculate a matrix multiplication of the instance's coefficients and the cropped proto layer and transpose it
-        xt::xarray<float, xt::layout_type::column_major> cropped_mask = xt::transpose(dot_product_axis_2(cropped_proto, mask_coefficients));
+        xt::xarray<float, xt::layout_type::column_major> cropped_mask =
+            xt::transpose(dot_product_axis_2(cropped_proto, mask_coefficients));
         instance.remove_object(matrix); // not needed anymore
 
         // Calculate the sigmoid of the mask
@@ -101,8 +105,9 @@ void decode_masks(std::vector<HailoDetection> &objects, const xt::xarray<float> 
         // allocate and memcpy to a new memory so it points to the right data
         std::vector<float> data(cropped_mask.shape(0) * cropped_mask.shape(1));
         memcpy(data.data(), cropped_mask.data(), sizeof(float) * cropped_mask.shape(0) * cropped_mask.shape(1));
-        
+
         // Add the mask to the object meta
-        instance.add_object(std::make_shared<HailoConfClassMask>(std::move(data), cropped_mask.shape(0), cropped_mask.shape(1), 0.3, instance.get_class_id()));
+        instance.add_object(std::make_shared<HailoConfClassMask>(std::move(data), cropped_mask.shape(0),
+                                                                 cropped_mask.shape(1), 0.3, instance.get_class_id()));
     }
 }

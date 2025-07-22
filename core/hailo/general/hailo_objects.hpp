@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <zmq.hpp>
 
 #define CLAMP(x, low, high) (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 #define CLIP(x) (CLAMP(x, 0, 255))
@@ -27,6 +28,7 @@ typedef enum
     HAILO_ROI,
     HAILO_CLASSIFICATION,
     HAILO_DETECTION,
+    HAILO_SEGMENTATION,
     HAILO_LANDMARKS,
     HAILO_TILE,
     HAILO_UNIQUE_ID,
@@ -34,13 +36,15 @@ typedef enum
     HAILO_DEPTH_MASK,
     HAILO_CLASS_MASK,
     HAILO_CONF_CLASS_MASK,
-    HAILO_USER_META
+    HAILO_USER_META,
+    HAILO_ZMQ
 } hailo_object_t;
 
 static std::map<std::string, hailo_object_t> hailo_object_map = {
     {"hailo_roi", HAILO_ROI},
     {"hailo_classification", HAILO_CLASSIFICATION},
     {"hailo_detection", HAILO_DETECTION},
+    {"hailo_segmentation", HAILO_SEGMENTATION},
     {"hailo_landmarks", HAILO_LANDMARKS},
     {"hailo_tile", HAILO_TILE},
     {"hailo_unique_id", HAILO_UNIQUE_ID},
@@ -101,12 +105,12 @@ static float assure_normal(float num)
  */
 struct HailoPoint
 {
-protected:
+  protected:
     const float m_x;
     const float m_y;
     const float m_confidence;
 
-public:
+  public:
     /**
      * @brief Construct a new Hailo Point object
      *
@@ -114,10 +118,19 @@ public:
      * @param y normalized y position (float)
      * @param confidence The confidence in the point's accuracy, float between 0.0 to 1.0 - default is 1.0.
      */
-    HailoPoint(float x, float y, float confidence = 1.0f) : m_x(x), m_y(y), m_confidence(assure_normal(confidence)){};
-    const float x() const { return m_x; }
-    const float y() const { return m_y; }
-    const float confidence() const { return m_confidence; }
+    HailoPoint(float x, float y, float confidence = 1.0f) : m_x(x), m_y(y), m_confidence(assure_normal(confidence)) {};
+    const float x() const
+    {
+        return m_x;
+    }
+    const float y() const
+    {
+        return m_y;
+    }
+    const float confidence() const
+    {
+        return m_confidence;
+    }
 };
 
 /**
@@ -129,13 +142,13 @@ public:
  */
 struct HailoBBox
 {
-protected:
+  protected:
     float m_xmin;
     float m_ymin;
     float m_width;
     float m_height;
 
-public:
+  public:
     /**
      * @brief Construct a new Hailo BBox object
      *
@@ -144,14 +157,33 @@ public:
      * @param width normalized width of bounding box
      * @param height normalized height of bounding box
      */
-    HailoBBox(float xmin, float ymin, float width, float height) : m_xmin(xmin), m_ymin(ymin), m_width(width), m_height(height){};
+    HailoBBox(float xmin, float ymin, float width, float height)
+        : m_xmin(xmin), m_ymin(ymin), m_width(width), m_height(height) {};
 
-    const float xmin() const { return m_xmin; }
-    const float ymin() const { return m_ymin; }
-    const float width() const { return m_width; }
-    const float height() const { return m_height; }
-    const float xmax() const { return m_xmin + m_width; }
-    const float ymax() const { return m_ymin + m_height; }
+    const float xmin() const
+    {
+        return m_xmin;
+    }
+    const float ymin() const
+    {
+        return m_ymin;
+    }
+    const float width() const
+    {
+        return m_width;
+    }
+    const float height() const
+    {
+        return m_height;
+    }
+    const float xmax() const
+    {
+        return m_xmin + m_width;
+    }
+    const float ymax() const
+    {
+        return m_ymin + m_height;
+    }
 };
 
 /**
@@ -160,10 +192,10 @@ public:
  */
 class HailoObject
 {
-protected:
+  protected:
     std::shared_ptr<std::mutex> mutex;
 
-public:
+  public:
     // Constructor
     HailoObject()
     {
@@ -192,18 +224,19 @@ using HailoObjectPtr = std::shared_ptr<HailoObject>;
  */
 class HailoMainObject : public HailoObject, public std::enable_shared_from_this<HailoMainObject>
 {
-protected:
+  protected:
     std::vector<HailoObjectPtr> m_sub_objects;
     std::map<std::string, HailoTensorPtr> m_tensors;
 
-public:
+  public:
     HailoMainObject()
     {
         mutex = std::make_shared<std::mutex>();
     };
     virtual ~HailoMainObject() = default;
-    HailoMainObject(HailoMainObject &&other) noexcept : HailoObject(other), m_sub_objects(std::move(other.m_sub_objects)){};
-    HailoMainObject(const HailoMainObject &other) : HailoObject(other), m_sub_objects(other.m_sub_objects){};
+    HailoMainObject(HailoMainObject &&other) noexcept
+        : HailoObject(other), m_sub_objects(std::move(other.m_sub_objects)) {};
+    HailoMainObject(const HailoMainObject &other) : HailoObject(other), m_sub_objects(other.m_sub_objects) {};
     HailoMainObject &operator=(const HailoMainObject &other) = default;
     HailoMainObject &operator=(HailoMainObject &&other) noexcept = default;
 
@@ -372,15 +405,20 @@ using HailoMainObjectPtr = std::shared_ptr<HailoMainObject>;
  */
 class HailoROI : public HailoMainObject
 {
-protected:
+  protected:
     HailoBBox m_bbox;         // A bounding box - the normalized position of this region of interest.
     HailoBBox m_scaling_bbox; // A bounding box to scale by - x offset, y offset, width factor, height factor
     std::string m_stream_id;  // A string representing the stream ID that is related to this ROI.
-public:
-    HailoROI(HailoBBox bbox, std::string stream_id = "") : m_bbox(bbox), m_scaling_bbox(HailoBBox(0.0, 0.0, 1.0, 1.0)), m_stream_id(stream_id){};
+  public:
+    HailoROI(HailoBBox bbox, std::string stream_id = "")
+        : m_bbox(bbox), m_scaling_bbox(HailoBBox(0.0, 0.0, 1.0, 1.0)), m_stream_id(stream_id) {};
     virtual ~HailoROI() = default;
-    HailoROI(HailoROI &&other) noexcept : HailoMainObject(other), m_bbox(std::move(other.m_bbox)), m_scaling_bbox(std::move(other.m_scaling_bbox)), m_stream_id(std::move(other.m_stream_id)){};
-    HailoROI(const HailoROI &other) : HailoMainObject(other), m_bbox(other.m_bbox), m_scaling_bbox(std::move(other.m_scaling_bbox)), m_stream_id(std::move(other.m_stream_id)){};
+    HailoROI(HailoROI &&other) noexcept
+        : HailoMainObject(other), m_bbox(std::move(other.m_bbox)), m_scaling_bbox(std::move(other.m_scaling_bbox)),
+          m_stream_id(std::move(other.m_stream_id)) {};
+    HailoROI(const HailoROI &other)
+        : HailoMainObject(other), m_bbox(other.m_bbox), m_scaling_bbox(std::move(other.m_scaling_bbox)),
+          m_stream_id(std::move(other.m_stream_id)) {};
     HailoROI &operator=(const HailoROI &other) = default;
     HailoROI &operator=(HailoROI &&other) noexcept = default;
     std::shared_ptr<HailoROI> shared_from_this()
@@ -504,29 +542,26 @@ using HailoROIPtr = std::shared_ptr<HailoROI>;
 
 class HailoTileROI : public HailoROI
 {
-protected:
+  protected:
     uint m_index;
     float m_overlap_x_axis;
     float m_overlap_y_axis;
     uint m_layer;
     hailo_tiling_mode_t m_mode;
 
-public:
-    HailoTileROI(HailoBBox bbox, uint index, float overlap_x_axis, float overlap_y_axis, uint layer, hailo_tiling_mode_t mode) : HailoROI(bbox), m_index(index), m_overlap_x_axis(overlap_x_axis), m_overlap_y_axis(overlap_y_axis), m_layer(layer), m_mode(mode){};
+  public:
+    HailoTileROI(HailoBBox bbox, uint index, float overlap_x_axis, float overlap_y_axis, uint layer,
+                 hailo_tiling_mode_t mode)
+        : HailoROI(bbox), m_index(index), m_overlap_x_axis(overlap_x_axis), m_overlap_y_axis(overlap_y_axis),
+          m_layer(layer), m_mode(mode) {};
     // Move constructor
-    HailoTileROI(HailoTileROI &&other) noexcept : HailoROI(other),
-                                                  m_index(other.m_index),
-                                                  m_overlap_x_axis(other.m_overlap_x_axis),
-                                                  m_overlap_y_axis(other.m_overlap_y_axis),
-                                                  m_layer(other.m_layer),
-                                                  m_mode(other.m_mode){};
+    HailoTileROI(HailoTileROI &&other) noexcept
+        : HailoROI(other), m_index(other.m_index), m_overlap_x_axis(other.m_overlap_x_axis),
+          m_overlap_y_axis(other.m_overlap_y_axis), m_layer(other.m_layer), m_mode(other.m_mode) {};
     // Copy constructor
-    HailoTileROI(const HailoTileROI &other) : HailoROI(other),
-                                              m_index(other.m_index),
-                                              m_overlap_x_axis(other.m_overlap_x_axis),
-                                              m_overlap_y_axis(other.m_overlap_y_axis),
-                                              m_layer(other.m_layer),
-                                              m_mode(other.m_mode){};
+    HailoTileROI(const HailoTileROI &other)
+        : HailoROI(other), m_index(other.m_index), m_overlap_x_axis(other.m_overlap_x_axis),
+          m_overlap_y_axis(other.m_overlap_y_axis), m_layer(other.m_layer), m_mode(other.m_mode) {};
     // Move assignment
     HailoTileROI &operator=(HailoTileROI &&other) noexcept
     {
@@ -563,11 +598,26 @@ public:
         return HAILO_TILE;
     }
 
-    float get_overlap_x_axis() { return m_overlap_x_axis; }
-    float get_overlap_y_axis() { return m_overlap_y_axis; }
-    uint get_index() { return m_index; }
-    uint get_layer() { return m_layer; }
-    uint get_mode() { return m_mode; }
+    float get_overlap_x_axis()
+    {
+        return m_overlap_x_axis;
+    }
+    float get_overlap_y_axis()
+    {
+        return m_overlap_y_axis;
+    }
+    uint get_index()
+    {
+        return m_index;
+    }
+    uint get_layer()
+    {
+        return m_layer;
+    }
+    uint get_mode()
+    {
+        return m_mode;
+    }
 };
 using HailoTileROIPtr = std::shared_ptr<HailoTileROI>;
 
@@ -577,11 +627,11 @@ using HailoTileROIPtr = std::shared_ptr<HailoTileROI>;
  */
 class HailoDetection : public HailoROI
 {
-protected:
+  protected:
     float m_confidence;  // Confidence of the detection.
     std::string m_label; // The label of detection, e.g. "Horse", "Monkey", "Tiger" for type "Animals".
     int m_class_id;      // Class id, initialized to -1 if missing.
-public:
+  public:
     /**
      * @brief Construct a new New Hailo Detection object
      *
@@ -590,7 +640,8 @@ public:
      * @param confidence The confidence of the detection.
      * @note class id is set to -1.
      */
-    HailoDetection(HailoBBox bbox, const std::string &label, float confidence) : HailoROI(bbox), m_confidence(assure_normal(confidence)), m_label(label), m_class_id(NULL_CLASS_ID){};
+    HailoDetection(HailoBBox bbox, const std::string &label, float confidence)
+        : HailoROI(bbox), m_confidence(assure_normal(confidence)), m_label(label), m_class_id(NULL_CLASS_ID) {};
     /**
      * @brief Construct a new New Hailo Detection object
      *
@@ -599,18 +650,17 @@ public:
      * @param label std::string what the detection is.
      * @param confidence The confidence of the detection.
      */
-    HailoDetection(HailoBBox bbox, int class_id, const std::string &label, float confidence) : HailoROI(bbox), m_confidence(assure_normal(confidence)), m_label(label), m_class_id(class_id){};
+    HailoDetection(HailoBBox bbox, int class_id, const std::string &label, float confidence)
+        : HailoROI(bbox), m_confidence(assure_normal(confidence)), m_label(label), m_class_id(class_id) {};
 
     // Move constructor
-    HailoDetection(HailoDetection &&other) noexcept : HailoROI(other),
-                                                      m_confidence(assure_normal(other.m_confidence)),
-                                                      m_label(std::move(other.m_label)),
-                                                      m_class_id(other.m_class_id){};
+    HailoDetection(HailoDetection &&other) noexcept
+        : HailoROI(other), m_confidence(assure_normal(other.m_confidence)), m_label(std::move(other.m_label)),
+          m_class_id(other.m_class_id) {};
     // Copy constructor
-    HailoDetection(const HailoDetection &other) : HailoROI(other),
-                                                  m_confidence(assure_normal(other.m_confidence)),
-                                                  m_label(other.m_label),
-                                                  m_class_id(other.m_class_id){};
+    HailoDetection(const HailoDetection &other)
+        : HailoROI(other), m_confidence(assure_normal(other.m_confidence)), m_label(other.m_label),
+          m_class_id(other.m_class_id) {};
     virtual ~HailoDetection() = default;
 
     // Move assignment
@@ -690,18 +740,41 @@ public:
 };
 using HailoDetectionPtr = std::shared_ptr<HailoDetection>;
 
+class HailoSegmentation : public HailoROI
+{
+  protected:
+    hailo_detection_with_byte_mask_t segmentation; // The segmentation data, including the bounding box and the mask.
+  public:
+    /**
+     * @brief Construct a new New Hailo Segmentation object
+     */
+    HailoSegmentation(HailoBBox bbox, hailo_detection_with_byte_mask_t seg) : HailoROI(bbox), segmentation(seg) {};
+
+    virtual hailo_object_t get_type()
+    {
+        std::lock_guard<std::mutex> lock(*mutex);
+        return HAILO_SEGMENTATION;
+    }
+    hailo_detection_with_byte_mask_t get_segmentation()
+    {
+        std::lock_guard<std::mutex> lock(*mutex);
+        return segmentation;
+    }
+};
+using HailoSegmentationPtr = std::shared_ptr<HailoSegmentation>;
+
 /**
  * @brief Represents a Classification of an ROI.
  *
  */
 class HailoClassification : public HailoObject
 {
-protected:
+  protected:
     float m_confidence;                // Confidence of the classification.
     std::string m_classification_type; // Type of labeling, e.g. "age", "gender", "color", etc...
-    std::string m_label;               // The label of classification, e.g. "Horse", "Monkey", "Tiger" for type "Animals".
-    int m_class_id;                    // Class id, initialized to -1 if missing.
-public:
+    std::string m_label; // The label of classification, e.g. "Horse", "Monkey", "Tiger" for type "Animals".
+    int m_class_id;      // Class id, initialized to -1 if missing.
+  public:
     /**
      * @brief Construct a new Hailo Classification object
      *
@@ -709,9 +782,9 @@ public:
      * @param label classification result.
      * @param confidence confidence of classification result.
      */
-    HailoClassification(const std::string &classification_type,
-                        const std::string &label,
-                        float confidence) : m_confidence(assure_normal(confidence)), m_classification_type(classification_type), m_label(label), m_class_id(NULL_CLASS_ID){};
+    HailoClassification(const std::string &classification_type, const std::string &label, float confidence)
+        : m_confidence(assure_normal(confidence)), m_classification_type(classification_type), m_label(label),
+          m_class_id(NULL_CLASS_ID) {};
 
     /**
      * @brief Construct a new Hailo Classification object
@@ -719,8 +792,9 @@ public:
      * @param classification_type The type of classification.
      * @param label classification result.
      */
-    HailoClassification(const std::string &classification_type,
-                        const std::string &label) : m_confidence(assure_normal(1.0f)), m_classification_type(classification_type), m_label(label), m_class_id(NULL_CLASS_ID){};
+    HailoClassification(const std::string &classification_type, const std::string &label)
+        : m_confidence(assure_normal(1.0f)), m_classification_type(classification_type), m_label(label),
+          m_class_id(NULL_CLASS_ID) {};
 
     /**
      * @brief Construct a new Hailo Classification object
@@ -730,18 +804,18 @@ public:
      * @param label classification result.
      * @param confidence confidence of classification result.
      */
-    HailoClassification(const std::string &classification_type,
-                        int class_id,
-                        std::string label,
-                        float confidence) : m_confidence(assure_normal(confidence)), m_classification_type(classification_type), m_label(label), m_class_id(class_id){};
+    HailoClassification(const std::string &classification_type, int class_id, std::string label, float confidence)
+        : m_confidence(assure_normal(confidence)), m_classification_type(classification_type), m_label(label),
+          m_class_id(class_id) {};
     // Move Constructor
-    HailoClassification(HailoClassification &&other) : m_confidence(assure_normal(other.m_confidence)),
-                                                       m_classification_type(std::move(other.m_classification_type)),
-                                                       m_label(std::move(other.m_label)), m_class_id(other.m_class_id){};
+    HailoClassification(HailoClassification &&other)
+        : m_confidence(assure_normal(other.m_confidence)),
+          m_classification_type(std::move(other.m_classification_type)), m_label(std::move(other.m_label)),
+          m_class_id(other.m_class_id) {};
     // Copy Constructor
-    HailoClassification(const HailoClassification &other) : m_confidence(assure_normal(other.m_confidence)),
-                                                            m_classification_type(other.m_classification_type),
-                                                            m_label(other.m_label), m_class_id(other.m_class_id){};
+    HailoClassification(const HailoClassification &other)
+        : m_confidence(assure_normal(other.m_confidence)), m_classification_type(other.m_classification_type),
+          m_label(other.m_label), m_class_id(other.m_class_id) {};
     virtual ~HailoClassification() = default;
     // Move assignment
     HailoClassification &operator=(HailoClassification &&other) noexcept
@@ -813,12 +887,12 @@ using HailoClassificationPtr = std::shared_ptr<HailoClassification>;
  */
 class HailoLandmarks : public HailoObject
 {
-protected:
+  protected:
     std::string m_landmarks_type;                   // Type of labeling, e.g. "pose", "facial landmarking", etc...
     std::vector<HailoPoint> m_points;               // Vector of points.
     float m_threshold;                              // Threshold of landmark network.
     const std::vector<std::pair<int, int>> m_pairs; // pairs of landmarks that should be connected in the overlay
-public:
+  public:
     /**
      * @brief Construct a new Hailo Landmarks object
      *
@@ -826,7 +900,9 @@ public:
      * @param threshold threshold Minimum threshold of points to decide whether they are valid.
      * @param pairs vector of pairs of joints that should be connected in overlay
      */
-    HailoLandmarks(std::string landmarks_name, float threshold = 0.0f, const std::vector<std::pair<int, int>> pairs = {}) : m_landmarks_type(landmarks_name), m_threshold(threshold), m_pairs(pairs){};
+    HailoLandmarks(std::string landmarks_name, float threshold = 0.0f,
+                   const std::vector<std::pair<int, int>> pairs = {})
+        : m_landmarks_type(landmarks_name), m_threshold(threshold), m_pairs(pairs) {};
     /**
      * @brief Construct a new Hailo Landmarks object
      *
@@ -834,18 +910,18 @@ public:
      * @param points Set of landmarks represented as std::vector<HailoPoint>.
      * @param threshold Minimum threshold of points to decide whether they are valid.
      */
-    HailoLandmarks(std::string landmarks_name,
-                   std::vector<HailoPoint> points,
-                   float threshold = 0.0f,
-                   const std::vector<std::pair<int, int>> pairs = {}) : m_landmarks_type(landmarks_name),
-                                                                        m_points(std::move(points)),
-                                                                        m_threshold(threshold),
-                                                                        m_pairs(pairs){};
+    HailoLandmarks(std::string landmarks_name, std::vector<HailoPoint> points, float threshold = 0.0f,
+                   const std::vector<std::pair<int, int>> pairs = {})
+        : m_landmarks_type(landmarks_name), m_points(std::move(points)), m_threshold(threshold), m_pairs(pairs) {};
     virtual ~HailoLandmarks() = default;
     // Move constructor
-    HailoLandmarks(HailoLandmarks &&other) : m_landmarks_type(std::move(other.m_landmarks_type)), m_points(std::move(other.m_points)), m_threshold(other.m_threshold), m_pairs(other.m_pairs){};
+    HailoLandmarks(HailoLandmarks &&other)
+        : m_landmarks_type(std::move(other.m_landmarks_type)), m_points(std::move(other.m_points)),
+          m_threshold(other.m_threshold), m_pairs(other.m_pairs) {};
     // Copy constructor
-    HailoLandmarks(const HailoLandmarks &other) : m_landmarks_type(other.m_landmarks_type), m_points(other.m_points), m_threshold(other.m_threshold), m_pairs(other.m_pairs){};
+    HailoLandmarks(const HailoLandmarks &other)
+        : m_landmarks_type(other.m_landmarks_type), m_points(other.m_points), m_threshold(other.m_threshold),
+          m_pairs(other.m_pairs) {};
     HailoLandmarks &operator=(const HailoLandmarks &other) = default;
     HailoLandmarks &operator=(HailoLandmarks &&other) noexcept = default;
 
@@ -911,18 +987,18 @@ using HailoLandmarksPtr = std::shared_ptr<HailoLandmarks>;
  */
 class HailoUniqueID : public HailoObject
 {
-protected:
+  protected:
     int m_unique_id;               // Unique id, initialized to -1 if missing.
     hailo_unique_id_mode_t m_mode; // Mode of unique id.
 
-public:
+  public:
     /**
      * @brief Construct a new Hailo Unique ID object
      *
      * @param unique_id  -  int
      *        A unique id
      */
-    HailoUniqueID(int unique_id, hailo_unique_id_mode_t mode = TRACKING_ID) : m_unique_id(unique_id), m_mode(mode){};
+    HailoUniqueID(int unique_id, hailo_unique_id_mode_t mode = TRACKING_ID) : m_unique_id(unique_id), m_mode(mode) {};
 
     virtual ~HailoUniqueID() = default;
 
@@ -950,13 +1026,14 @@ using HailoUniqueIDPtr = std::shared_ptr<HailoUniqueID>;
 
 class HailoMask : public HailoObject
 {
-protected:
+  protected:
     int m_mask_width;
     int m_mask_height;
     float m_transparency;
 
-public:
-    HailoMask(int mask_width, int mask_height, float transparency) : m_mask_width(mask_width), m_mask_height(mask_height), m_transparency(transparency){};
+  public:
+    HailoMask(int mask_width, int mask_height, float transparency)
+        : m_mask_width(mask_width), m_mask_height(mask_height), m_transparency(transparency) {};
 
     // Move Constructor
     HailoMask(HailoMask &&other) = default;
@@ -988,11 +1065,12 @@ using HailoMaskPtr = std::shared_ptr<HailoMask>;
 
 class HailoDepthMask : public HailoMask
 {
-protected:
+  protected:
     std::vector<float> m_data;
 
-public:
-    HailoDepthMask(std::vector<float> &&data_vec, int mask_width, int mask_height, float transparency) : HailoMask(mask_width, mask_height, transparency), m_data(std::move(data_vec)){};
+  public:
+    HailoDepthMask(std::vector<float> &&data_vec, int mask_width, int mask_height, float transparency)
+        : HailoMask(mask_width, mask_height, transparency), m_data(std::move(data_vec)) {};
 
     virtual hailo_object_t get_type()
     {
@@ -1009,11 +1087,12 @@ using HailoDepthMaskPtr = std::shared_ptr<HailoDepthMask>;
 
 class HailoClassMask : public HailoMask
 {
-protected:
+  protected:
     std::vector<uint8_t> m_data;
 
-public:
-    HailoClassMask(std::vector<uint8_t> &&data_vec, int mask_width, int mask_height, float transparency) : HailoMask(mask_width, mask_height, transparency), m_data(std::move(data_vec)){};
+  public:
+    HailoClassMask(std::vector<uint8_t> &&data_vec, int mask_width, int mask_height, float transparency)
+        : HailoMask(mask_width, mask_height, transparency), m_data(std::move(data_vec)) {};
 
     virtual hailo_object_t get_type()
     {
@@ -1030,12 +1109,13 @@ using HailoClassMaskPtr = std::shared_ptr<HailoClassMask>;
 
 class HailoConfClassMask : public HailoMask
 {
-protected:
+  protected:
     int m_class_id;
     std::vector<float> m_data;
 
-public:
-    HailoConfClassMask(std::vector<float> &&data_vec, int mask_width, int mask_height, float transparency, int class_id) : HailoMask(mask_width, mask_height, transparency), m_class_id(class_id), m_data(std::move(data_vec)){};
+  public:
+    HailoConfClassMask(std::vector<float> &&data_vec, int mask_width, int mask_height, float transparency, int class_id)
+        : HailoMask(mask_width, mask_height, transparency), m_class_id(class_id), m_data(std::move(data_vec)) {};
 
     virtual hailo_object_t get_type()
     {
@@ -1058,21 +1138,17 @@ using HailoConfClassMaskPtr = std::shared_ptr<HailoConfClassMask>;
 
 class HailoMatrix : public HailoObject
 {
-protected:
+  protected:
     std::vector<float> m_data;
     uint32_t m_mat_height;
     uint32_t m_mat_width;
     uint32_t m_mat_features;
 
-public:
+  public:
     static const int DEFAULT_NUMBER_OF_FEATURES = 1;
-    HailoMatrix(std::vector<float> data,
-                uint32_t mat_height,
-                uint32_t mat_width,
-                uint32_t mat_features = HailoMatrix::DEFAULT_NUMBER_OF_FEATURES) : m_data(data),
-                                                                                   m_mat_height(mat_height),
-                                                                                   m_mat_width(mat_width),
-                                                                                   m_mat_features(mat_features){};
+    HailoMatrix(std::vector<float> data, uint32_t mat_height, uint32_t mat_width,
+                uint32_t mat_features = HailoMatrix::DEFAULT_NUMBER_OF_FEATURES)
+        : m_data(data), m_mat_height(mat_height), m_mat_width(mat_width), m_mat_features(mat_features) {};
 
     std::shared_ptr<HailoObject> clone()
     {
@@ -1116,14 +1192,15 @@ using HailoMatrixPtr = std::shared_ptr<HailoMatrix>;
  */
 class HailoUserMeta : public HailoObject
 {
-protected:
+  protected:
     int m_user_int;
     std::string m_user_string;
     float m_user_float;
 
-public:
-    HailoUserMeta(){};
-    HailoUserMeta(int user_int, std::string user_string, float user_float) : m_user_int(user_int), m_user_string(user_string), m_user_float(user_float){};
+  public:
+    HailoUserMeta() {};
+    HailoUserMeta(int user_int, std::string user_string, float user_float)
+        : m_user_int(user_int), m_user_string(user_string), m_user_float(user_float) {};
 
     virtual hailo_object_t get_type()
     {
@@ -1163,3 +1240,69 @@ public:
     }
 };
 using HailoUserMetaPtr = std::shared_ptr<HailoUserMeta>;
+
+class HailoZMQMessage : public HailoObject
+{
+  private:
+    std::string m_input_json;
+    std::string m_output_json;
+    mutable std::mutex m_mutex;
+
+  public:
+    HailoZMQMessage() = default;
+    ~HailoZMQMessage() override = default;
+
+    hailo_object_t get_type() override
+    {
+        return HAILO_ZMQ;
+    }
+
+    void set_input_msg(const std::string &json)
+    {
+        std::lock_guard<std::mutex> lg(m_mutex);
+        m_input_json = json;
+    }
+
+    void set_input_msg(std::string &&json)
+    {
+        std::lock_guard<std::mutex> lg(m_mutex);
+        m_input_json = std::move(json);
+    }
+
+    std::string get_input_msg() const
+    {
+        std::lock_guard<std::mutex> lg(m_mutex);
+        return m_input_json;
+    }
+
+    bool has_input_msg() const
+    {
+        std::lock_guard<std::mutex> lg(m_mutex);
+        return !m_input_json.empty();
+    }
+
+    void set_output_msg(const std::string &json)
+    {
+        std::lock_guard<std::mutex> lg(m_mutex);
+        m_output_json = json;
+    }
+    void set_output_msg(std::string &&json)
+    {
+        std::lock_guard<std::mutex> lg(m_mutex);
+        m_output_json = std::move(json);
+    }
+
+    std::string get_output_msg() const
+    {
+        std::lock_guard<std::mutex> lg(m_mutex);
+        return m_output_json;
+    }
+
+    bool has_output_msg() const
+    {
+        std::lock_guard<std::mutex> lg(m_mutex);
+        return !m_output_json.empty();
+    }
+};
+
+using HailoZMQMessagePtr = std::shared_ptr<HailoZMQMessage>;

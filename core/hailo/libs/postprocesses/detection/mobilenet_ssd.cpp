@@ -10,8 +10,8 @@ static const std::string DEFAULT_SSD_OUTPUT_LAYER = "ssd_mobilenet_v1/nms1";
 static const std::string DEFAULT_SSD_MERGED_OUTPUT_LAYER = "ssd_mobilenet_v1_no_alls/nms1";
 static const std::string DEFAULT_SSD_VISDRONE_OUTPUT_LAYER = "ssd_mobilenet_v1_visdrone/nms1";
 
-
-static void mobilenet_ssd_base(HailoROIPtr roi, const std::string output_layer, std::map<uint8_t, std::string> &labels_dict)
+static void mobilenet_ssd_base(HailoROIPtr roi, const std::string output_layer,
+                               std::map<uint8_t, std::string> &labels_dict)
 {
     if (!roi->has_tensors())
     {

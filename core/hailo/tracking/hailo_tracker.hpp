@@ -16,17 +16,14 @@
 #define DEFAULT_KALMAN_DISTANCE (0.7f)
 #define DEFAULT_IOU_THRESHOLD (0.8f)
 #define DEFAULT_INIT_IOU_THRESHOLD (0.9f)
-#define DEFAULT_KEEP_FRAMES (2)
+#define DEFAULT_KEEP_FRAMES (5)
 #define DEFAULT_KEEP_PAST_METADATA (true)
 #define DEFAULT_STD_WEIGHT_POSITION (0.01)
 #define DEFAULT_STD_WEIGHT_POSITION_BOX (0.00000001)
 #define DEFAULT_STD_WEIGHT_VELOCITY (0.001)
 #define DEFAULT_STD_WEIGHT_VELOCITY_BOX (0.00000001)
 #define DEFAULT_DEBUG (false)
-#define DEFAULT_HAILO_OBJECTS_BLACKLIST                     \
-    {                                                       \
-        HAILO_LANDMARKS, HAILO_DEPTH_MASK, HAILO_CLASS_MASK \
-    }
+#define DEFAULT_HAILO_OBJECTS_BLACKLIST {HAILO_LANDMARKS, HAILO_DEPTH_MASK, HAILO_CLASS_MASK}
 
 struct HailoTrackerParams
 {
@@ -47,7 +44,7 @@ struct HailoTrackerParams
 
 class HailoTracker
 {
-private:
+  private:
     class HailoTrackerPrivate;
     std::unique_ptr<HailoTrackerPrivate> priv;
     HailoTracker(const HailoTracker &) = delete;
@@ -56,13 +53,14 @@ private:
     HailoTracker();
     static std::mutex mutex_;
 
-public:
+  public:
     static HailoTracker &GetInstance();
     void add_jde_tracker(const std::string &name, HailoTrackerParams params);
     void add_jde_tracker(const std::string &name);
     void remove_jde_tracker(const std::string &name);
     std::vector<std::string> get_trackers_list();
     std::vector<HailoDetectionPtr> update(const std::string &name, std::vector<HailoDetectionPtr> &inputs);
+    std::vector<HailoDetectionPtr> get_online_stracks(const std::string &name);
     void add_object_to_track(const std::string &name, int id, HailoObjectPtr obj);
     void remove_classifications_from_track(const std::string &name, int track_id, std::string classifier_type);
     void remove_matrices_from_track(const std::string &name, int track_id);

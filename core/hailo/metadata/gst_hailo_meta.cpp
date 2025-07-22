@@ -10,8 +10,8 @@
 
 static gboolean gst_hailo_meta_init(GstMeta *meta, gpointer params, GstBuffer *buffer);
 static void gst_hailo_meta_free(GstMeta *meta, GstBuffer *buffer);
-static gboolean gst_hailo_meta_transform(GstBuffer *transbuf, GstMeta *meta, GstBuffer *buffer,
-                                         GQuark type, gpointer data);
+static gboolean gst_hailo_meta_transform(GstBuffer *transbuf, GstMeta *meta, GstBuffer *buffer, GQuark type,
+                                         gpointer data);
 
 // Register metadata type and returns Gtype
 // https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer/html/gstreamer-GstMeta.html#gst-meta-api-type-register
@@ -37,12 +37,11 @@ const GstMetaInfo *gst_hailo_meta_get_info(void)
     {
         // Explanation of fields
         // https://gstreamer.freedesktop.org/documentation/design/meta.html#gstmeta1
-        const GstMetaInfo *meta = gst_meta_register(GST_HAILO_META_API_TYPE, /* api type */
-                                                    "GstHailoMeta",          /* implementation type */
-                                                    sizeof(GstHailoMeta),    /* size of the structure */
-                                                    gst_hailo_meta_init,
-                                                    (GstMetaFreeFunction)gst_hailo_meta_free,
-                                                    gst_hailo_meta_transform);
+        const GstMetaInfo *meta =
+            gst_meta_register(GST_HAILO_META_API_TYPE, /* api type */
+                              "GstHailoMeta",          /* implementation type */
+                              sizeof(GstHailoMeta),    /* size of the structure */
+                              gst_hailo_meta_init, (GstMetaFreeFunction)gst_hailo_meta_free, gst_hailo_meta_transform);
         g_once_init_leave(&gst_hailo_meta_info, meta);
     }
     return gst_hailo_meta_info;
@@ -76,14 +75,14 @@ static void gst_hailo_meta_free(GstMeta *meta, GstBuffer *buffer)
 // Meta transform function
 // Sixth field in GstMetaInfo
 // https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer/html/gstreamer-GstMeta.html#GstMetaTransformFunction
-static gboolean gst_hailo_meta_transform(GstBuffer *transbuf, GstMeta *meta, GstBuffer *buffer,
-                                         GQuark type, gpointer data)
+static gboolean gst_hailo_meta_transform(GstBuffer *transbuf, GstMeta *meta, GstBuffer *buffer, GQuark type,
+                                         gpointer data)
 {
     GstHailoMeta *gst_hailo_meta = (GstHailoMeta *)meta;
     HailoMainObjectPtr main_object = gst_hailo_meta->main_object;
 
     GstHailoMeta *new_hailo_meta = gst_buffer_add_hailo_meta(transbuf, main_object);
-    if(!new_hailo_meta)
+    if (!new_hailo_meta)
     {
         GST_ERROR("gst_hailo_meta_transform: failed to transform hailo_meta");
         return FALSE;

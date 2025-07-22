@@ -21,10 +21,8 @@
 
 #include <gst/gst.h>
 G_BEGIN_DECLS
-    typedef gboolean (*GstDotRender) (const gchar * dot_string, gpointer args);
-gchar *gst_dot_pipeline_to_string (const GstPipeline * pipe);
-gboolean
-gst_dot_do_render (const gchar * dot_string, GstDotRender render,
-    gpointer args);
-gboolean gst_dot_x11_render (const gchar * dot_string, gpointer args);
+typedef gboolean (*GstDotRender)(const gchar *dot_string, gpointer args);
+gchar *gst_dot_pipeline_to_string(const GstPipeline *pipe);
+gboolean gst_dot_do_render(const gchar *dot_string, GstDotRender render, gpointer args);
+gboolean gst_dot_x11_render(const gchar *dot_string, gpointer args);
 G_END_DECLS

@@ -1,6 +1,10 @@
 {
-    "osd":
-    {
+    "privacy_mask": {
+        "mask_type": "COLOR",
+        "pixelization_size": 60,
+        "color_value": [0, 0, 0]
+    },
+    "osd": {
         "image": [
             {
                 "id": "example_image1",

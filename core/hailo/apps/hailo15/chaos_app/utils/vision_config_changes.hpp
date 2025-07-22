@@ -90,7 +90,8 @@ void change_hdr_status(bool &g_hdr_enabled, const std::string &frontend_config_f
     }
 }
 
-void rotate_90(bool to_rotate, std::map<output_stream_id_t, std::string> encoder_file_paths, const std::string &frontend_config_file_path)
+void rotate_90(bool to_rotate, std::map<output_stream_id_t, std::string> encoder_file_paths,
+               const std::string &frontend_config_file_path)
 {
     try
     {
@@ -198,8 +199,10 @@ void rotate_output_resolutions(const std::string &frontend_config_file_path)
                 // Swap values for this output
                 if (width != 0 && height != 0)
                 {
-                    outputContent = std::regex_replace(outputContent, widthValueRegex, "\"width\": " + std::to_string(height));
-                    outputContent = std::regex_replace(outputContent, heightValueRegex, "\"height\": " + std::to_string(width));
+                    outputContent =
+                        std::regex_replace(outputContent, widthValueRegex, "\"width\": " + std::to_string(height));
+                    outputContent =
+                        std::regex_replace(outputContent, heightValueRegex, "\"height\": " + std::to_string(width));
                 }
 
                 // Add comma if not first output

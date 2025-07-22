@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 /*
   Pybind API for STrack class
 */
@@ -37,20 +37,23 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
-class STrackWrapper {
-    public:
+class STrackWrapper
+{
+  public:
     // Default Constructor
     STrackWrapper() : m_strack(nullptr)
-    {}
+    {
+    }
 
     // Constructor
     STrackWrapper(std::unique_ptr<STrack> &&strack) : m_strack(std::move(strack))
-    {}
+    {
+    }
 
     // Proxy Constructor
     static STrackWrapper create(const py::array_t<float, py::array::c_style | py::array::forcecast> input_tlwh,
-                  const float input_confidence,
-                  const py::array_t<float, py::array::c_style | py::array::forcecast> input_features)
+                                const float input_confidence,
+                                const py::array_t<float, py::array::c_style | py::array::forcecast> input_features)
     {
         std::vector<float> tlwh = numpy_to_float_vector(input_tlwh);
         std::vector<float> features = numpy_to_float_vector(input_features);
@@ -79,8 +82,8 @@ class STrackWrapper {
         return casted_tlwh;
     }
 
-    private:
-        std::unique_ptr<STrack> m_strack;
+  private:
+    std::unique_ptr<STrack> m_strack;
 };
 
 void STrack_api_initialize_python_module(py::module &m)

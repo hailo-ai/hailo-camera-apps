@@ -6,171 +6,296 @@
 #include <functional>
 #include <stdexcept>
 #include "media_library/media_library_types.hpp"
+#include "media_library/media_library_api_types.hpp"
 
 namespace webserver
 {
-    namespace resources
+namespace resources
+{
+enum EventPriority
+{
+    EVENT_PRIORITY_VERY_HIGH = 0,
+    EVENT_PRIORITY_HIGH = 1,
+    EVENT_PRIORITY_MEDIUM = 2,
+    EVENT_PRIORITY_LOW = 3
+};
+
+// Add JSON serialization for EventPriority
+NLOHMANN_JSON_SERIALIZE_ENUM(EventPriority, {{EventPriority::EVENT_PRIORITY_VERY_HIGH, "very_high"},
+                                             {EventPriority::EVENT_PRIORITY_HIGH, "high"},
+                                             {EventPriority::EVENT_PRIORITY_MEDIUM, "medium"},
+                                             {EventPriority::EVENT_PRIORITY_LOW, "low"}});
+
+enum class EventType
+{
+    CHANGED_RESOURCE_WEBPAGE,
+    CHANGED_RESOURCE_CONFIG_MANAGER,
+    CHANGED_RESOURCE_FRONTEND,
+    CHANGED_RESOURCE_ENCODER,
+    CHANGED_RESOURCE_OSD,
+    CHANGED_RESOURCE_AI,
+    CHANGED_RESOURCE_ISP,
+    CHANGED_RESOURCE_PRIVACY_MASK,
+    CHANGED_RESOURCE_WEBRTC,
+    RESTART_FRONTEND,
+    CODEC_CHANGE,
+    RESET_CONFIG,
+    SWITCH_PROFILE,
+    PROFILE_UPDATE,
+    PROFILE_UPDATE_REQUEST,
+    CHANGE_FRAMERATE,
+    CHANGE_RESOLUTION,
+    CHANGE_FLIP,
+    CHANGE_ROTATION,
+    CHANGE_DEWARP,
+    CHANGE_FREEZE,
+    CHANGE_VALVE,
+    CHANGE_EIS,
+    CHANGE_DIS,
+    CHANGE_DIGITAL_ZOOM,
+    CHANGE_DIGITAL_ZOOM_ROI,
+    CHANGE_GRAYSCALE,
+    CHANGE_DETECTION,
+    RESET_ISP,
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(EventType, {{EventType::CHANGED_RESOURCE_WEBPAGE, "webpage"},
+                                         {EventType::CHANGED_RESOURCE_FRONTEND, "frontend"},
+                                         {EventType::CHANGED_RESOURCE_ENCODER, "encoder"},
+                                         {EventType::CHANGED_RESOURCE_OSD, "osd"},
+                                         {EventType::CHANGED_RESOURCE_AI, "ai"},
+                                         {EventType::CHANGED_RESOURCE_ISP, "isp"},
+                                         {EventType::CHANGED_RESOURCE_PRIVACY_MASK, "privacy_mask"},
+                                         {EventType::CHANGED_RESOURCE_CONFIG_MANAGER, "config"},
+                                         {EventType::CHANGED_RESOURCE_WEBRTC, "webrtc"},
+                                         {EventType::RESTART_FRONTEND, "restart_frontend"},
+                                         {EventType::CODEC_CHANGE, "codec_change"},
+                                         {EventType::RESET_CONFIG, "reset_config"},
+                                         {EventType::SWITCH_PROFILE, "switch_profile"},
+                                         {EventType::CHANGE_FRAMERATE, "change_framerate"},
+                                         {EventType::CHANGE_RESOLUTION, "change_resolution"},
+                                         {EventType::CHANGE_FLIP, "change_flip"},
+                                         {EventType::CHANGE_ROTATION, "change_rotation"},
+                                         {EventType::CHANGE_DEWARP, "change_dewarp"},
+                                         {EventType::CHANGE_FREEZE, "change_freeze"},
+                                         {EventType::CHANGE_VALVE, "change_valve"},
+                                         {EventType::CHANGE_DIS, "change_dis"},
+                                         {EventType::CHANGE_EIS, "cahnge_eis"},
+                                         {EventType::CHANGE_DIGITAL_ZOOM, "change_digital_zoom"},
+                                         {EventType::CHANGE_DIGITAL_ZOOM_ROI, "change_digital_zoom_roi"},
+                                         {EventType::CHANGE_GRAYSCALE, "change_grayscale"},
+                                         {EventType::CHANGE_DETECTION, "change_detection"},
+                                         {EventType::PROFILE_UPDATE, "profile_update"},
+                                         {EventType::PROFILE_UPDATE_REQUEST, "profile_update_request"},
+                                         {EventType::RESET_ISP, "reset_isp"}});
+
+class ResourceState
+{
+  public:
+    virtual ~ResourceState() = default;
+};
+template <typename T> class ValueState : public ResourceState
+{
+  public:
+    T value;
+    ValueState(T value) : value(std::move(value))
     {
-        enum EventPriority
-        {
-            HIGH = 0,
-            MEDIUM = 1,
-            LOW = 2
-        };
-        enum EventType
-        {
-            CHANGED_RESOURCE_WEBPAGE,
-            CHANGED_RESOURCE_CONFIG_MANAGER,
-            CHANGED_RESOURCE_FRONTEND,
-            CHANGED_RESOURCE_ENCODER,
-            CHANGED_RESOURCE_OSD,
-            CHANGED_RESOURCE_AI,
-            CHANGED_RESOURCE_ISP,
-            CHANGED_RESOURCE_PRIVACY_MASK,
-            CHANGED_RESOURCE_WEBRTC,
-            STREAM_CONFIG,
-            RESTART_FRONTEND,
-            CODEC_CHANGE,
-            RESET_CONFIG,
-            SWITCH_PROFILE,
-        };
-
-        NLOHMANN_JSON_SERIALIZE_ENUM(EventType, {{CHANGED_RESOURCE_WEBPAGE, "webpage"},
-                                                    {CHANGED_RESOURCE_FRONTEND, "frontend"},
-                                                    {CHANGED_RESOURCE_ENCODER, "encoder"},
-                                                    {CHANGED_RESOURCE_OSD, "osd"},
-                                                    {CHANGED_RESOURCE_AI, "ai"},
-                                                    {CHANGED_RESOURCE_ISP, "isp"},
-                                                    {CHANGED_RESOURCE_PRIVACY_MASK, "privacy_mask"},
-                                                    {CHANGED_RESOURCE_CONFIG_MANAGER, "config"},
-                                                    {CHANGED_RESOURCE_WEBRTC, "webrtc"},
-                                                    {STREAM_CONFIG, "stream_config"},
-                                                    {RESTART_FRONTEND, "restart_frontend"},
-                                                    {CODEC_CHANGE, "codec_change"},
-                                                    {RESET_CONFIG, "reset_config"},
-                                                    {SWITCH_PROFILE, "switch_profile"}});
-
-        class ResourceState
-        {
-        public:
-            virtual ~ResourceState() = default;
-        };
-
-        template <typename T>
-        class ValueResourceState : public ResourceState
-        {
-        public:
-            std::string name;
-            T value;
-            ValueResourceState(std::string name, T value) : name(std::move(name)), value(std::move(value)) {}
-        };
-
-        class ResourceStateChangeNotification
-        {
-        public:
-            EventType event_type;
-            std::shared_ptr<ResourceState> resource_state;
-        };
-
-        class ConfigResourceState : public ResourceState
-        {
-        public:
-            std::string config;
-            explicit ConfigResourceState(std::string config) : config(std::move(config)) {}
-        };
-
-        class StreamConfigResourceState : public ResourceState
-        {
-        public:
-            struct Resolution
-            {
-                uint32_t width;
-                uint32_t height;
-                uint32_t framerate;
-                bool framerate_changed;
-                bool stream_size_changed;
-            };
-
-            bool flip_state_changed;
-            flip_direction_t flip;
-            bool flip_enabled;
-            bool rotate_state_changed;
-            rotation_angle_t rotation;
-            bool rotate_enabled;
-            bool dewarp_state_changed;
-            bool dewarp_enabled;
-            std::vector<Resolution> resolutions;
-
-            static flip_direction_t flip_string_to_enum(const std::string &flip)
-            {
-                if (flip == "FLIP_DIRECTION_NONE")
-                {
-                    return FLIP_DIRECTION_NONE;
-                }
-                else if (flip == "FLIP_DIRECTION_HORIZONTAL")
-                {
-                    return FLIP_DIRECTION_HORIZONTAL;
-                }
-                else if (flip == "FLIP_DIRECTION_VERTICAL")
-                {
-                    return FLIP_DIRECTION_VERTICAL;
-                }
-                else if (flip == "FLIP_DIRECTION_BOTH")
-                {
-                    return FLIP_DIRECTION_BOTH;
-                }
-                else
-                {
-                    throw std::invalid_argument("Invalid flip direction: " + flip);
-                }
-            }
-
-            static rotation_angle_t rotation_string_to_enum(const std::string &rotation)
-            {
-                if (rotation == "ROTATION_ANGLE_0")
-                {
-                    return ROTATION_ANGLE_0;
-                }
-                else if (rotation == "ROTATION_ANGLE_90")
-                {
-                    return ROTATION_ANGLE_90;
-                }
-                else if (rotation == "ROTATION_ANGLE_180")
-                {
-                    return ROTATION_ANGLE_180;
-                }
-                else if (rotation == "ROTATION_ANGLE_270")
-                {
-                    return ROTATION_ANGLE_270;
-                }
-                else
-                {
-                    throw std::invalid_argument("Invalid rotation angle: " + rotation);
-                }
-            }
-
-            StreamConfigResourceState() = default;
-
-            StreamConfigResourceState(
-                std::vector<Resolution> resolutions,
-                bool flip_state_changed, const std::string &flip, bool flip_enabled,
-                bool rotate_state_changed, const std::string &rotation, bool rotate_enabled,
-                bool dewarp_state_changed, bool dewarp_enabled)
-                : 
-                  flip_state_changed(flip_state_changed),
-                  flip(flip_string_to_enum(flip)),
-                  flip_enabled(flip_enabled),
-                  rotate_state_changed(rotate_state_changed),
-                  rotation(rotation_string_to_enum(rotation)),
-                  rotate_enabled(rotate_enabled),
-                  dewarp_state_changed(dewarp_state_changed),
-                  dewarp_enabled(dewarp_enabled),
-                  resolutions(std::move(resolutions))
-            { }
-
-        };
-
-        using ResourceChangeCallback = std::function<void(ResourceStateChangeNotification)>;
-
     }
-}
+};
+
+template <typename... Ts> class ValuesState : public ResourceState
+{
+  public:
+    std::tuple<Ts...> values;
+
+    ValuesState(Ts... args) : values(std::move(args)...)
+    {
+    }
+};
+class ProfileNameState : public ValueState<std::string>
+{
+  public:
+    using ValueState<std::string>::ValueState;
+};
+
+class ProfileFPSState : public ValueState<uint32_t>
+{
+  public:
+    using ValueState<uint32_t>::ValueState;
+};
+
+class ProfileResolutionState : public ValueState<std::string>
+{
+  public:
+    using ValueState<std::string>::ValueState;
+};
+
+class ProfileFlipState : public ValueState<std::string>
+{
+  public:
+    using ValueState<std::string>::ValueState;
+};
+
+class ProfileRotationState : public ValueState<std::string>
+{
+  public:
+    using ValueState<std::string>::ValueState;
+};
+
+class ProfileDewarpState : public ValueState<bool>
+{
+  public:
+    using ValueState<bool>::ValueState;
+};
+
+class ProfileFreezeState : public ValueState<bool>
+{
+  public:
+    using ValueState<bool>::ValueState;
+};
+
+class ProfileValveState : public ValueState<bool>
+{
+  public:
+    using ValueState<bool>::ValueState;
+};
+
+class ProfileDisState : public ValueState<bool>
+{
+  public:
+    using ValueState<bool>::ValueState;
+};
+class ProfileEisState : public ValueState<bool>
+{
+  public:
+    using ValueState<bool>::ValueState;
+};
+
+class ProfileDigitalZoomState : public ValuesState<bool, uint32_t>
+{
+  public:
+    ProfileDigitalZoomState(bool enable, uint32_t magnification) : ValuesState<bool, uint32_t>(enable, magnification)
+    {
+    }
+    bool getEnable() const
+    {
+        return std::get<0>(values);
+    }
+    uint32_t getMagnification() const
+    {
+        return std::get<1>(values);
+    }
+};
+
+class DetectionState : public ValueState<bool>
+{
+  public:
+    using ValueState<bool>::ValueState;
+};
+
+class ProfileState : public ValueState<ProfileConfig>
+{
+  public:
+    using ValueState<ProfileConfig>::ValueState;
+};
+class EmptyState : public ResourceState
+{
+  public:
+    EmptyState() = default;
+};
+class ProfileDigitalZoomRoiState : public ValuesState<bool, uint32_t, double, double, double, double>
+{
+  public:
+    ProfileDigitalZoomRoiState(bool enable, uint32_t magnification, double x, double y, double width, double height)
+        : ValuesState<bool, uint32_t, double, double, double, double>(enable, magnification, x, y, width, height)
+    {
+    }
+    bool getEnable() const
+    {
+        return std::get<0>(values);
+    }
+    uint32_t getMagnification() const
+    {
+        return std::get<1>(values);
+    }
+    double getX() const
+    {
+        return std::get<2>(values);
+    }
+    double getY() const
+    {
+        return std::get<3>(values);
+    }
+    double getWidth() const
+    {
+        return std::get<4>(values);
+    }
+    double getHeight() const
+    {
+        return std::get<5>(values);
+    }
+};
+
+class ProfileGrayscaleState : public ValueState<bool>
+{
+  public:
+    using ValueState<bool>::ValueState;
+};
+
+enum AiApplications
+{
+    AI_APPLICATION_DETECTION,
+    AI_APPLICATION_DENOISE,
+};
+
+class AiResourceState : public ResourceState
+{
+  public:
+    std::vector<AiApplications> enabled;
+    std::vector<AiApplications> disabled;
+};
+using ResourceStateVariant =
+    std::variant<std::shared_ptr<ResourceState>, std::shared_ptr<ProfileNameState>, std::shared_ptr<ProfileFPSState>,
+                 std::shared_ptr<ProfileResolutionState>, std::shared_ptr<ProfileFlipState>,
+                 std::shared_ptr<ProfileRotationState>, std::shared_ptr<ProfileDewarpState>,
+                 std::shared_ptr<ProfileFreezeState>, std::shared_ptr<ProfileValveState>,
+                 std::shared_ptr<ProfileDisState>, std::shared_ptr<ProfileEisState>, std::shared_ptr<AiResourceState>,
+                 std::shared_ptr<ProfileDigitalZoomState>, std::shared_ptr<ProfileDigitalZoomRoiState>,
+                 std::shared_ptr<ProfileGrayscaleState>, std::shared_ptr<DetectionState>>;
+
+class ResourceStateChangeNotification
+{
+  public:
+    EventType event_type;
+    ResourceStateVariant resource_state;
+
+    template <typename T> std::shared_ptr<T> getResourceStateFromBase()
+    {
+        if (std::holds_alternative<std::shared_ptr<ResourceState>>(resource_state))
+        {
+            auto &baseState = std::get<std::shared_ptr<ResourceState>>(resource_state);
+            auto state = std::dynamic_pointer_cast<T>(baseState);
+            if (state)
+            {
+                return state;
+            }
+        }
+        WEBSERVER_LOG_ERROR("Failed to cast resource state from base pointer to the requested type");
+        throw std::runtime_error("Failed to cast resource state from base pointer to the requested type");
+    }
+
+    template <typename T> std::shared_ptr<T> getDirectResourceState()
+    {
+        if (std::holds_alternative<std::shared_ptr<T>>(resource_state))
+        {
+            return std::get<std::shared_ptr<T>>(resource_state);
+        }
+        WEBSERVER_LOG_ERROR("Resource state is not stored directly as the requested type");
+        throw std::runtime_error("Resource state is not stored directly as the requested type");
+    }
+};
+
+using ResourceChangeCallback = std::function<void(ResourceStateChangeNotification)>;
+
+} // namespace resources
+} // namespace webserver

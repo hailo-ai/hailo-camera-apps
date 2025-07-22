@@ -44,17 +44,17 @@
 /* a data structure to hold the centerpose network output: key is the role of the layer,
 value is a pair of the layer name and whether the layer is is uint16 or not (if not, it is uint8)
 */
-std::map<const char *, std::pair<const char *, bool>> output_layers =
-    {{"center_heatmap", {"center_nms/ew_add2", true}},
-     {"center_width_height", {"centerpose_regnetx_1_6gf_fpn/conv76", false}},
-     {"center_offset", {"centerpose_regnetx_1_6gf_fpn/conv78", false}},
-     {"joint_heatmap", {"joint_nms/ew_add2", true}},
-     {"joint_offset", {"centerpose_regnetx_1_6gf_fpn/conv80", false}},
-     {"joint_center_offset", {"centerpose_regnetx_1_6gf_fpn/conv77", false}}};
+std::map<const char *, std::pair<const char *, bool>> output_layers = {
+    {"center_heatmap", {"center_nms/ew_add2", true}},
+    {"center_width_height", {"centerpose_regnetx_1_6gf_fpn/conv76", false}},
+    {"center_offset", {"centerpose_regnetx_1_6gf_fpn/conv78", false}},
+    {"joint_heatmap", {"joint_nms/ew_add2", true}},
+    {"joint_offset", {"centerpose_regnetx_1_6gf_fpn/conv80", false}},
+    {"joint_center_offset", {"centerpose_regnetx_1_6gf_fpn/conv77", false}}};
 
-const std::vector<std::pair<int, int>> centerpose_joint_pairs =
-    {
-        {0, 1}, {1, 3}, {0, 2}, {2, 4}, {5, 6}, {5, 7}, {7, 9}, {6, 8}, {8, 10}, {5, 11}, {6, 12}, {11, 12}, {11, 13}, {12, 14}, {13, 15}, {14, 16}};
+const std::vector<std::pair<int, int>> centerpose_joint_pairs = {
+    {0, 1},  {1, 3},  {0, 2},  {2, 4},   {5, 6},   {5, 7},   {7, 9},   {6, 8},
+    {8, 10}, {5, 11}, {6, 12}, {11, 12}, {11, 13}, {12, 14}, {13, 15}, {14, 16}};
 
 /**
  * @brief This function maps column-wise array indices to true flattened indices.
@@ -191,8 +191,8 @@ std::pair<xt::xarray<int>, xt::xarray<uint8_t>> top_k_joints(HailoTensorPtr join
     // Transpose the joints so that we lead by joint class {17, 160, 160} instead of {160, 160, 17}
     auto transposed_scores = xt::transpose(xjoint_scores, {2, 0, 1});
     // Create a reshape view that we can sort by {17, 160, 160} --> {17, 25600}
-    xt::xarray<float> scores_to_sort = xt::reshape_view(transposed_scores,
-                                                        {joint_scores->features(), joint_scores->width() * joint_scores->height()});
+    xt::xarray<float> scores_to_sort =
+        xt::reshape_view(transposed_scores, {joint_scores->features(), joint_scores->width() * joint_scores->height()});
 
     // Get the indices of the top k scoring cells
     auto topk_score_indices = nd_topk(scores_to_sort, k);
@@ -216,8 +216,8 @@ std::pair<xt::xarray<int>, xt::xarray<uint16_t>> top_k_joints_uint16(HailoTensor
     // Transpose the joints so that we lead by joint class {17, 160, 160} instead of {160, 160, 17}
     auto transposed_scores = xt::transpose(xjoint_scores, {2, 0, 1});
     // Create a reshape view that we can sort by {17, 160, 160} --> {17, 25600}
-    xt::xarray<float> scores_to_sort = xt::reshape_view(transposed_scores,
-                                                        {joint_scores->features(), joint_scores->width() * joint_scores->height()});
+    xt::xarray<float> scores_to_sort =
+        xt::reshape_view(transposed_scores, {joint_scores->features(), joint_scores->width() * joint_scores->height()});
 
     // Get the indices of the top k scoring cells
     auto topk_score_indices = nd_topk_uint16(scores_to_sort, k);
@@ -268,12 +268,9 @@ xt::xarray<uint8_t> gather_features_from_tensor(HailoTensorPtr tensor, xt::xarra
  * @param image_size image width/height (the netowork input tensor is square)
  * @return xt::xarray<float>
  */
-xt::xarray<float> build_boxes_centerpose(xt::xarray<float> &scores,
-                                         xt::xarray<float> &center_offsets,
-                                         xt::xarray<float> &center_wh,
-                                         xt::xarray<int> &cell_x_indices,
-                                         xt::xarray<int> &cell_y_indices,
-                                         const float score_threshold,
+xt::xarray<float> build_boxes_centerpose(xt::xarray<float> &scores, xt::xarray<float> &center_offsets,
+                                         xt::xarray<float> &center_wh, xt::xarray<int> &cell_x_indices,
+                                         xt::xarray<int> &cell_y_indices, const float score_threshold,
                                          const int image_size)
 {
     // Here we need to calculate the min and max of the box. The cell index + offset gives the real
@@ -300,13 +297,9 @@ xt::xarray<float> build_boxes_centerpose(xt::xarray<float> &scores,
  * @param max_detections max number of best results
  * @param image_size image width/height (the netowork input tensor is square)
  */
-void encode_boxes_centerpose(std::vector<HailoDetection> &objects,
-                             xt::xarray<float> &scores,
-                             xt::xarray<float> &detection_boxes,
-                             xt::xarray<float> &center_wh,
-                             xt::xarray<float> &keypoints,
-                             const float score_threshold,
-                             const int max_detections,
+void encode_boxes_centerpose(std::vector<HailoDetection> &objects, xt::xarray<float> &scores,
+                             xt::xarray<float> &detection_boxes, xt::xarray<float> &center_wh,
+                             xt::xarray<float> &keypoints, const float score_threshold, const int max_detections,
                              const int image_size)
 {
     // The detection meta will hold the following items:
@@ -330,17 +323,21 @@ void encode_boxes_centerpose(std::vector<HailoDetection> &objects,
         // Once all parameters are calculated, push them into the meta
         // Class = 1 since centerpose only detects people
         HailoDetection detected_pose(HailoBBox(xmin, ymin, w, h), -1, label, confidence);
-        // We want to package the keypoints with their detection box, so extract the ones for this index and make them relative to the image size
+        // We want to package the keypoints with their detection box, so extract the ones for this index and make them
+        // relative to the image size
         xt::xarray<float> joint_keypoints = xt::view(keypoints, xt::keep(index), xt::all(), xt::all());
 
         // Change the scale of the keypoints to be non relative to the frame size
         // Each grid cell is 4x4 pixels large - means that the real frame size is output layer size multiply by 4
         xt::xarray<float> scaled_keypoints = xt::zeros<float>(joint_keypoints.shape());
-        xt::view(scaled_keypoints, xt::all(), xt::all(), 0) = xt::view(joint_keypoints, xt::all(), xt::all(), 0) / (image_size * 4);
-        xt::view(scaled_keypoints, xt::all(), xt::all(), 1) = xt::view(joint_keypoints, xt::all(), xt::all(), 1) / (image_size * 4);
+        xt::view(scaled_keypoints, xt::all(), xt::all(), 0) =
+            xt::view(joint_keypoints, xt::all(), xt::all(), 0) / (image_size * 4);
+        xt::view(scaled_keypoints, xt::all(), xt::all(), 1) =
+            xt::view(joint_keypoints, xt::all(), xt::all(), 1) / (image_size * 4);
         xt::view(scaled_keypoints, xt::all(), xt::all(), 2) = xt::view(joint_keypoints, xt::all(), xt::all(), 2);
 
-        hailo_common::add_landmarks_to_detection(detected_pose, "centerpose", xt::squeeze(scaled_keypoints), score_threshold, centerpose_joint_pairs);
+        hailo_common::add_landmarks_to_detection(detected_pose, "centerpose", xt::squeeze(scaled_keypoints),
+                                                 score_threshold, centerpose_joint_pairs);
 
         objects.emplace_back(std::move(detected_pose)); // Push the detection to the objects vector
     }
@@ -355,9 +352,7 @@ void encode_boxes_centerpose(std::vector<HailoDetection> &objects,
  * @param iou_thr threshold for IOU calculation in NMS
  * @return std::vector<HailoDetection> the detected objects
  */
-std::vector<HailoDetection> centerpose_postprocess(HailoROIPtr roi,
-                                                   const int k,
-                                                   const float score_threshold,
+std::vector<HailoDetection> centerpose_postprocess(HailoROIPtr roi, const int k, const float score_threshold,
                                                    const float iou_thr)
 {
     std::vector<HailoDetection> objects; // The detection meta we will eventually return
@@ -383,65 +378,66 @@ std::vector<HailoDetection> centerpose_postprocess(HailoROIPtr roi,
 
     if (output_layers["center_heatmap"].second) // uint16
     {
-        auto top_scores = top_k_centers_uint16(center_heatmap, k);           // Returns both the top scores and their indices
-        topk_score_indices = top_scores.first;                               // Separate out the top score indices
-        xt::xarray<uint16_t> topk_scores = top_scores.second;                // Separate out the top scores
+        auto top_scores = top_k_centers_uint16(center_heatmap, k); // Returns both the top scores and their indices
+        topk_score_indices = top_scores.first;                     // Separate out the top score indices
+        xt::xarray<uint16_t> topk_scores = top_scores.second;      // Separate out the top scores
         topk_scores_y_index = topk_score_indices / center_heatmap->height(); // Find the y index of the cells
         topk_scores_x_index = topk_score_indices % center_heatmap->width();  // Find the x index of the cells
 
         // With the top k indices in hand, we can now extract the corresponding center offsets and widths/heights
-        auto topk_center_offset = gather_features_from_tensor(center_offset, topk_score_indices);   // Use the top k indices from earlier
-        auto topk_center_wh = gather_features_from_tensor(center_width_height, topk_score_indices); // Use the top k indices from earlier
+        auto topk_center_offset =
+            gather_features_from_tensor(center_offset, topk_score_indices); // Use the top k indices from earlier
+        auto topk_center_wh =
+            gather_features_from_tensor(center_width_height, topk_score_indices); // Use the top k indices from earlier
 
         // Now that we have our top k features, we can rescale them to dequantize
         topk_scores_rescaled = common::dequantize(topk_scores,
-                                                  center_heatmap->vstream_info().quant_info.qp_scale, center_heatmap->vstream_info().quant_info.qp_zp);
+                                                  center_heatmap->qp_scale(), center_heatmap->qp_zp());
         xt::xarray<float> topk_center_offset_rescaled = common::dequantize(topk_center_offset,
-                                                                           center_offset->vstream_info().quant_info.qp_scale, center_offset->vstream_info().quant_info.qp_zp);
+                                                                           center_offset->qp_scale(), center_offset->qp_zp());
 
         topk_center_wh_rescaled = common::dequantize(topk_center_wh,
-                                                     center_width_height->vstream_info().quant_info.qp_scale, center_width_height->vstream_info().quant_info.qp_zp);
+                                                     center_width_height->qp_scale(), center_width_height->qp_zp());
 
         // Build up the detection boxes
-        bboxes = build_boxes_centerpose(topk_scores_rescaled,
-                                        topk_center_offset_rescaled,
-                                        topk_center_wh_rescaled,
+        bboxes = build_boxes_centerpose(topk_scores_rescaled, topk_center_offset_rescaled, topk_center_wh_rescaled,
                                         topk_scores_x_index, topk_scores_y_index, score_threshold, image_size);
     }
 
     else
     {
-        auto top_scores = top_k_centers(center_heatmap, k);                  // Returns both the top scores and their indices
-        topk_score_indices = top_scores.first;                               // Separate out the top score indices
-        xt::xarray<uint8_t> topk_scores = top_scores.second;                 // Separate out the top scores
+        auto top_scores = top_k_centers(center_heatmap, k);  // Returns both the top scores and their indices
+        topk_score_indices = top_scores.first;               // Separate out the top score indices
+        xt::xarray<uint8_t> topk_scores = top_scores.second; // Separate out the top scores
         topk_scores_y_index = topk_score_indices / center_heatmap->height(); // Find the y index of the cells
         topk_scores_x_index = topk_score_indices % center_heatmap->width();  // Find the x index of the cells
 
         // With the top k indices in hand, we can now extract the corresponding center offsets and widths/heights
-        auto topk_center_offset = gather_features_from_tensor(center_offset, topk_score_indices);   // Use the top k indices from earlier
-        auto topk_center_wh = gather_features_from_tensor(center_width_height, topk_score_indices); // Use the top k indices from earlier
+        auto topk_center_offset =
+            gather_features_from_tensor(center_offset, topk_score_indices); // Use the top k indices from earlier
+        auto topk_center_wh =
+            gather_features_from_tensor(center_width_height, topk_score_indices); // Use the top k indices from earlier
 
         // Now that we have our top k features, we can rescale them to dequantize
         topk_scores_rescaled = common::dequantize(topk_scores,
-                                                  center_heatmap->vstream_info().quant_info.qp_scale, center_heatmap->vstream_info().quant_info.qp_zp);
+                                                  center_heatmap->qp_scale(), center_heatmap->qp_zp());
         xt::xarray<float> topk_center_offset_rescaled = common::dequantize(topk_center_offset,
-                                                                           center_offset->vstream_info().quant_info.qp_scale, center_offset->vstream_info().quant_info.qp_zp);
+                                                                           center_offset->qp_scale(), center_offset->qp_zp());
 
         topk_center_wh_rescaled = common::dequantize(topk_center_wh,
-                                                     center_width_height->vstream_info().quant_info.qp_scale, center_width_height->vstream_info().quant_info.qp_zp);
+                                                     center_width_height->qp_scale(), center_width_height->qp_zp());
 
         // Build up the detection boxes
-        bboxes = build_boxes_centerpose(topk_scores_rescaled,
-                                        topk_center_offset_rescaled,
-                                        topk_center_wh_rescaled,
+        bboxes = build_boxes_centerpose(topk_scores_rescaled, topk_center_offset_rescaled, topk_center_wh_rescaled,
                                         topk_scores_x_index, topk_scores_y_index, score_threshold, image_size);
     }
 
     // Joinf keypoint decoding
 
     // From the joint_center_offset tensor, we want to extract the top k keypoints
-    const int num_joints = joint_center_offset->features() / 2;                                 // Get the number of joints
-    auto topk_keypoints = gather_features_from_tensor(joint_center_offset, topk_score_indices); // Use the top k indices from earlier
+    const int num_joints = joint_center_offset->features() / 2; // Get the number of joints
+    auto topk_keypoints =
+        gather_features_from_tensor(joint_center_offset, topk_score_indices); // Use the top k indices from earlier
 
     // From the joint_heatmap tensor, we want to extract the top k joints with the highest score
 
@@ -450,40 +446,45 @@ std::vector<HailoDetection> centerpose_postprocess(HailoROIPtr roi,
         auto top_k_joint_heatmap = top_k_joints_uint16(joint_heatmap, k); // Returns both the top scores and their indices
         topk_joint_heatmap_indices = top_k_joint_heatmap.first;           // Separate out the top score indices
         topk_joint_score_rescaled = common::dequantize(top_k_joint_heatmap.second,
-                                                       joint_heatmap->vstream_info().quant_info.qp_scale, joint_heatmap->vstream_info().quant_info.qp_zp);
+                                                       joint_heatmap->qp_scale(), joint_heatmap->qp_zp());
     }
     else
     {
         auto top_k_joint_heatmap = top_k_joints(joint_heatmap, k); // Returns both the top scores and their indices
         topk_joint_heatmap_indices = top_k_joint_heatmap.first;    // Separate out the top score indices
         topk_joint_score_rescaled = common::dequantize(top_k_joint_heatmap.second,
-                                                       joint_heatmap->vstream_info().quant_info.qp_scale, joint_heatmap->vstream_info().quant_info.qp_zp);
+                                                       joint_heatmap->qp_scale(), joint_heatmap->qp_zp());
     }
     // The indices are in respect to an array of shape {435200}, so we will need to calculate the proper (x,y)
     topk_joint_heatmap_indices = topk_joint_heatmap_indices % (joint_heatmap->width() * joint_heatmap->height());
-    xt::xarray<int> topk_joints_y_index = topk_joint_heatmap_indices / joint_heatmap->width(); // Find the y index of the cells
-    xt::xarray<int> topk_joints_x_index = topk_joint_heatmap_indices % joint_heatmap->width(); // Find the x index of the cells
+    xt::xarray<int> topk_joints_y_index =
+        topk_joint_heatmap_indices / joint_heatmap->width(); // Find the y index of the cells
+    xt::xarray<int> topk_joints_x_index =
+        topk_joint_heatmap_indices % joint_heatmap->width(); // Find the x index of the cells
 
     // With the top k joint indices in hand, we can now extract the corresponding joint center offsets
     // Use the top k joint indices from earlier, use a 1 dimensional reshaped view though so we get all 340 offsets
     // then reshape view back to {17, 20, 2}
     xt::xarray<int> flattened_joint_indices = xt::flatten(topk_joint_heatmap_indices);
-    xt::xarray<uint8_t> topk_joint_offset = xt::reshape_view(gather_features_from_tensor(joint_offset, flattened_joint_indices),
-                                                             {num_joints, k, 2});
+    xt::xarray<uint8_t> topk_joint_offset =
+        xt::reshape_view(gather_features_from_tensor(joint_offset, flattened_joint_indices), {num_joints, k, 2});
 
     // Now that we have our top k joints, we can rescale them to dequantize
     xt::xarray<float> topk_keypoints_rescaled = common::dequantize(topk_keypoints,
-                                                                   joint_center_offset->vstream_info().quant_info.qp_scale, joint_center_offset->vstream_info().quant_info.qp_zp);
+                                                                   joint_center_offset->qp_scale(), joint_center_offset->qp_zp());
 
     // These are just the offsets within the 160x160 grid, we still need to add the indices
     // Current shape of topk_keypoints_rescaled is { 20, 34 }, so we need to reshape to --> { 20, 17, 2 }
-    topk_keypoints_rescaled = xt::reshape_view(topk_keypoints_rescaled, {k, num_joints, 2});      // Reshape from {20, 34}
-    auto topk_keypoints_x = xt::view(topk_keypoints_rescaled, xt::all(), xt::all(), xt::keep(0)); // Extract the x offsets
-    auto topk_keypoints_y = xt::view(topk_keypoints_rescaled, xt::all(), xt::all(), xt::keep(1)); // Extract the y offsets
+    topk_keypoints_rescaled = xt::reshape_view(topk_keypoints_rescaled, {k, num_joints, 2}); // Reshape from {20, 34}
+    auto topk_keypoints_x =
+        xt::view(topk_keypoints_rescaled, xt::all(), xt::all(), xt::keep(0)); // Extract the x offsets
+    auto topk_keypoints_y =
+        xt::view(topk_keypoints_rescaled, xt::all(), xt::all(), xt::keep(1)); // Extract the y offsets
     // Add the x and y indices, reshape and tile so they are in shape --> {20, 17, 1}
     topk_keypoints_x += xt::tile(xt::reshape_view(topk_scores_x_index, {k, 1, 1}), {1, num_joints, 1});
     topk_keypoints_y += xt::tile(xt::reshape_view(topk_scores_y_index, {k, 1, 1}), {1, num_joints, 1});
-    xt::xarray<float> keypoints = xt::stack(xt::xtuple(topk_keypoints_x, topk_keypoints_y), 2); // Stack x and y together
+    xt::xarray<float> keypoints =
+        xt::stack(xt::xtuple(topk_keypoints_x, topk_keypoints_y), 2); // Stack x and y together
     // Stacking adds a new dim, so reshape to { 20, 17, 2 }
     keypoints = xt::reshape_view(keypoints, {k, num_joints, 2});
 
@@ -508,11 +509,7 @@ std::vector<HailoDetection> centerpose_postprocess(HailoROIPtr roi,
     //-------------------------------
 
     // Encode the individual boxes/keypoints and package them into the meta
-    encode_boxes_centerpose(objects,
-                            topk_scores_rescaled,
-                            bboxes,
-                            topk_center_wh_rescaled,
-                            keypoints_with_scores,
+    encode_boxes_centerpose(objects, topk_scores_rescaled, bboxes, topk_center_wh_rescaled, keypoints_with_scores,
                             score_threshold, k, image_size);
 
     // Perform nms to throw out similar detections
@@ -544,13 +541,12 @@ void centerpose(HailoROIPtr roi)
  */
 void centerpose_416(HailoROIPtr roi)
 {
-    output_layers =
-        {{"center_heatmap", {"center_nms/ew_add1", false}},
-         {"center_width_height", {"centerpose_repvgg_a0/conv37", false}},
-         {"center_offset", {"centerpose_repvgg_a0/conv39", false}},
-         {"joint_heatmap", {"joint_nms/ew_add1", false}},
-         {"joint_offset", {"centerpose_repvgg_a0/conv41", false}},
-         {"joint_center_offset", {"centerpose_repvgg_a0/conv38", false}}};
+    output_layers = {{"center_heatmap", {"center_nms/ew_add1", false}},
+                     {"center_width_height", {"centerpose_repvgg_a0/conv37", false}},
+                     {"center_offset", {"centerpose_repvgg_a0/conv39", false}},
+                     {"joint_heatmap", {"joint_nms/ew_add1", false}},
+                     {"joint_offset", {"centerpose_repvgg_a0/conv41", false}},
+                     {"joint_center_offset", {"centerpose_repvgg_a0/conv38", false}}};
 
     centerpose(roi);
 }
@@ -562,13 +558,12 @@ void centerpose_416(HailoROIPtr roi)
  */
 void centerpose_merged(HailoROIPtr roi)
 {
-    output_layers =
-        {{"center_heatmap", {"center_nms/ew_add1", false}},
-         {"center_width_height", {"centerpose_repvgg_a0_no_alls/conv37", false}},
-         {"center_offset", {"centerpose_repvgg_a0_no_alls/conv39", false}},
-         {"joint_heatmap", {"joint_nms/ew_add1", false}},
-         {"joint_offset", {"centerpose_repvgg_a0_no_alls/conv41", false}},
-         {"joint_center_offset", {"centerpose_repvgg_a0_no_alls/conv38", false}}};
+    output_layers = {{"center_heatmap", {"center_nms/ew_add1", false}},
+                     {"center_width_height", {"centerpose_repvgg_a0_no_alls/conv37", false}},
+                     {"center_offset", {"centerpose_repvgg_a0_no_alls/conv39", false}},
+                     {"joint_heatmap", {"joint_nms/ew_add1", false}},
+                     {"joint_offset", {"centerpose_repvgg_a0_no_alls/conv41", false}},
+                     {"joint_center_offset", {"centerpose_repvgg_a0_no_alls/conv38", false}}};
 
     centerpose(roi);
 }

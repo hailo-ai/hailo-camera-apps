@@ -106,7 +106,6 @@ print(dir(hailo.HailoTensor))
 
 # _new_hailo_tensor = hailo.HailoTensor()
 # print(f"_new_hailo_tensor.name = {_new_hailo_tensor.name()}")
-# print(f"_new_hailo_tensor.vstream_info = {_new_hailo_tensor.vstream_info()}")
 # print(f"_new_hailo_tensor.data = {_new_hailo_tensor.data()}")
 # print(f"_new_hailo_tensor.size = {_new_hailo_tensor.size()}")
 # print(f"_new_hailo_tensor.shape = {_new_hailo_tensor.shape()}")

@@ -15,11 +15,11 @@
 std::map<int, int> track_counter;
 
 /**
-* @brief Get the tracking Hailo Unique Id object from a Hailo Detection.
-* 
-* @param detection HailoDetectionPtr
-* @return HailoUniqueIdPtr pointer to the Hailo Unique Id object
-*/
+ * @brief Get the tracking Hailo Unique Id object from a Hailo Detection.
+ *
+ * @param detection HailoDetectionPtr
+ * @return HailoUniqueIdPtr pointer to the Hailo Unique Id object
+ */
 HailoUniqueIDPtr get_tracking_id(HailoDetectionPtr detection)
 {
     for (auto obj : detection->get_objects_typed(HAILO_UNIQUE_ID))
@@ -34,25 +34,25 @@ HailoUniqueIDPtr get_tracking_id(HailoDetectionPtr detection)
 }
 
 /**
-* @brief Returns a boolean box is invalid cause it has nan value.
-* 
-* @param box HailoBBox
-* @return boolean indicating if box has nan value.
-*/
+ * @brief Returns a boolean box is invalid cause it has nan value.
+ *
+ * @param box HailoBBox
+ * @return boolean indicating if box has nan value.
+ */
 bool box_contains_nan(HailoBBox box)
 {
     return (std::isnan(box.xmin()) && std::isnan(box.ymin()) && std::isnan(box.width()) && std::isnan(box.height()));
 }
 
 /**
-* @brief Returns a boolean indicating if traker update is required for a given detection.
-*       It is determined by the number of frames since the last update.
-*       How many frames to wait for an update are defined in TRACK_UPDATE.
-* 
-* @param detection HailoDetectionPtr
-* @param use_track_update boolean can override the default behaviour, false will always require an update
-* @return boolean indicating if traker update is required.
-*/
+ * @brief Returns a boolean indicating if traker update is required for a given detection.
+ *       It is determined by the number of frames since the last update.
+ *       How many frames to wait for an update are defined in TRACK_UPDATE.
+ *
+ * @param detection HailoDetectionPtr
+ * @param use_track_update boolean can override the default behaviour, false will always require an update
+ * @return boolean indicating if traker update is required.
+ */
 bool track_update(HailoDetectionPtr detection, bool use_track_update)
 {
     auto tracking_obj = get_tracking_id(detection);
@@ -74,7 +74,7 @@ bool track_update(HailoDetectionPtr detection, bool use_track_update)
         }
         else if (counter->second < TRACK_UPDATE)
         {
-            // Counter is still below TRACK_UPDATE_LIMIT - increasing the exising value. track update should be skipped. 
+            // Counter is still below TRACK_UPDATE_LIMIT - increasing the exising value. track update should be skipped.
             track_counter[tracking_id] += 1;
         }
 
@@ -91,7 +91,7 @@ bool track_update(HailoDetectionPtr detection, bool use_track_update)
  * @param roi The main ROI of this picture.
  * @return std::vector<HailoROIPtr> vector of ROI's to crop and resize.
  */
-std::vector<HailoROIPtr> person_crop(std::shared_ptr<HailoMat> image, HailoROIPtr roi, bool use_track_update=false)
+std::vector<HailoROIPtr> person_crop(std::shared_ptr<HailoMat> image, HailoROIPtr roi, bool use_track_update = false)
 {
     std::vector<HailoROIPtr> crop_rois;
     // Get all detections.
@@ -114,9 +114,11 @@ std::vector<HailoROIPtr> person_crop(std::shared_ptr<HailoMat> image, HailoROIPt
  * @param image The original picture (cv::Mat).
  * @param roi The ROI to modify
  * @return HailoBBox Adjusted HailoBBox to crop.
- * @note Original algorithm at https://github.com/cleardusk/3DDFA_V2/blob/9fdbea1eb97f762221f71f5c76f08f52296c6704/utils/functions.py#L85
+ * @note Original algorithm at
+ * https://github.com/cleardusk/3DDFA_V2/blob/9fdbea1eb97f762221f71f5c76f08f52296c6704/utils/functions.py#L85
  */
-HailoBBox algorithm_face_crop(uint width, uint height, const HailoBBox &roi, float size_scale = 1.0, float height_offset = 0.0)
+HailoBBox algorithm_face_crop(uint width, uint height, const HailoBBox &roi, float size_scale = 1.0,
+                              float height_offset = 0.0)
 {
     // Algorithm
     float old_size = (roi.width() * width + roi.height() * height) / 2;
@@ -135,45 +137,41 @@ HailoBBox algorithm_face_crop(uint width, uint height, const HailoBBox &roi, flo
 
 HailoDetectionPtr clone_detection_object(HailoDetectionPtr detection)
 {
-    HailoDetectionPtr new_roi = std::make_shared<HailoDetection>(detection->get_bbox(), detection->get_label(), detection->get_confidence());
+    HailoDetectionPtr new_roi =
+        std::make_shared<HailoDetection>(detection->get_bbox(), detection->get_label(), detection->get_confidence());
 
     for (auto object : detection->get_objects())
     {
         HailoObjectPtr new_object;
         switch (object->get_type())
         {
-            case HAILO_LANDMARKS:
-            {
-                auto landmarks = std::dynamic_pointer_cast<HailoLandmarks>(object);
-                new_object = landmarks->clone();
-                break;
-            }
-            case HAILO_CLASSIFICATION:
-            {
-                auto classification = std::dynamic_pointer_cast<HailoClassification>(object);
-                new_object = classification->clone();
-                break;
-            }
-            case HAILO_MATRIX:
-            {
-                auto matrix = std::dynamic_pointer_cast<HailoMatrix>(object);
-                new_object = matrix->clone();
-                break;
-            }
-            case HAILO_DETECTION:
-            {
-                auto detection = std::dynamic_pointer_cast<HailoDetection>(object);
-                new_object = detection->clone();
-                break;
-            }
-            case HAILO_UNIQUE_ID:
-            {
-                auto unique_id = std::dynamic_pointer_cast<HailoUniqueID>(object);
-                new_object = unique_id->clone();
-                break;
-            }
-            default:
-                break;
+        case HAILO_LANDMARKS: {
+            auto landmarks = std::dynamic_pointer_cast<HailoLandmarks>(object);
+            new_object = landmarks->clone();
+            break;
+        }
+        case HAILO_CLASSIFICATION: {
+            auto classification = std::dynamic_pointer_cast<HailoClassification>(object);
+            new_object = classification->clone();
+            break;
+        }
+        case HAILO_MATRIX: {
+            auto matrix = std::dynamic_pointer_cast<HailoMatrix>(object);
+            new_object = matrix->clone();
+            break;
+        }
+        case HAILO_DETECTION: {
+            auto detection = std::dynamic_pointer_cast<HailoDetection>(object);
+            new_object = detection->clone();
+            break;
+        }
+        case HAILO_UNIQUE_ID: {
+            auto unique_id = std::dynamic_pointer_cast<HailoUniqueID>(object);
+            new_object = unique_id->clone();
+            break;
+        }
+        default:
+            break;
         }
 
         new_roi->add_object(new_object);
@@ -190,7 +188,7 @@ HailoDetectionPtr clone_detection_object(HailoDetectionPtr detection)
  * @param track_update update track every X frames.
  * @return std::vector<HailoROIPtr> vector of ROI's to crop and resize.
  */
-std::vector<HailoROIPtr> face_crop(std::shared_ptr<HailoMat> image, HailoROIPtr roi, bool use_track_update=false)
+std::vector<HailoROIPtr> face_crop(std::shared_ptr<HailoMat> image, HailoROIPtr roi, bool use_track_update = false)
 {
     std::vector<HailoROIPtr> crop_rois;
     // Get all detections.
@@ -203,7 +201,9 @@ std::vector<HailoROIPtr> face_crop(std::shared_ptr<HailoMat> image, HailoROIPtr 
             if (track_update(detection, use_track_update))
             {
                 // Modifies a rectengle according to a cropping algorithm only on faces
-                auto new_bbox = algorithm_face_crop(image->native_width(), image->native_height(), detection->get_bbox(), FACE_ATTRIBUTES_CROP_SCALE_FACTOR, FACE_ATTRIBUTES_CROP_HIGHT_OFFSET_FACTOR);
+                auto new_bbox =
+                    algorithm_face_crop(image->native_width(), image->native_height(), detection->get_bbox(),
+                                        FACE_ATTRIBUTES_CROP_SCALE_FACTOR, FACE_ATTRIBUTES_CROP_HIGHT_OFFSET_FACTOR);
 
                 HailoDetectionPtr new_roi = clone_detection_object(detection);
                 hailo_common::fixate_landmarks_with_bbox(new_roi, new_bbox);

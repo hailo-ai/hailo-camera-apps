@@ -25,9 +25,7 @@ cxxopts::Options build_arg_parser()
 {
     cxxopts::Options options("License Plate Recognition");
     options.allow_unrecognised_options();
-    options.add_options()
-    ("h,help", "Show this help")
-    ("i, input", "Input hef", cxxopts::value<std::string>());
+    options.add_options()("h,help", "Show this help")("i, input", "Input hef", cxxopts::value<std::string>());
     return options;
 }
 
@@ -44,7 +42,8 @@ void parse_vstreams(std::vector<hailo_vstream_info_t> infos)
             std::cout << "  max_bboxes_per_class: " << info.nms_shape.max_bboxes_per_class << std::endl;
             break;
         default:
-            std::cout << "Shape: " << info.shape.height << "x" << info.shape.width << "x" << info.shape.features << std::endl;
+            std::cout << "Shape: " << info.shape.height << "x" << info.shape.width << "x" << info.shape.features
+                      << std::endl;
             break;
         }
 
@@ -82,7 +81,6 @@ hailo_status parse_hef(Hef hef)
         std::cout << std::endl;
         parse_vstreams(output_vstream_info_exp.release());
         std::cout << std::endl;
-
     }
     else
     {

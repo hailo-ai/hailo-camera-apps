@@ -8,8 +8,10 @@
 #include <nlohmann/json.hpp>
 #include <filesystem>
 
-const char *BASIC_VISION_CONFIG = "/home/root/apps/basic_security_camera_streaming/resources/configs/vision_config1.json";
-const char *ENCODER_CONFIG_FILE = "/home/root/apps/internals/validation_apps_configs/resources/configs/encoder_config.json";
+const char *BASIC_VISION_CONFIG =
+    "/home/root/apps/basic_security_camera_streaming/resources/configs/vision_config1.json";
+const char *ENCODER_CONFIG_FILE =
+    "/home/root/apps/internals/validation_apps_configs/resources/configs/encoder_config.json";
 static uint counter = 0;
 int num_outputs = 0;
 int frame_to_change = 1;
@@ -57,7 +59,8 @@ void write_string_to_file(const std::string &file_path, const std::string &conte
     file << content;
 }
 
-void read_and_update_encoder_configs(std::vector<std::string> &temp_file_paths, std::vector<std::string> &encoder_configs_strings)
+void read_and_update_encoder_configs(std::vector<std::string> &temp_file_paths,
+                                     std::vector<std::string> &encoder_configs_strings)
 {
     for (int i = 0; i < num_outputs; ++i)
     {
@@ -173,21 +176,27 @@ std::string create_dynamic_pipeline_string_config_string(std::string codec, std:
         pipeline += "frontend. ! "
                     "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
                     "hailoencodebin config-string='" +
-                    encoder_config_strings[i] + "' name=osd" + std::to_string(i) + " ! video/x-h264 ! "
-                                                                                   "tee name=stream" +
-                    std::to_string(i) + "_tee "
-                                        "stream" +
-                    std::to_string(i) + "_tee. ! "
-                                        "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-                                        "rtph264pay ! application/x-rtp, media=(string)video, encoding-name=(string)H264 ! "
-                                        "udpsink host=10.0.0.2 sync=false port=" +
-                    std::to_string(5000 + i * 2) + " "
-                                                   "stream" +
-                    std::to_string(i) + "_tee. ! "
-                                        "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-                                        "fpsdisplaysink fps-update-interval=2000 name=display_sink" +
-                    std::to_string(i + 1) + " text-overlay=false "
-                                            "video-sink=\"appsink max-buffers=1 name=hailo_sink" +
+                    encoder_config_strings[i] + "' name=osd" + std::to_string(i) +
+                    " ! video/x-h264 ! "
+                    "tee name=stream" +
+                    std::to_string(i) +
+                    "_tee "
+                    "stream" +
+                    std::to_string(i) +
+                    "_tee. ! "
+                    "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
+                    "rtph264pay ! application/x-rtp, media=(string)video, encoding-name=(string)H264 ! "
+                    "udpsink host=10.0.0.2 sync=false port=" +
+                    std::to_string(5000 + i * 2) +
+                    " "
+                    "stream" +
+                    std::to_string(i) +
+                    "_tee. ! "
+                    "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
+                    "fpsdisplaysink fps-update-interval=2000 name=display_sink" +
+                    std::to_string(i + 1) +
+                    " text-overlay=false "
+                    "video-sink=\"appsink max-buffers=1 name=hailo_sink" +
                     std::to_string(i + 1) + "\" sync=true signal-fps-measurements=true ";
     }
     return pipeline;
@@ -197,27 +206,34 @@ std::string create_dynamic_pipeline_string_config_file_path(std::string codec,
                                                             const std::vector<std::string> &encoder_config_paths,
                                                             int num_outputs)
 {
-    std::string pipeline = "hailofrontendbinsrc config-file-path=" + std::string(BASIC_VISION_CONFIG) + " name=frontend ";
+    std::string pipeline =
+        "hailofrontendbinsrc config-file-path=" + std::string(BASIC_VISION_CONFIG) + " name=frontend ";
     for (int i = 0; i < num_outputs; ++i)
     {
         pipeline += "frontend. ! "
                     "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
                     "hailoencodebin config-file-path=" +
-                    encoder_config_paths[i] + " name=osd" + std::to_string(i) + " ! video/x-h264 ! "
-                                                                                "tee name=stream" +
-                    std::to_string(i) + "_tee "
-                                        "stream" +
-                    std::to_string(i) + "_tee. ! "
-                                        "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-                                        "rtph264pay ! application/x-rtp, media=(string)video, encoding-name=(string)H264 ! "
-                                        "udpsink host=10.0.0.2 sync=false port=" +
-                    std::to_string(5000 + i * 2) + " "
-                                                   "stream" +
-                    std::to_string(i) + "_tee. ! "
-                                        "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-                                        "fpsdisplaysink fps-update-interval=2000 name=display_sink" +
-                    std::to_string(i + 1) + " text-overlay=false "
-                                            "video-sink=\"appsink max-buffers=1 name=hailo_sink" +
+                    encoder_config_paths[i] + " name=osd" + std::to_string(i) +
+                    " ! video/x-h264 ! "
+                    "tee name=stream" +
+                    std::to_string(i) +
+                    "_tee "
+                    "stream" +
+                    std::to_string(i) +
+                    "_tee. ! "
+                    "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
+                    "rtph264pay ! application/x-rtp, media=(string)video, encoding-name=(string)H264 ! "
+                    "udpsink host=10.0.0.2 sync=false port=" +
+                    std::to_string(5000 + i * 2) +
+                    " "
+                    "stream" +
+                    std::to_string(i) +
+                    "_tee. ! "
+                    "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
+                    "fpsdisplaysink fps-update-interval=2000 name=display_sink" +
+                    std::to_string(i + 1) +
+                    " text-overlay=false "
+                    "video-sink=\"appsink max-buffers=1 name=hailo_sink" +
                     std::to_string(i + 1) + "\" sync=true signal-fps-measurements=true ";
     }
     std::cout << "Pipeline: " << pipeline << std::endl;
@@ -264,10 +280,11 @@ void set_probes(GstElement *pipeline, std::vector<std::string> encoder_configs_s
     ProbeData *data = new ProbeData{pipeline, encoder_configs_strings, encoder_file_paths};
 
     std::cout << "Setting change probe" << std::endl;
-    gst_pad_add_probe(pad_frontend, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)change_probe_callback, data, [](gpointer data)
-                      { 
-        std::cout << "Deleting change probe data" << std::endl;
-        delete static_cast<ProbeData*>(data); });
+    gst_pad_add_probe(pad_frontend, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)change_probe_callback, data,
+                      [](gpointer data) {
+                          std::cout << "Deleting change probe data" << std::endl;
+                          delete static_cast<ProbeData *>(data);
+                      });
 
     if (print_fps)
     {
@@ -312,8 +329,12 @@ int main(int argc, char *argv[])
 
     // Parse user arguments
     cxxopts::Options options = build_arg_parser();
-    options.add_options()("frames", "Number of frames between every change", cxxopts::value<int>()->default_value("90"));
-    options.add_options()("config-file-path", "When true using config file path in gst pipeline, when false using config string in gst pipeline (default: false)", cxxopts::value<bool>()->default_value("false"));
+    options.add_options()("frames", "Number of frames between every change",
+                          cxxopts::value<int>()->default_value("90"));
+    options.add_options()("config-file-path",
+                          "When true using config file path in gst pipeline, when false using config string in gst "
+                          "pipeline (default: false)",
+                          cxxopts::value<bool>()->default_value("false"));
     auto result = options.parse(argc, argv);
     frame_to_change = result["frames"].as<int>();
     config_file_path = result["config-file-path"].as<bool>();
@@ -346,7 +367,8 @@ int main(int argc, char *argv[])
 
     bool rotationFlag = false;
     if (config_json["rotation"]["enabled"] == true)
-        if ((config_json["rotation"]["angle"] == "ROTATION_ANGLE_270") || (config_json["rotation"]["angle"] == "ROTATION_ANGLE_90"))
+        if ((config_json["rotation"]["angle"] == "ROTATION_ANGLE_270") ||
+            (config_json["rotation"]["angle"] == "ROTATION_ANGLE_90"))
             rotationFlag = true;
 
     // Populate output resolutions
@@ -370,7 +392,8 @@ int main(int argc, char *argv[])
     if (config_file_path)
         pipeline_string = create_dynamic_pipeline_string_config_file_path(codec, temp_file_paths, num_outputs);
     else
-        pipeline_string = create_dynamic_pipeline_string_config_string(codec, vision_config, encoder_configs_strings, num_outputs);
+        pipeline_string =
+            create_dynamic_pipeline_string_config_string(codec, vision_config, encoder_configs_strings, num_outputs);
     std::cout << "Created pipeline string." << std::endl;
 
     // Parse the pipeline

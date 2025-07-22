@@ -6,6 +6,7 @@
 
 // medialibrary includes
 #include "hailo/media_library/buffer_pool.hpp"
+#include "reference_camera_logger.hpp"
 
 // tappas includes
 #include "hailo_objects.hpp"
@@ -22,13 +23,15 @@ enum class MetadataType
     BATCH,
 };
 
-class Metadata 
+class Metadata
 {
-private:
+  private:
     MetadataType m_type;
-public:
-    Metadata(MetadataType type=MetadataType::UNKNOWN) : m_type(type)
-    {}
+
+  public:
+    Metadata(MetadataType type = MetadataType::UNKNOWN) : m_type(type)
+    {
+    }
 
     virtual ~Metadata() = default;
 
@@ -39,13 +42,15 @@ public:
 };
 using MetadataPtr = std::shared_ptr<Metadata>;
 
-class CroppingMetadata : public Metadata 
+class CroppingMetadata : public Metadata
 {
-private:
+  private:
     int m_num_crops;
-public:
+
+  public:
     CroppingMetadata(int num_crops) : Metadata(MetadataType::EXPECTED_CROPS), m_num_crops(num_crops)
-    {}
+    {
+    }
 
     int get_num_crops()
     {
@@ -54,14 +59,17 @@ public:
 };
 using CroppingMetadataPtr = std::shared_ptr<CroppingMetadata>;
 
-class BatchMetadata : public Metadata 
+class BatchMetadata : public Metadata
 {
-private:
+  private:
     size_t m_total_size;
     size_t m_index;
-public:
-    BatchMetadata(size_t total_size, size_t index) : Metadata(MetadataType::BATCH), m_total_size(total_size), m_index(index)
-    {}
+
+  public:
+    BatchMetadata(size_t total_size, size_t index)
+        : Metadata(MetadataType::BATCH), m_total_size(total_size), m_index(index)
+    {
+    }
     size_t get_total_size()
     {
         return m_total_size;
@@ -75,11 +83,13 @@ using BatchMetadataPtr = std::shared_ptr<BatchMetadata>;
 
 class BufferMetadata : public Metadata
 {
-private:
+  private:
     BufferPtr m_buffer;
-public:
-    BufferMetadata(BufferPtr buffer, MetadataType type=MetadataType::UNKNOWN) : Metadata(type), m_buffer(buffer)
-    {}
+
+  public:
+    BufferMetadata(BufferPtr buffer, MetadataType type = MetadataType::UNKNOWN) : Metadata(type), m_buffer(buffer)
+    {
+    }
 
     BufferPtr get_buffer()
     {
@@ -88,14 +98,16 @@ public:
 };
 using BufferMetadataPtr = std::shared_ptr<BufferMetadata>;
 
-class SizeMetadata : public Metadata 
+class SizeMetadata : public Metadata
 {
-private:
+  private:
     std::string m_label;
     int m_size;
-public:
+
+  public:
     SizeMetadata(std::string label, size_t size) : Metadata(MetadataType::SIZE), m_label(label), m_size(size)
-    {}
+    {
+    }
 
     std::string get_label()
     {
@@ -111,11 +123,14 @@ using SizeMetadataPtr = std::shared_ptr<SizeMetadata>;
 
 class TensorMetadata : public BufferMetadata
 {
-private:
+  private:
     std::string m_tensor_name;
-public:
-    TensorMetadata(BufferPtr buffer, std::string tensor_name) : BufferMetadata(buffer, MetadataType::TENSOR), m_tensor_name(tensor_name)
-    {}
+
+  public:
+    TensorMetadata(BufferPtr buffer, std::string tensor_name)
+        : BufferMetadata(buffer, MetadataType::TENSOR), m_tensor_name(tensor_name)
+    {
+    }
 
     std::string get_tensor_name()
     {
@@ -126,142 +141,152 @@ using TensorMetadataPtr = std::shared_ptr<TensorMetadata>;
 
 class TimeStamp
 {
-private:
+  private:
     std::chrono::steady_clock::time_point m_time;
     std::string m_stage_name;
 
-public:
+  public:
     TimeStamp(std::string stage_name)
     {
         m_time = std::chrono::steady_clock::now();
         m_stage_name = stage_name;
     }
 
-    std::chrono::steady_clock::time_point get_time_point() const {
+    std::chrono::steady_clock::time_point get_time_point() const
+    {
         return m_time;
     }
 
-    std::string get_stage_name() const {
+    std::string get_stage_name() const
+    {
         return m_stage_name;
     }
 };
 using TimeStampPtr = std::shared_ptr<TimeStamp>;
 
-
-
-class Buffer {
-private:
+class Buffer
+{
+  private:
     HailoMediaLibraryBufferPtr m_buffer;
     HailoROIPtr m_roi;
     std::vector<MetadataPtr> m_metadata;
     std::vector<TimeStampPtr> m_timestamps;
 
-public:
-    Buffer(HailoMediaLibraryBufferPtr buffer)
-        : m_buffer(buffer) 
+  public:
+    Buffer(HailoMediaLibraryBufferPtr buffer) : m_buffer(buffer)
     {
         m_roi = std::make_shared<HailoROI>(HailoROI(HailoBBox(0.0f, 0.0f, 1.0f, 1.0f)));
-        TimeStampPtr time_stamp =  std::make_shared<TimeStamp>("Source");
+        TimeStampPtr time_stamp = std::make_shared<TimeStamp>("Source");
         m_timestamps.push_back(time_stamp);
     }
 
-    Buffer(Buffer &other) {
-        if (this != &other) {  // prevent self-assignment
+    Buffer(Buffer &other)
+    {
+        if (this != &other)
+        { // prevent self-assignment
             m_buffer = other.m_buffer;
             m_roi = std::make_shared<HailoROI>(*other.m_roi);
-            //deep copy of metadata
+            // shallow copy of metadata
             m_metadata.clear();
-            for (const auto &metadata : other.m_metadata) {
-                if (metadata->get_type() == MetadataType::TENSOR) {
-                    auto tensor_metadata = std::dynamic_pointer_cast<TensorMetadata>(metadata);
-                    m_metadata.push_back(std::make_shared<TensorMetadata>(*tensor_metadata));
-                } else if (metadata->get_type() == MetadataType::EXPECTED_CROPS) {
-                    auto cropping_metadata = std::dynamic_pointer_cast<CroppingMetadata>(metadata);
-                    m_metadata.push_back(std::make_shared<CroppingMetadata>(*cropping_metadata));
-                } else if (metadata->get_type() == MetadataType::SIZE) {
-                    auto size_metadata = std::dynamic_pointer_cast<SizeMetadata>(metadata);
-                    m_metadata.push_back(std::make_shared<SizeMetadata>(*size_metadata));
-                } else {
-                    m_metadata.push_back(std::make_shared<Metadata>(*metadata));
-                }
-            }
-            //deep copy of timestamps
+            m_metadata = other.m_metadata;
+            // shallow copy of timestamps
             m_timestamps.clear();
-            for (const auto &timestamp : other.m_timestamps) {
+            for (const auto &timestamp : other.m_timestamps)
+            {
                 m_timestamps.push_back(std::make_shared<TimeStamp>(*timestamp));
             }
         }
     }
 
-    Buffer(HailoMediaLibraryBufferPtr buffer, HailoROIPtr roi)
-        : m_buffer(buffer) 
+    Buffer(HailoMediaLibraryBufferPtr buffer, HailoROIPtr roi) : m_buffer(buffer)
     {
-        if (roi) {
+        if (roi)
+        {
             m_roi = roi;
-        } else {
+        }
+        else
+        {
             m_roi = std::make_shared<HailoROI>(HailoROI(HailoBBox(0.0f, 0.0f, 1.0f, 1.0f)));
         }
     }
 
-    HailoMediaLibraryBufferPtr get_buffer() const {
+    HailoMediaLibraryBufferPtr get_buffer() const
+    {
         return m_buffer;
     }
 
-    HailoROIPtr get_roi() const {
+    HailoROIPtr get_roi() const
+    {
         return m_roi;
     }
 
-    void add_time_stamp(const std::string &stage) {
-        TimeStampPtr time_stamp =  std::make_shared<TimeStamp>(stage);
+    void add_time_stamp(const std::string &stage)
+    {
+        TimeStampPtr time_stamp = std::make_shared<TimeStamp>(stage);
         m_timestamps.push_back(time_stamp);
     }
 
-    size_t get_num_stages() const {
-            return m_timestamps.size();
+    size_t get_num_stages() const
+    {
+        return m_timestamps.size();
     }
 
-    std::chrono::steady_clock::time_point get_time_stamp( int index) const {
-        return  m_timestamps[index]->get_time_point();
+    std::chrono::steady_clock::time_point get_time_stamp(int index) const
+    {
+        return m_timestamps[index]->get_time_point();
     }
 
-    void print_latency_measurements() const {
-         size_t last_index = (m_timestamps.size() - 1);
-          for (size_t i = 0; i < m_timestamps.size(); ++i){
-            std::cout  << m_timestamps[i]->get_stage_name()<< " ";
-          }
-    
-          std::cout << std::endl;
-          for (size_t i = 0; i < last_index; ++i) {
-            auto stage_name = m_timestamps[i+1]->get_stage_name();
-            std::chrono::steady_clock::time_point end  = m_timestamps[i+1]->get_time_point();
-            std::chrono::steady_clock::time_point start  = m_timestamps[i]->get_time_point();
-            
-            std::cout  << stage_name <<" took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "[milli] ";
-          }
-          std::cout  <<  std::endl;
+    void print_latency_measurements() const
+    {
+        std::string debug_log = "";
+        size_t last_index = (m_timestamps.size() - 1);
+        for (size_t i = 0; i < m_timestamps.size(); ++i)
+        {
+            debug_log += m_timestamps[i]->get_stage_name() + " ";
+        }
+
+        REFERENCE_CAMERA_LOG_DEBUG("{}", debug_log);
+        debug_log = "";
+        for (size_t i = 0; i < last_index; ++i)
+        {
+            auto stage_name = m_timestamps[i + 1]->get_stage_name();
+            std::chrono::steady_clock::time_point end = m_timestamps[i + 1]->get_time_point();
+            std::chrono::steady_clock::time_point start = m_timestamps[i]->get_time_point();
+
+            debug_log += stage_name + " took: " +
+                         std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()) +
+                         "[milli] ";
+        }
+        REFERENCE_CAMERA_LOG_DEBUG("{}", debug_log);
     }
 
-    void add_metadata(MetadataPtr metadata) {
+    void add_metadata(MetadataPtr metadata)
+    {
         m_metadata.push_back(metadata);
     }
 
-    void remove_metadata(MetadataPtr metadata) {
-        for (auto it = m_metadata.begin(); it != m_metadata.end(); ++it) {
-            if (*it == metadata) {
+    void remove_metadata(MetadataPtr metadata)
+    {
+        for (auto it = m_metadata.begin(); it != m_metadata.end(); ++it)
+        {
+            if (*it == metadata)
+            {
                 m_metadata.erase(it);
                 break;
             }
         }
     }
 
-    std::vector<MetadataPtr> get_metadata_of_type(MetadataType metadata_type) {
+    std::vector<MetadataPtr> get_metadata_of_type(MetadataType metadata_type)
+    {
         std::vector<MetadataPtr> metadata;
-        for (auto &m : m_metadata) {
-            if (m->get_type() == metadata_type) {
+        for (auto &m : m_metadata)
+        {
+            if (m->get_type() == metadata_type)
+            {
                 metadata.push_back(m);
             }
         }
         return metadata;
     }
-
 };

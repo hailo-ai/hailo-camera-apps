@@ -9,18 +9,17 @@
 GST_DEBUG_CATEGORY_STATIC(gst_hailo_videoscale_debug);
 #define GST_CAT_DEFAULT gst_hailo_videoscale_debug
 
-#define _do_init \
-    GST_DEBUG_CATEGORY_INIT(gst_hailo_videoscale_debug, "hailovideoscale", 0, "Hailo Videoscale");
+#define _do_init GST_DEBUG_CATEGORY_INIT(gst_hailo_videoscale_debug, "hailovideoscale", 0, "Hailo Videoscale");
 #define gst_hailo_videoscale_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE(GstHailoVideoScale, gst_hailo_videoscale, GST_TYPE_HAILO_DSP_BASE_TRANSFORM, _do_init);
 
-static GstFlowReturn
-gst_hailo_videoscale_transform(GstBaseTransform *base_transform, GstBuffer *inbuf, GstBuffer *outbuf);
+static GstFlowReturn gst_hailo_videoscale_transform(GstBaseTransform *base_transform, GstBuffer *inbuf,
+                                                    GstBuffer *outbuf);
 
 static void gst_hailo_videoscale_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec);
 static void gst_hailo_videoscale_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
-static GstCaps *gst_hailo_videoscale_transform_caps(GstBaseTransform *trans,
-                                                    GstPadDirection direction, GstCaps *caps, GstCaps *filter);
+static GstCaps *gst_hailo_videoscale_transform_caps(GstBaseTransform *trans, GstPadDirection direction, GstCaps *caps,
+                                                    GstCaps *filter);
 static gboolean gst_hailo_videoscale_start(GstBaseTransform *base_transform);
 static gboolean gst_hailo_videoscale_stop(GstBaseTransform *base_transform);
 
@@ -30,8 +29,7 @@ enum
     PROP_USE_LETTERBOX,
 };
 
-static void
-gst_hailo_videoscale_class_init(GstHailoVideoScaleClass *klass)
+static void gst_hailo_videoscale_class_init(GstHailoVideoScaleClass *klass)
 {
     GObjectClass *const object_class = G_OBJECT_CLASS(klass);
     GstBaseTransformClass *const base_transform_class = GST_BASE_TRANSFORM_CLASS(klass);
@@ -44,32 +42,29 @@ gst_hailo_videoscale_class_init(GstHailoVideoScaleClass *klass)
     base_transform_class->start = GST_DEBUG_FUNCPTR(gst_hailo_videoscale_start);
     base_transform_class->stop = GST_DEBUG_FUNCPTR(gst_hailo_videoscale_stop);
 
-    g_object_class_install_property(object_class, PROP_USE_LETTERBOX,
-                                    g_param_spec_boolean("use-letterbox", "Use letterbox", "Should we do the resize using letterbox.", false,
-                                                         (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_PLAYING)));
+    g_object_class_install_property(
+        object_class, PROP_USE_LETTERBOX,
+        g_param_spec_boolean("use-letterbox", "Use letterbox", "Should we do the resize using letterbox.", false,
+                             (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_PLAYING)));
 
-    gst_element_class_set_static_metadata(GST_ELEMENT_CLASS(klass),
-                                          "Hailo Videoscale",
-                                          "Hailo/Tools",
+    gst_element_class_set_static_metadata(GST_ELEMENT_CLASS(klass), "Hailo Videoscale", "Hailo/Tools",
                                           "Perform resize on a buffer using Hailo15 DSP",
                                           "hailo.ai <contact@hailo.ai>");
 
-    gst_element_class_add_pad_template(GST_ELEMENT_CLASS(klass),
-                                       gst_pad_template_new("src", GST_PAD_SRC, GST_PAD_ALWAYS,
-                                                            gst_caps_from_string(HAILO_VIDEOSCALE_VIDEO_CAPS)));
-    gst_element_class_add_pad_template(GST_ELEMENT_CLASS(klass),
-                                       gst_pad_template_new("sink", GST_PAD_SINK, GST_PAD_ALWAYS,
-                                                            gst_caps_from_string(HAILO_VIDEOSCALE_VIDEO_CAPS)));
+    gst_element_class_add_pad_template(
+        GST_ELEMENT_CLASS(klass),
+        gst_pad_template_new("src", GST_PAD_SRC, GST_PAD_ALWAYS, gst_caps_from_string(HAILO_VIDEOSCALE_VIDEO_CAPS)));
+    gst_element_class_add_pad_template(
+        GST_ELEMENT_CLASS(klass),
+        gst_pad_template_new("sink", GST_PAD_SINK, GST_PAD_ALWAYS, gst_caps_from_string(HAILO_VIDEOSCALE_VIDEO_CAPS)));
 }
 
-static void
-gst_hailo_videoscale_init(GstHailoVideoScale *self)
+static void gst_hailo_videoscale_init(GstHailoVideoScale *self)
 {
     gst_base_transform_set_in_place(GST_BASE_TRANSFORM(self), FALSE);
 }
 
-static void
-gst_hailo_videoscale_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec)
+static void gst_hailo_videoscale_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec)
 {
     GstHailoVideoScale *hailovideoscale = (GstHailoVideoScale *)(object);
 
@@ -84,8 +79,7 @@ gst_hailo_videoscale_set_property(GObject *object, guint prop_id, const GValue *
     }
 }
 
-static void
-gst_hailo_videoscale_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
+static void gst_hailo_videoscale_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
 {
     GstHailoVideoScale *hailovideoscale = (GstHailoVideoScale *)(object);
 
@@ -125,9 +119,8 @@ static gboolean gst_hailo_videoscale_stop(GstBaseTransform *base_transform)
     return TRUE;
 }
 
-static GstCaps *
-gst_hailo_videoscale_transform_caps(GstBaseTransform *trans,
-                                    GstPadDirection direction, GstCaps *caps, GstCaps *filter)
+static GstCaps *gst_hailo_videoscale_transform_caps(GstBaseTransform *trans, GstPadDirection direction, GstCaps *caps,
+                                                    GstCaps *filter)
 {
     GstCaps *res_caps, *tmp_caps;
     GstStructure *structure;
@@ -155,8 +148,8 @@ gst_hailo_videoscale_transform_caps(GstBaseTransform *trans,
 static HailoBBox calculate_scale_bbox(HailoBufferDataPtr input_image, HailoBufferDataPtr output_image)
 {
     // Calculate the scaling ratio
-    float ratio = std::min(float(output_image->width) / input_image->width,
-                           float(output_image->height) / input_image->height);
+    float ratio =
+        std::min(float(output_image->width) / input_image->width, float(output_image->height) / input_image->height);
 
     // Calculate the new dimensions of the input image
     int new_width = std::round(input_image->width * ratio);
@@ -176,15 +169,15 @@ static HailoBBox calculate_scale_bbox(HailoBufferDataPtr input_image, HailoBuffe
 
     // Construct and return the transformation
     HailoBBox letterboxed_scale = HailoBBox(-(left / float(new_width)),                       // x-offset
-                                             -(top / float(new_height)),                       // y-offset
-                                             1.0 / (new_width / float(output_image->height)),  // width factor
-                                             1.0 / (new_height / float(output_image->width))); // height factor
+                                            -(top / float(new_height)),                       // y-offset
+                                            1.0 / (new_width / float(output_image->height)),  // width factor
+                                            1.0 / (new_height / float(output_image->width))); // height factor
 
     return letterboxed_scale;
 }
 
-static GstFlowReturn
-gst_hailo_videoscale_transform(GstBaseTransform *base_transform, GstBuffer *inbuf, GstBuffer *outbuf)
+static GstFlowReturn gst_hailo_videoscale_transform(GstBaseTransform *base_transform, GstBuffer *inbuf,
+                                                    GstBuffer *outbuf)
 {
     GstHailoVideoScale *hailovideoscale = GST_HAILO_VIDEOSCALE(base_transform);
 
@@ -201,7 +194,7 @@ gst_hailo_videoscale_transform(GstBaseTransform *base_transform, GstBuffer *inbu
     }
 
     GstCaps *outcaps = gst_pad_get_current_caps(base_transform->srcpad);
-    if(!outcaps)
+    if (!outcaps)
     {
         GST_ERROR_OBJECT(hailovideoscale, "Failed to get output caps");
         return GST_FLOW_ERROR;
@@ -214,7 +207,7 @@ gst_hailo_videoscale_transform(GstBaseTransform *base_transform, GstBuffer *inbu
         GST_ERROR_OBJECT(hailovideoscale, "Output caps size is not 1 (%d)", size);
         return GST_FLOW_ERROR;
     }
-    
+
     HailoMediaLibraryBufferPtr output_frame_ptr = hailo_buffer_from_gst_buffer(outbuf, outcaps);
     if (!output_frame_ptr)
     {
@@ -234,8 +227,9 @@ gst_hailo_videoscale_transform(GstBaseTransform *base_transform, GstBuffer *inbu
         .color = {.y = 0, .u = 128, .v = 128}, // Black letterbox border
     };
 
-    dsp_status result = dsp_utils::perform_resize(input_frame_ptr->buffer_data.get(), output_frame_ptr->buffer_data.get(), 
-                                                  INTERPOLATION_TYPE_BILINEAR, letterbox_params);
+    dsp_status result =
+        dsp_utils::perform_resize(input_frame_ptr->buffer_data.get(), output_frame_ptr->buffer_data.get(),
+                                  INTERPOLATION_TYPE_BILINEAR, letterbox_params);
 
     if (result != DSP_SUCCESS)
     {

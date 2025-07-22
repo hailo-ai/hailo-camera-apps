@@ -1,6 +1,6 @@
 /* GStreamer
  * Copyright (C) 2013 Stefan Sauer <ensonic@users.sf.net>
- * Copyright (C) 2016 RidgeRun Engineering <carlos.rodriguez@ridgerun.com> 
+ * Copyright (C) 2016 RidgeRun Engineering <carlos.rodriguez@ridgerun.com>
  *
  * gstinterlatency.h: tracing module that logs processing latencies
  * stats between source and intermediate elements
@@ -25,16 +25,13 @@
 #include "gstsharktracer.hpp"
 
 G_BEGIN_DECLS
-#define GST_TYPE_INTERLATENCY_TRACER \
-  (gst_interlatency_tracer_get_type())
-#define GST_INTERLATENCY_TRACER(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_INTERLATENCY_TRACER,GstInterLatencyTracer))
-#define GST_INTERLATENCY_TRACER_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_INTERLATENCY_TRACER,GstInterLatencyTracerClass))
-#define GST_IS_INTERLATENCY_TRACER(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_INTERLATENCY_TRACER))
-#define GST_IS_INTERLATENCY_TRACER_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_INTERLATENCY_TRACER))
+#define GST_TYPE_INTERLATENCY_TRACER (gst_interlatency_tracer_get_type())
+#define GST_INTERLATENCY_TRACER(obj)                                                                                   \
+    (G_TYPE_CHECK_INSTANCE_CAST((obj), GST_TYPE_INTERLATENCY_TRACER, GstInterLatencyTracer))
+#define GST_INTERLATENCY_TRACER_CLASS(klass)                                                                           \
+    (G_TYPE_CHECK_CLASS_CAST((klass), GST_TYPE_INTERLATENCY_TRACER, GstInterLatencyTracerClass))
+#define GST_IS_INTERLATENCY_TRACER(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), GST_TYPE_INTERLATENCY_TRACER))
+#define GST_IS_INTERLATENCY_TRACER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), GST_TYPE_INTERLATENCY_TRACER))
 #define GST_INTERLATENCY_TRACER_CAST(obj) ((GstInterLatencyTracer *)(obj))
 typedef struct _GstInterLatencyTracer GstInterLatencyTracer;
 typedef struct _GstInterLatencyTracerClass GstInterLatencyTracerClass;
@@ -46,17 +43,17 @@ typedef struct _GstInterLatencyTracerClass GstInterLatencyTracerClass;
  */
 struct _GstInterLatencyTracer
 {
-  GstSharkTracer parent;
-  /*< private > */
+    GstSharkTracer parent;
+    /*< private > */
 };
 
 struct _GstInterLatencyTracerClass
 {
-  GstSharkTracerClass parent_class;
+    GstSharkTracerClass parent_class;
 
-  /* signals */
+    /* signals */
 };
 
-G_GNUC_INTERNAL GType gst_interlatency_tracer_get_type (void);
+G_GNUC_INTERNAL GType gst_interlatency_tracer_get_type(void);
 
 G_END_DECLS

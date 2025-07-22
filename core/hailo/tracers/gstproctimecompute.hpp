@@ -25,15 +25,13 @@ G_BEGIN_DECLS
 
 typedef struct _GstProcTime GstProcTime;
 
-GstProcTime *gst_proctime_new (void);
+GstProcTime *gst_proctime_new(void);
 
-void gst_proctime_add_new_element (GstProcTime * proc_time,
-    GstElement * element);
+void gst_proctime_add_new_element(GstProcTime *proc_time, GstElement *element);
 
-gboolean gst_proctime_proc_time (GstProcTime * proc_time,
-    GstClockTime * time, GstPad * peer_pad, GstPad * src_pad,
-    GstClockTime ts, gboolean do_calculation);
+gboolean gst_proctime_proc_time(GstProcTime *proc_time, GstClockTime *time, GstPad *peer_pad, GstPad *src_pad,
+                                GstClockTime ts, gboolean do_calculation);
 
-void gst_proctime_free (GstProcTime * proc_time);
+void gst_proctime_free(GstProcTime *proc_time);
 
 G_END_DECLS

@@ -1,10 +1,10 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 // Catch2 includes
-#define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
-#include "catch.hpp"       // This includes the catch2 header-only library, no further includes needed for catch2
+#define CATCH_CONFIG_MAIN // This tells Catch to provide a main() - only do this in one cpp file
+#include "catch.hpp"      // This includes the catch2 header-only library, no further includes needed for catch2
 
 // General cpp includes
 #include <iostream>
@@ -16,11 +16,13 @@
 #include "hailo_common.hpp"
 #include "debug.hpp"
 
-TEST_CASE( "The debug postprocess can generate random detections", "[debug_detections]" ) {
+TEST_CASE("The debug postprocess can generate random detections", "[debug_detections]")
+{
     // Create a dummy roi
     HailoBBox main_bbox = HailoBBox(0, 0, 1, 1);
 
-    SECTION( "The added detections are random in number and dimensions." ) {
+    SECTION("The added detections are random in number and dimensions.")
+    {
         // Create a main roi to fill with random detections
         HailoROI main_roi = HailoROI(main_bbox);
         HailoROIPtr main_roi_ptr = std::make_shared<HailoROI>(main_roi);

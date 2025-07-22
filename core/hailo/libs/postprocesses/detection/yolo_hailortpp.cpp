@@ -85,10 +85,12 @@ YoloParamsNMS *init(const std::string config_path, const std::string function_na
             }
 
             // set the params
-            if (doc_config_json.HasMember("detection_threshold")) {
+            if (doc_config_json.HasMember("detection_threshold"))
+            {
                 params->detection_threshold = doc_config_json["detection_threshold"].GetFloat();
             }
-            if (doc_config_json.HasMember("max_boxes")) {
+            if (doc_config_json.HasMember("max_boxes"))
+            {
                 params->max_boxes = doc_config_json["max_boxes"].GetInt();
                 params->filter_by_score = true;
             }
@@ -103,9 +105,7 @@ void free_resources(void *params_void_ptr)
     delete params;
 }
 
-static std::map<uint8_t, std::string> yolo_vehicles_labels = {
-    {0, "unlabeled"},
-    {1, "car"}};
+static std::map<uint8_t, std::string> yolo_vehicles_labels = {{0, "unlabeled"}, {1, "car"}};
 
 void yolov5(HailoROIPtr roi)
 {
@@ -151,6 +151,19 @@ void yolov8m(HailoROIPtr roi)
     hailo_common::add_detections(roi, detections);
 }
 
+void yolov8n_personface(HailoROIPtr roi, YoloParamsNMS *params)
+{
+    if (!roi->has_tensors())
+    {
+        return;
+    }
+    auto post =
+        HailoNMSDecode(roi->get_tensor("yolov8n_personface_nv12/yolov8_nms_postprocess"), common::yolo_personface,
+                       params->detection_threshold, params->max_boxes, true);
+    auto detections = post.decode<float32_t, common::hailo_bbox_float32_t>();
+    hailo_common::add_detections(roi, detections);
+}
+
 void yolox(HailoROIPtr roi)
 {
     if (!roi->has_tensors())
@@ -184,13 +197,15 @@ void yolov5m_vehicles_nv12(HailoROIPtr roi)
     hailo_common::add_detections(roi, detections);
 }
 
-void yolov5s_personface(HailoROIPtr roi)
+void yolov5s_personface(HailoROIPtr roi, YoloParamsNMS *params)
 {
     if (!roi->has_tensors())
     {
         return;
     }
-    auto post = HailoNMSDecode(roi->get_tensor("yolov5s_personface_nv12/yolov5_nms_postprocess"), common::yolo_personface);
+
+    auto post = HailoNMSDecode(roi->get_tensor("yolov5s_personface_nv12/yolov5_nms_postprocess"),
+                               common::yolo_personface, params->detection_threshold, params->max_boxes, true);
     auto detections = post.decode<float32_t, common::hailo_bbox_float32_t>();
     hailo_common::add_detections(roi, detections);
 }
@@ -216,6 +231,43 @@ void yolov5_no_persons(HailoROIPtr roi)
     }
     hailo_common::add_detections(roi, detections);
 }
+
+void yolov5_seg(HailoROIPtr roi)
+{
+    if (!roi->has_tensors())
+    {
+        return;
+    }
+
+    // find the seg nms tensor
+    std::vector<HailoTensorPtr> tensors = roi->get_tensors();
+    for (auto tensor : tensors)
+    {
+        if (!std::regex_search(tensor->name(), std::regex("yolov5_seg_nms_postprocess")))
+        {
+            continue;
+        }
+        
+        uint8_t *buffer = tensor->data();
+        std::vector<HailoSegmentation> segmentations = {};
+        uint16_t segmentations_count = *(uint16_t *)buffer;
+        size_t buffer_offset = sizeof(uint16_t);
+
+        for (size_t i = 0; i < segmentations_count; i++)
+        {
+            hailo_detection_with_byte_mask_t segmentation =
+                *(hailo_detection_with_byte_mask_t *)(buffer + buffer_offset);
+            auto width = static_cast<uint32_t>(segmentation.box.x_max - segmentation.box.x_min);
+            auto height = static_cast<uint32_t>(segmentation.box.y_max - segmentation.box.y_min);
+            segmentations.push_back(HailoSegmentation(
+                HailoBBox(segmentation.box.x_min, segmentation.box.y_min, width, height), std::move(segmentation)));
+            buffer_offset += sizeof(hailo_detection_with_byte_mask_t) + segmentation.mask_size;
+        }
+
+        hailo_common::add_segmentations(roi, segmentations);
+    }
+}
+
 void filter(HailoROIPtr roi, void *params_void_ptr)
 {
     if (!roi->has_tensors())
@@ -227,14 +279,16 @@ void filter(HailoROIPtr roi, void *params_void_ptr)
     // find the nms tensor
     for (auto tensor : tensors)
     {
-        if (std::regex_search(tensor->name(), std::regex("nms_postprocess"))) 
+        if (std::regex_search(tensor->name(), std::regex("nms_postprocess")))
         {
-            auto post = HailoNMSDecode(tensor, params->labels, params->detection_threshold, params->max_boxes, params->filter_by_score);
+            auto post = HailoNMSDecode(tensor, params->labels, params->detection_threshold, params->max_boxes,
+                                       params->filter_by_score);
             auto detections = post.decode<float32_t, common::hailo_bbox_float32_t>();
             hailo_common::add_detections(roi, detections);
         }
     }
 }
+
 void filter_letterbox(HailoROIPtr roi, void *params_void_ptr)
 {
     filter(roi, params_void_ptr);
@@ -255,5 +309,4 @@ void filter_letterbox(HailoROIPtr roi, void *params_void_ptr)
 
     // Clear the scaling bbox of main roi because all detections are fixed.
     roi->clear_scaling_bbox();
-
 }

@@ -1,5 +1,6 @@
 // Define the Resolution struct
-struct Resolution {
+struct Resolution
+{
     int width;
     int height;
     int framerate;

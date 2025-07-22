@@ -32,23 +32,25 @@ using FileModulePtr = std::shared_ptr<FileModule>;
 
 class FileModule : public OutputModule
 {
-private:
+  private:
     std::string m_filepath;
     EncodingType m_type;
-    
-public:
-    static tl::expected<FileModulePtr, AppStatus> create(std::string name, std::string filepath, EncodingType type);
-    ~FileModule() override = default;
-    FileModule(std::string name, std::string filepath, EncodingType type, AppStatus &status);
 
-private:
+  public:
+    static tl::expected<FileModulePtr, AppStatus> create(std::string name, std::string filepath, EncodingType type,
+                                                         bool print_fps);
+    ~FileModule() override = default;
+    FileModule(std::string name, std::string filepath, EncodingType type, AppStatus &status, bool print_fps);
+
+  private:
     std::string create_pipeline_string();
 };
 
-tl::expected<FileModulePtr, AppStatus> FileModule::create(std::string name, std::string filepath, EncodingType type)
+tl::expected<FileModulePtr, AppStatus> FileModule::create(std::string name, std::string filepath, EncodingType type,
+                                                          bool print_fps)
 {
     AppStatus status = AppStatus::UNINITIALIZED;
-    FileModulePtr file_module = std::make_shared<FileModule>(name, filepath, type, status);
+    FileModulePtr file_module = std::make_shared<FileModule>(name, filepath, type, status, print_fps);
     if (status != AppStatus::SUCCESS)
     {
         return tl::make_unexpected(status);
@@ -56,8 +58,8 @@ tl::expected<FileModulePtr, AppStatus> FileModule::create(std::string name, std:
     return file_module;
 }
 
-FileModule::FileModule(std::string name, std::string filepath, EncodingType type, AppStatus &status)
-    : OutputModule(name, type), m_filepath(filepath), m_type(type)
+FileModule::FileModule(std::string name, std::string filepath, EncodingType type, AppStatus &status, bool print_fps)
+    : OutputModule(name, type, print_fps), m_filepath(filepath), m_type(type)
 {
     // Initialize gstreamer
     gst_init(nullptr, nullptr);
@@ -98,20 +100,19 @@ std::string FileModule::create_pipeline_string()
     std::ostringstream file_sink;
     file_sink << "filesink location=" << m_filepath << " name=file_sink ";
 
-    pipeline =
-        "appsrc name=file_src do-timestamp=true format=time block=true is-live=true max-bytes=0 max-buffers=1 ! "
-        "queue name=" +
-        std::string(SRC_QUEUE_NAME) + " leaky=no max-size-buffers=1 max-size-bytes=0 max-size-time=0 ! " +
-        caps2.str() + " ! "
-        "tee name=file_tee "
-        "file_tee. ! "
-            "queue leaky=no max-size-buffers=2 max-size-bytes=0 max-size-time=0 ! "
-            "fpsdisplaysink name=fpsdisplaysink sync=false video-sink=fakesink "
-        "file_tee. ! "
-            "queue leaky=no max-size-buffers=2 max-size-bytes=0 max-size-time=0 ! " +
-            encoder_parser + " ! " + file_sink.str() + " sync=false ";
+    pipeline = "appsrc name=file_src do-timestamp=true format=time block=true is-live=true max-bytes=0 max-buffers=1 ! "
+               "queue name=" +
+               std::string(SRC_QUEUE_NAME) + " leaky=no max-size-buffers=1 max-size-bytes=0 max-size-time=0 ! " +
+               caps2.str() +
+               " ! "
+               "tee name=file_tee "
+               "file_tee. ! "
+               "queue leaky=no max-size-buffers=2 max-size-bytes=0 max-size-time=0 ! "
+               "fpsdisplaysink name=fpsdisplaysink sync=false video-sink=fakesink "
+               "file_tee. ! "
+               "queue leaky=no max-size-buffers=2 max-size-bytes=0 max-size-time=0 ! " +
+               encoder_parser + " ! " + file_sink.str() + " sync=false ";
 
-    std::cout << "Pipeline: " << pipeline << std::endl;
     REFERENCE_CAMERA_LOG_INFO("Pipeline: {}", pipeline);
 
     return pipeline;

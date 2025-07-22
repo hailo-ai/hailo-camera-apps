@@ -33,68 +33,90 @@ function init_variables() {
 
     print_gst_launch_only=false
     additional_parameters=""
+
+    mode="daylight"
+    tuning_extension=""
+    project="hailo15h"
 }
 
 function print_usage() {
     echo "Hailo15 Detection pipeline usage:"
     echo ""
     echo "Options:"
-    echo "  --help                  Show this help"
-    echo "  --network NETWORK       Set network to use. Choose from [yolov5m, yolov8s], default is yolov5m"
-    echo "  -i INPUT --input INPUT  Set the camera source (default $input_source)"
-    echo "  --show-fps              Print fps"
-    echo "  --print-gst-launch      Print the ready gst-launch command without running it"
-    echo "  --denoise-config-file-path  Set the denoise config file path (default ${DEFAULT_FRONTEND_CONFIG_FILE_PATH})"
+    echo "  --help                       Show this help"
+    echo "  --network NETWORK            Set network to use. Choose from [yolov5m, yolov8s], default is yolov5m"
+    echo "  -i INPUT, --input INPUT      Set the camera source (default $input_source)"
+    echo "  --show-fps                   Print fps"
+    echo "  --print-gst-launch           Print gst-launch command without running it"
+    echo "  --denoise-config-file-path   Set denoise config file path (default ${DEFAULT_FRONTEND_CONFIG_FILE_PATH})"
+    echo "  --mode                       mode (e.g., daylight)"
+    echo "  --tuning                     tuning extension - relevant only for denoise (e.g., _r0225)"
+    echo "  --project                    project name (e.g., hailo15h)"
     exit 0
 }
 
 function parse_args() {
     while test $# -gt 0; do
-        if [ "$1" = "--help" ] || [ "$1" == "-h" ]; then
-            print_usage
-            exit 0
-        elif [ $1 == "--network" ]; then
-            if [ $2 == "yolov8s" ]; then
-                network_name="yolov8s"
-                hef_path="$RESOURCES_DIR/yolov8s.hef"
-            elif [ $2 != "yolov5m" ]; then
-                echo "Received invalid network: $2. See expected arguments below:"
+        case "$1" in
+            --help|-h)
                 print_usage
-                exit 1
-            fi
-            shift
-        elif [ "$1" = "--print-gst-launch" ]; then
-            print_gst_launch_only=true
-        elif [ "$1" = "--show-fps" ]; then
-            echo "Printing fps"
-            additional_parameters="-v | grep hailo_display"
-        elif [ "$1" = "--input" ] || [ "$1" = "-i" ]; then
-            input_source="$2"
-            shift
-        elif [ "$1" = "--denoise-config-file-path" ]; then
-            frontend_config_file_path="$2"
-            shift
-        else
-            echo "Received invalid argument: $1. See expected arguments below:"
-            print_usage
-            exit 1
-        fi
-
+                ;;
+            --network)
+                if [ "$2" == "yolov8s" ]; then
+                    network_name="yolov8s"
+                    hef_path="$RESOURCES_DIR/yolov8s.hef"
+                elif [ "$2" != "yolov5m" ]; then
+                    echo "Received invalid network: $2"
+                    print_usage
+                fi
+                shift
+                ;;
+            --print-gst-launch)
+                print_gst_launch_only=true
+                ;;
+            --show-fps)
+                echo "Printing fps"
+                additional_parameters="-v | grep hailo_display"
+                ;;
+            -i|--input)
+                input_source="$2"
+                shift
+                ;;
+            --denoise-config-file-path)
+                frontend_config_file_path="$2"
+                shift
+                ;;
+            --mode)
+                mode="$2"
+                shift
+                ;;
+            --tuning)
+                tuning_extension="$2"
+                shift
+                ;;
+            --project)
+                project="$2"
+                shift
+                ;;
+            *)
+                echo "Received invalid argument: $1"
+                print_usage
+                ;;
+        esac
         shift
     done
 }
 
 init_variables $@
-
 parse_args $@
 
 UDP_SINK="udpsink host=$udp_host_ip port=$udp_port"
 
 PIPELINE="gst-launch-1.0 \
     hailofrontendbinsrc config-file-path=$frontend_config_file_path name=frontend hailomuxer name=mux \
-    frontend. ! 
+    frontend. ! \
         queue leaky=no max-size-buffers=$max_buffers_size max-size-bytes=0 max-size-time=0 ! \
-        video/x-raw,format=NV12,width=3840,height=2160, framerate=$framerate ! \
+        video/x-raw,format=NV12,width=3840,height=2160,framerate=$framerate ! \
     mux. \
     frontend. ! \
         queue leaky=no max-size-buffers=$max_buffers_size max-size-bytes=0 max-size-time=0 ! \
@@ -122,7 +144,13 @@ PIPELINE="gst-launch-1.0 \
         fpsdisplaysink fps-update-interval=2000 video-sink=fakesink name=hailo_display sync=$sync_pipeline text-overlay=false \
     ${additional_parameters}"
 
-echo "Running $network_name"
+/home/root/apps/clean_symlinks_config_isp.sh --mode "$mode" --tuning "$tuning_extension" --project "$project"
+if [ $? -ne 0 ]; then
+    echo "Failed to clean symlinks and copy ISP configuration files."
+    exit 1
+fi
+
+echo "Running $network_name with MODE=${mode:-default}, TUNING_EXTENSION=${tuning_extension:-none}", PROJECT=${project:-hailo15h}
 echo ${PIPELINE}
 
 if [ "$print_gst_launch_only" = true ]; then
@@ -130,4 +158,3 @@ if [ "$print_gst_launch_only" = true ]; then
 fi
 
 eval ${PIPELINE}
-

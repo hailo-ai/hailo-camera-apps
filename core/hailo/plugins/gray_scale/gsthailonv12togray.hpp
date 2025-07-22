@@ -13,7 +13,8 @@ G_BEGIN_DECLS
 
 #define GST_TYPE_HAILO_NV12_TO_GRAY (gst_hailonv12togray_get_type())
 #define GST_HAILO_NV12_TO_GRAY(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), GST_TYPE_HAILO_NV12_TO_GRAY, GstHailonv12togray))
-#define GST_HAILO_NV12_TO_GRAY_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), GST_TYPE_HAILO_NV12_TO_GRAY, GstHailonv12tograyClass))
+#define GST_HAILO_NV12_TO_GRAY_CLASS(klass)                                                                            \
+    (G_TYPE_CHECK_CLASS_CAST((klass), GST_TYPE_HAILO_NV12_TO_GRAY, GstHailonv12tograyClass))
 #define GST_IS_HAILO_NV12_TO_GRAY(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), GST_TYPE_HAILO_NV12_TO_GRAY))
 #define GST_IS_HAILO_NV12_TO_GRAY_CLASS(obj) (G_TYPE_CHECK_CLASS_TYPE((klass), GST_TYPE_HAILO_NV12_TO_GRAY))
 

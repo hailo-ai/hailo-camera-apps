@@ -5,7 +5,7 @@
 #include "apps_common.hpp"
 #include "media_library/encoder_config.hpp"
 
-static int counter=0;
+static int counter = 0;
 
 /**
  * Encoder's probe callback
@@ -20,11 +20,13 @@ static GstPadProbeReturn encoder_probe_callback(GstPad *pad, GstPadProbeInfo *in
 {
     GstElement *pipeline = GST_ELEMENT(user_data);
     GstElement *encoder_element = gst_bin_get_by_name(GST_BIN(pipeline), "enco");
-    GstEvent * event;
+    GstEvent *event;
 
-    if (counter % 10 == 0) {
+    if (counter % 10 == 0)
+    {
         GST_WARNING_OBJECT(encoder_element, "Force Keyframe from application");
-        event = gst_video_event_new_downstream_force_key_unit(GST_CLOCK_TIME_NONE, GST_CLOCK_TIME_NONE, GST_CLOCK_TIME_NONE, TRUE, 1);
+        event = gst_video_event_new_downstream_force_key_unit(GST_CLOCK_TIME_NONE, GST_CLOCK_TIME_NONE,
+                                                              GST_CLOCK_TIME_NONE, TRUE, 1);
         if (!gst_pad_send_event(pad, event))
         {
             GST_ERROR_OBJECT(encoder_element, "Failed to send force key unit event to encoder");
@@ -62,15 +64,20 @@ std::string create_pipeline_string(std::string codec)
     pipeline = "v4l2src name=src_element device=/dev/video0 io-mode=dmabuf ! "
                "video/x-raw,format=NV12,width=1920,height=1080, framerate=30/1 ! "
                "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-               "hailoencoder config-file-path=" + config_file_path + " name=enco ! " + codec + "parse config-interval=-1 ! "
+               "hailoencoder config-file-path=" +
+               config_file_path + " name=enco ! " + codec +
+               "parse config-interval=-1 ! "
                "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-               "video/x-" + codec + ",framerate=30/1 ! "
+               "video/x-" +
+               codec +
+               ",framerate=30/1 ! "
                "queue leaky=no max-size-buffers=5 max-size-bytes=0 max-size-time=0 ! "
-               "fpsdisplaysink fps-update-interval=2000 name=display_sink text-overlay=false video-sink=\"filesink location=test."
-               + output_format + " name=hailo_sink\""
+               "fpsdisplaysink fps-update-interval=2000 name=display_sink text-overlay=false video-sink=\"filesink "
+               "location=test." +
+               output_format +
+               " name=hailo_sink\""
                " sync=true signal-fps-measurements=true";
 
-                                           
     std::cout << "Pipeline:" << std::endl;
     std::cout << "gst-launch-1.0 " << pipeline << std::endl;
 
@@ -106,7 +113,8 @@ void set_probes(GstElement *pipeline)
     // extract pads from elements
     GstPad *pad_encoder = gst_element_get_static_pad(encoder, "sink");
     // set probes
-    gst_pad_add_probe(pad_encoder, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)encoder_probe_callback, pipeline, NULL);
+    gst_pad_add_probe(pad_encoder, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)encoder_probe_callback, pipeline,
+                      NULL);
     // free resources
     gst_object_unref(encoder);
 }
@@ -124,18 +132,19 @@ int main(int argc, char *argv[])
     auto result = options.parse(argc, argv);
     std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options, codec);
 
-    for (ArgumentType argument: argument_handling_results)
+    for (ArgumentType argument : argument_handling_results)
     {
-        switch (argument) {
-            case ArgumentType::Help:
-                return 0;
-            case ArgumentType::Codec:
-                break;
-            case ArgumentType::PrintFPS:
-                print_fps = true;
-                break;
-            case ArgumentType::Error:
-                return 1;
+        switch (argument)
+        {
+        case ArgumentType::Help:
+            return 0;
+        case ArgumentType::Codec:
+            break;
+        case ArgumentType::PrintFPS:
+            print_fps = true;
+            break;
+        case ArgumentType::Error:
+            return 1;
         }
     }
 

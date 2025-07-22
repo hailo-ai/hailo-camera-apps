@@ -1,0 +1,1539 @@
+<?xml version="1.0" ?>
+<matfile>
+   <header type="struct" size="[1 1]">
+      <creation_date index="1" type="char" size="[1 11]">
+         19-Feb-2025
+      </creation_date>
+      <creator index="1" type="char" size="[1 3]">
+         MMS
+      </creator>
+      <sensor_name index="1" type="char" size="[1 6]">
+         IMX675
+      </sensor_name>
+      <sample_name index="1" type="char" size="[1 13]">
+         Theia_lens_01
+      </sample_name>
+      <generator_version index="1" type="char" size="[1 13]">
+         v2.1.4.987142
+      </generator_version>
+      <resolution index="1" type="cell" size="[1 1]">
+         <cell index="1" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 9]">
+               2592x1944
+            </name>
+            <id index="1" type="char" size="[1 10]">
+               0x00000001
+            </id>
+            <width index="1" type="double" size="[1 1]">
+               [ 2592]
+            </width>
+            <height index="1" type="double" size="[1 1]">
+               [ 1944]
+            </height>
+            <framerate index="1" type="cell" size="[1 3]">
+               <cell index="1" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 6]">
+                     FPS_15
+                  </name>
+                  <fps index="1" type="double" size="[1 1]">
+                     [ 14.9916]
+                  </fps>
+               </cell>
+               <cell index="2" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 6]">
+                     FPS_10
+                  </name>
+                  <fps index="1" type="double" size="[1 1]">
+                     [ 9.9944]
+                  </fps>
+               </cell>
+               <cell index="3" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 6]">
+                     FPS_05
+                  </name>
+                  <fps index="1" type="double" size="[1 1]">
+                     [ 4.9972]
+                  </fps>
+               </cell>
+            </framerate>
+         </cell>
+      </resolution>
+   </header>
+   <sensor type="struct" size="[1 1]">
+      <AWB index="1" type="struct" size="[1 1]">
+         <globals index="1" type="cell" size="[1 1]">
+            <cell index="1" type="struct" size="[1 1]">
+               <name index="1" type="char" size="[1 9]">
+                  2592x1944
+               </name>
+               <resolution index="1" type="char" size="[1 9]">
+                  2592x1944
+               </resolution>
+               <SVDMeanValue index="1" type="double" size="[1 3]">
+                  [0.297516 0.451455 0.25103]
+               </SVDMeanValue>
+               <PCAMatrix index="1" type="double" size="[3 2]">
+                  [-0.753234 0.103708 0.649526 0.315128 -0.809883 0.49476]
+               </PCAMatrix>
+               <CenterLine index="1" type="double" size="[1 3]">
+                  [-0.815119 -0.579294 -2.8464]
+               </CenterLine>
+               <afRg2 index="1" type="double" size="[1 16]">
+                  [0.901669 1.22609 1.30142 1.37674 1.46579 1.50733 1.54575 1.58645 1.68437 1.81054 1.91509 1.97721 2.05467 2.13 2.20532 2.35]
+               </afRg2>
+               <afMaxDist2 index="1" type="double" size="[1 16]">
+                  [0.290224 0.174311 0.151134 0.129612 0.213353 0.276418 0.303532 0.317251 0.271362 0.161657 0.112945 0.103033 0.105746 0.138153 0.182549 0.25153]
+               </afMaxDist2>
+               <afRg1 index="1" type="double" size="[1 16]">
+                  [0.913979 1.22609 1.30142 1.37674 1.45207 1.52739 1.60272 1.67804 1.75337 1.82869 1.90402 1.97934 2.05467 2.13479 2.22248 2.3505]
+               </afRg1>
+               <afMaxDist1 index="1" type="double" size="[1 16]">
+                  [0.0298297 0.125689 0.148866 0.170388 0.189154 0.205477 0.218682 0.228147 0.233547 0.233973 0.228437 0.215607 0.194254 0.18575 0.171358 0.13479]
+               </afMaxDist1>
+               <afGlobalFade2 index="1" type="double" size="[1 16]">
+                  [0.8 0.901376 1.00275 1.10413 1.20551 1.30688 1.39705 1.46739 1.5583 1.70147 1.80849 1.90569 2.01652 2.11789 2.21927 2.4]
+               </afGlobalFade2>
+               <afGlobalGainDistance2 index="1" type="double" size="[1 16]">
+                  [0.388034 0.344819 0.30453 0.266205 0.231378 0.198531 0.226089 0.330726 0.362386 0.303426 0.203955 0.156305 0.143622 0.182211 0.242222 0.33867]
+               </afGlobalGainDistance2>
+               <afGlobalFade1 index="1" type="double" size="[1 16]">
+                  [0.8 0.901376 1.00275 1.10413 1.20551 1.30688 1.40826 1.50964 1.61101 1.71239 1.81376 1.91514 2.01652 2.14025 2.2411 2.4142]
+               </afGlobalFade1>
+               <afGlobalGainDistance1 index="1" type="double" size="[1 16]">
+                  [0.0119656 0.0551807 0.0954698 0.133795 0.168622 0.201469 0.228713 0.251853 0.269903 0.281132 0.284312 0.276964 0.256378 0.248142 0.220717 0.17854]
+               </afGlobalGainDistance1>
+               <fRgProjIndoorMin index="1" type="double" size="[1 1]">
+                  [ 0.93]
+               </fRgProjIndoorMin>
+               <fRgProjMax index="1" type="double" size="[1 1]">
+                  [ 2.35]
+               </fRgProjMax>
+               <fRgProjMaxSky index="1" type="double" size="[1 1]">
+                  [ 2.4]
+               </fRgProjMaxSky>
+               <fRgProjOutdoorMin index="1" type="double" size="[1 1]">
+                  [ 1.8287]
+               </fRgProjOutdoorMin>
+               <awb_clip_outdoor index="1" type="char" size="[1 3]">
+                  D50
+               </awb_clip_outdoor>
+               <K_Factor index="1" type="double" size="[1 1]">
+                  [ 4.5676]
+               </K_Factor>
+               <afFade2 index="1" type="double" size="[1 6]">
+                  [0.75 1.28836 1.77672 2.164 2.6 3.0618]
+               </afFade2>
+               <afCbMinRegionMax index="1" type="double" size="[1 6]">
+                  [114 114 105 95 95 90]
+               </afCbMinRegionMax>
+               <afCrMinRegionMax index="1" type="double" size="[1 6]">
+                  [83 83 110 120 122 128]
+               </afCrMinRegionMax>
+               <afMaxCSumRegionMax index="1" type="double" size="[1 6]">
+                  [28 27 18 16 9 9]
+               </afMaxCSumRegionMax>
+               <afCbMinRegionMin index="1" type="double" size="[1 6]">
+                  [123 123 123 123 123 120]
+               </afCbMinRegionMin>
+               <afCrMinRegionMin index="1" type="double" size="[1 6]">
+                  [123 123 123 123 123 126]
+               </afCrMinRegionMin>
+               <afMaxCSumRegionMin index="1" type="double" size="[1 6]">
+                  [5 5 5 5 5 5]
+               </afMaxCSumRegionMin>
+               <RegionSize index="1" type="double" size="[1 1]">
+                  [ 1]
+               </RegionSize>
+               <RegionSizeInc index="1" type="double" size="[1 1]">
+                  [ 0.8]
+               </RegionSizeInc>
+               <RegionSizeDec index="1" type="double" size="[1 1]">
+                  [ 0.05]
+               </RegionSizeDec>
+               <IIR index="1" type="struct" size="[1 1]">
+                  <DampCoefAdd index="1" type="double" size="[1 1]">
+                     [ 0.05]
+                  </DampCoefAdd>
+                  <DampCoefSub index="1" type="double" size="[1 1]">
+                     [ 0.05]
+                  </DampCoefSub>
+                  <DampFilterThreshold index="1" type="double" size="[1 1]">
+                     [ 0.4]
+                  </DampFilterThreshold>
+                  <DampingCoefMin index="1" type="double" size="[1 1]">
+                     [ 0.5]
+                  </DampingCoefMin>
+                  <DampingCoefMax index="1" type="double" size="[1 1]">
+                     [ 0.9]
+                  </DampingCoefMax>
+                  <DampingCoefInit index="1" type="double" size="[1 1]">
+                     [ 0.5]
+                  </DampingCoefInit>
+                  <ExpPriorFilterSizeMax index="1" type="double" size="[1 1]">
+                     [ 50]
+                  </ExpPriorFilterSizeMax>
+                  <ExpPriorFilterSizeMin index="1" type="double" size="[1 1]">
+                     [ 1]
+                  </ExpPriorFilterSizeMin>
+                  <ExpPriorMiddle index="1" type="double" size="[1 1]">
+                     [ 0.5]
+                  </ExpPriorMiddle>
+               </IIR>
+            </cell>
+         </globals>
+         <illumination index="1" type="cell" size="[1 7]">
+            <cell index="1" type="struct" size="[1 1]">
+               <name index="1" type="char" size="[1 1]">
+                  A
+               </name>
+               <doorType index="1" type="char" size="[1 6]">
+                  Indoor
+               </doorType>
+               <GMM index="1" type="struct" size="[1 1]">
+                  <invCovMatrix index="1" type="double" size="[2 2]">
+                     [1082.92 1485.72 1485.72 4268.3131]
+                  </invCovMatrix>
+                  <GaussianScalingFactor index="1" type="double" size="[1 1]">
+                     [ 247.3246]
+                  </GaussianScalingFactor>
+                  <tau index="1" type="double" size="[1 2]">
+                     [1 1]
+                  </tau>
+                  <GaussianMeanValue index="1" type="double" size="[1 2]">
+                     [-0.108762 -0.047234]
+                  </GaussianMeanValue>
+               </GMM>
+               <aLSC index="1" type="cell" size="[1 1]">
+                  <cell index="1" type="struct" size="[1 1]">
+                     <resolution index="1" type="char" size="[1 9]">
+                        2592x1944
+                     </resolution>
+                     <LSC_PROFILE_LIST index="1" type="char" size="[1 14]">
+                        2592x1944_A_90
+                     </LSC_PROFILE_LIST>
+                  </cell>
+               </aLSC>
+               <manualWB index="1" type="double" size="[1 4]">
+                  [1.30931 1 1 3.0664]
+               </manualWB>
+               <manualccMatrix index="1" type="double" size="[3 3]">
+                  [2.0612 -1.0655 0.0042956 -0.497342 1.60118 -0.103843 0.0735513 -1.88905 2.8155]
+               </manualccMatrix>
+               <manualccOffsets index="1" type="double" size="[1 3]">
+                  [0 0 0]
+               </manualccOffsets>
+               <awbType index="1" type="char" size="[1 4]">
+                  AUTO
+               </awbType>
+               <sat_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <sat index="1" type="double" size="[1 4]">
+                     [100 95 90 74]
+                  </sat>
+               </sat_CT>
+               <vig_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <vig index="1" type="double" size="[1 4]">
+                     [100 95 90 70]
+                  </vig>
+               </vig_CT>
+               <aCC index="1" type="struct" size="[1 1]">
+                  <CC_PROFILE_LIST index="1" type="char" size="[1 4]">
+                     A_90
+                  </CC_PROFILE_LIST>
+               </aCC>
+            </cell>
+            <cell index="2" type="struct" size="[1 1]">
+               <name index="1" type="char" size="[1 3]">
+                  D50
+               </name>
+               <doorType index="1" type="char" size="[1 7]">
+                  Outdoor
+               </doorType>
+               <GMM index="1" type="struct" size="[1 1]">
+                  <invCovMatrix index="1" type="double" size="[2 2]">
+                     [330.024 -17.8828 -17.8828 1629.6804]
+                  </invCovMatrix>
+                  <GaussianScalingFactor index="1" type="double" size="[1 1]">
+                     [ 116.6849]
+                  </GaussianScalingFactor>
+                  <tau index="1" type="double" size="[1 2]">
+                     [1 1]
+                  </tau>
+                  <GaussianMeanValue index="1" type="double" size="[1 2]">
+                     [0.0149704 -0.057085]
+                  </GaussianMeanValue>
+               </GMM>
+               <aLSC index="1" type="cell" size="[1 1]">
+                  <cell index="1" type="struct" size="[1 1]">
+                     <resolution index="1" type="char" size="[1 9]">
+                        2592x1944
+                     </resolution>
+                     <LSC_PROFILE_LIST index="1" type="char" size="[1 16]">
+                        2592x1944_D50_90
+                     </LSC_PROFILE_LIST>
+                  </cell>
+               </aLSC>
+               <manualWB index="1" type="double" size="[1 4]">
+                  [1.85811 1 1 2.1735]
+               </manualWB>
+               <manualccMatrix index="1" type="double" size="[3 3]">
+                  [2.021572 -1.142586 0.121013 -0.426270 1.783624 -0.357358 0.162924 -1.149157 1.986280]
+               </manualccMatrix>
+               <manualccOffsets index="1" type="double" size="[1 3]">
+                  [0 0 0]
+               </manualccOffsets>
+               <awbType index="1" type="char" size="[1 4]">
+                  AUTO
+               </awbType>
+               <sat_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <sat index="1" type="double" size="[1 4]">
+                     [100 95 90 74]
+                  </sat>
+               </sat_CT>
+               <vig_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <vig index="1" type="double" size="[1 4]">
+                     [100 95 90 70]
+                  </vig>
+               </vig_CT>
+               <aCC index="1" type="struct" size="[1 1]">
+                  <CC_PROFILE_LIST index="1" type="char" size="[1 6]">
+                     D50_90
+                  </CC_PROFILE_LIST>
+               </aCC>
+            </cell>
+            <cell index="3" type="struct" size="[1 1]">
+               <name index="1" type="char" size="[1 3]">
+                  D65
+               </name>
+               <doorType index="1" type="char" size="[1 7]">
+                  Outdoor
+               </doorType>
+               <GMM index="1" type="struct" size="[1 1]">
+                  <invCovMatrix index="1" type="double" size="[2 2]">
+                     [349.771 -216.063 -216.063 1318.2123]
+                  </invCovMatrix>
+                  <GaussianScalingFactor index="1" type="double" size="[1 1]">
+                     [ 102.4529]
+                  </GaussianScalingFactor>
+                  <tau index="1" type="double" size="[1 2]">
+                     [1 1]
+                  </tau>
+                  <GaussianMeanValue index="1" type="double" size="[1 2]">
+                     [0.0640701 -0.050608]
+                  </GaussianMeanValue>
+               </GMM>
+               <aLSC index="1" type="cell" size="[1 1]">
+                  <cell index="1" type="struct" size="[1 1]">
+                     <resolution index="1" type="char" size="[1 9]">
+                        2592x1944
+                     </resolution>
+                     <LSC_PROFILE_LIST index="1" type="char" size="[1 16]">
+                        2592x1944_D65_90
+                     </LSC_PROFILE_LIST>
+                  </cell>
+               </aLSC>
+               <manualWB index="1" type="double" size="[1 4]">
+                  [2.10287 1 1 1.876]
+               </manualWB>
+               <manualccMatrix index="1" type="double" size="[3 3]">
+                  [1.785124 -0.710272 -0.074851 -0.376450 1.782952 -0.406505 0.050996 -0.765767 1.7152]
+               </manualccMatrix>
+               <manualccOffsets index="1" type="double" size="[1 3]">
+                  [0 0 0]
+               </manualccOffsets>
+               <awbType index="1" type="char" size="[1 4]">
+                  AUTO
+               </awbType>
+               <sat_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <sat index="1" type="double" size="[1 4]">
+                     [100 95 90 74]
+                  </sat>
+               </sat_CT>
+               <vig_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <vig index="1" type="double" size="[1 4]">
+                     [100 95 90 70]
+                  </vig>
+               </vig_CT>
+               <aCC index="1" type="struct" size="[1 1]">
+                  <CC_PROFILE_LIST index="1" type="char" size="[1 6]">
+                     D65_90
+                  </CC_PROFILE_LIST>
+               </aCC>
+            </cell>
+            <cell index="4" type="struct" size="[1 1]">
+               <name index="1" type="char" size="[1 3]">
+                  D75
+               </name>
+               <doorType index="1" type="char" size="[1 7]">
+                  Outdoor
+               </doorType>
+               <GMM index="1" type="struct" size="[1 1]">
+                  <invCovMatrix index="1" type="double" size="[2 2]">
+                     [380.213 -285.961 -285.961 1236.8945]
+                  </invCovMatrix>
+                  <GaussianScalingFactor index="1" type="double" size="[1 1]">
+                     [ 99.2022]
+                  </GaussianScalingFactor>
+                  <tau index="1" type="double" size="[1 2]">
+                     [1 1]
+                  </tau>
+                  <GaussianMeanValue index="1" type="double" size="[1 2]">
+                     [0.0817885 -0.047234]
+                  </GaussianMeanValue>
+               </GMM>
+               <aLSC index="1" type="cell" size="[1 1]">
+                  <cell index="1" type="struct" size="[1 1]">
+                     <resolution index="1" type="char" size="[1 9]">
+                        2592x1944
+                     </resolution>
+                     <LSC_PROFILE_LIST index="1" type="char" size="[1 16]">
+                        2592x1944_D75_90
+                     </LSC_PROFILE_LIST>
+                  </cell>
+               </aLSC>
+               <manualWB index="1" type="double" size="[1 4]">
+                  [2.26243 1 1 1.7944]
+               </manualWB>
+               <manualccMatrix index="1" type="double" size="[3 3]">
+                  [1.74922 -0.843728 0.094508 -0.251222 1.58356 -0.332334 0.123104 -0.73635 1.614]
+               </manualccMatrix>
+               <manualccOffsets index="1" type="double" size="[1 3]">
+                  [0 0 0]
+               </manualccOffsets>
+               <awbType index="1" type="char" size="[1 4]">
+                  AUTO
+               </awbType>
+               <sat_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <sat index="1" type="double" size="[1 4]">
+                     [100 95 90 74]
+                  </sat>
+               </sat_CT>
+               <vig_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <vig index="1" type="double" size="[1 4]">
+                     [100 95 90 70]
+                  </vig>
+               </vig_CT>
+               <aCC index="1" type="struct" size="[1 1]">
+                  <CC_PROFILE_LIST index="1" type="char" size="[1 6]">
+                     D75_90
+                  </CC_PROFILE_LIST>
+               </aCC>
+            </cell>
+            <cell index="5" type="struct" size="[1 1]">
+               <name index="1" type="char" size="[1 10]">
+                  F11 (TL84)
+               </name>
+               <doorType index="1" type="char" size="[1 6]">
+                  Indoor
+               </doorType>
+               <GMM index="1" type="struct" size="[1 1]">
+                  <invCovMatrix index="1" type="double" size="[2 2]">
+                     [397.594 -80.7397 -80.7397 1173.5785]
+                  </invCovMatrix>
+                  <GaussianScalingFactor index="1" type="double" size="[1 1]">
+                     [ 107.9546]
+                  </GaussianScalingFactor>
+                  <tau index="1" type="double" size="[1 2]">
+                     [1 1]
+                  </tau>
+                  <GaussianMeanValue index="1" type="double" size="[1 2]">
+                     [-0.066539 -0.050201]
+                  </GaussianMeanValue>
+               </GMM>
+               <aLSC index="1" type="cell" size="[1 1]">
+                  <cell index="1" type="struct" size="[1 1]">
+                     <resolution index="1" type="char" size="[1 9]">
+                        2592x1944
+                     </resolution>
+                     <LSC_PROFILE_LIST index="1" type="char" size="[1 16]">
+                        2592x1944_F11_90
+                     </LSC_PROFILE_LIST>
+                  </cell>
+               </aLSC>
+               <manualWB index="1" type="double" size="[1 4]">
+                  [1.46488 1 1 2.7045]
+               </manualWB>
+               <manualccMatrix index="1" type="double" size="[3 3]">
+                  [1.60816 -0.519297 -0.0888587 -0.578325 1.79303 -0.214701 0.0189899 -1.01654 1.9976]
+               </manualccMatrix>
+               <manualccOffsets index="1" type="double" size="[1 3]">
+                  [0 0 0]
+               </manualccOffsets>
+               <awbType index="1" type="char" size="[1 4]">
+                  AUTO
+               </awbType>
+               <sat_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <sat index="1" type="double" size="[1 4]">
+                     [100 95 90 74]
+                  </sat>
+               </sat_CT>
+               <vig_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <vig index="1" type="double" size="[1 4]">
+                     [100 95 90 70]
+                  </vig>
+               </vig_CT>
+               <aCC index="1" type="struct" size="[1 1]">
+                  <CC_PROFILE_LIST index="1" type="char" size="[1 6]">
+                     F11_90
+                  </CC_PROFILE_LIST>
+               </aCC>
+            </cell>
+            <cell index="6" type="struct" size="[1 1]">
+               <name index="1" type="char" size="[1 8]">
+                  F2 (CWF)
+               </name>
+               <doorType index="1" type="char" size="[1 6]">
+                  Indoor
+               </doorType>
+               <GMM index="1" type="struct" size="[1 1]">
+                  <invCovMatrix index="1" type="double" size="[2 2]">
+                     [543.687 -326.625 -326.625 1145.1102]
+                  </invCovMatrix>
+                  <GaussianScalingFactor index="1" type="double" size="[1 1]">
+                     [ 114.3146]
+                  </GaussianScalingFactor>
+                  <tau index="1" type="double" size="[1 2]">
+                     [1 1]
+                  </tau>
+                  <GaussianMeanValue index="1" type="double" size="[1 2]">
+                     [-0.031016 -0.089954]
+                  </GaussianMeanValue>
+               </GMM>
+               <aLSC index="1" type="cell" size="[1 1]">
+                  <cell index="1" type="struct" size="[1 1]">
+                     <resolution index="1" type="char" size="[1 9]">
+                        2592x1944
+                     </resolution>
+                     <LSC_PROFILE_LIST index="1" type="char" size="[1 15]">
+                        2592x1944_F2_90
+                     </LSC_PROFILE_LIST>
+                  </cell>
+               </aLSC>
+               <manualWB index="1" type="double" size="[1 4]">
+                  [1.80145 1 1 2.8189]
+               </manualWB>
+               <manualccMatrix index="1" type="double" size="[3 3]">
+                  [2.05443 -0.940079 -0.114353 -0.446304 1.54937 -0.103071 0.136616 -1.13839 2.003]
+               </manualccMatrix>
+               <manualccOffsets index="1" type="double" size="[1 3]">
+                  [0 0 0]
+               </manualccOffsets>
+               <awbType index="1" type="char" size="[1 4]">
+                  AUTO
+               </awbType>
+               <sat_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <sat index="1" type="double" size="[1 4]">
+                     [100 95 90 74]
+                  </sat>
+               </sat_CT>
+               <vig_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <vig index="1" type="double" size="[1 4]">
+                     [100 95 90 70]
+                  </vig>
+               </vig_CT>
+               <aCC index="1" type="struct" size="[1 1]">
+                  <CC_PROFILE_LIST index="1" type="char" size="[1 5]">
+                     F2_90
+                  </CC_PROFILE_LIST>
+               </aCC>
+            </cell>
+            <cell index="7" type="struct" size="[1 1]">
+               <name index="1" type="char" size="[1 1]">
+                  H
+               </name>
+               <doorType index="1" type="char" size="[1 6]">
+                  Indoor
+               </doorType>
+               <GMM index="1" type="struct" size="[1 1]">
+                  <invCovMatrix index="1" type="double" size="[2 2]">
+                     [423.934 -215.503 -215.503 1042.6542]
+                  </invCovMatrix>
+                  <GaussianScalingFactor index="1" type="double" size="[1 1]">
+                     [ 100.1001]
+                  </GaussianScalingFactor>
+                  <tau index="1" type="double" size="[1 2]">
+                     [1 1]
+                  </tau>
+                  <GaussianMeanValue index="1" type="double" size="[1 2]">
+                     [-0.154443 -0.029583]
+                  </GaussianMeanValue>
+               </GMM>
+               <aLSC index="1" type="cell" size="[1 1]">
+                  <cell index="1" type="struct" size="[1 1]">
+                     <resolution index="1" type="char" size="[1 9]">
+                        2592x1944
+                     </resolution>
+                     <LSC_PROFILE_LIST index="1" type="char" size="[1 14]">
+                        2592x1944_H_90
+                     </LSC_PROFILE_LIST>
+                  </cell>
+               </aLSC>
+               <manualWB index="1" type="double" size="[1 4]">
+                  [1.13773 1 1 3.3723]
+               </manualWB>
+               <manualccMatrix index="1" type="double" size="[3 3]">
+                  [1.52359 -0.32968 -0.193907 -0.749199 1.60868 0.140524 -0.106224 -2.67113 3.7774]
+               </manualccMatrix>
+               <manualccOffsets index="1" type="double" size="[1 3]">
+                  [0 0 0]
+               </manualccOffsets>
+               <awbType index="1" type="char" size="[1 4]">
+                  AUTO
+               </awbType>
+               <sat_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <sat index="1" type="double" size="[1 4]">
+                     [100 95 90 74]
+                  </sat>
+               </sat_CT>
+               <vig_CT index="1" type="struct" size="[1 1]">
+                  <gains index="1" type="double" size="[1 4]">
+                     [1 2 4 8]
+                  </gains>
+                  <vig index="1" type="double" size="[1 4]">
+                     [100 95 90 70]
+                  </vig>
+               </vig_CT>
+               <aCC index="1" type="struct" size="[1 1]">
+                  <CC_PROFILE_LIST index="1" type="char" size="[1 4]">
+                     H_90
+                  </CC_PROFILE_LIST>
+               </aCC>
+            </cell>
+         </illumination>
+      </AWB>
+      <LSC index="1" type="cell" size="[1 7]">
+         <cell index="1" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 14]">
+               2592x1944_A_90
+            </name>
+            <resolution index="1" type="char" size="[1 9]">
+               2592x1944
+            </resolution>
+            <illumination index="1" type="char" size="[1 1]">
+               A
+            </illumination>
+            <LSC_sectors index="1" type="double" size="[1 1]">
+               [ 16]
+            </LSC_sectors>
+            <LSC_No index="1" type="double" size="[1 1]">
+               [ 10]
+            </LSC_No>
+            <LSC_Xo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Xo>
+            <LSC_Yo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Yo>
+            <LSC_SECT_SIZE_X index="1" type="double" size="[1 8]">
+               [137 143 151 159 164 175 183 184]
+            </LSC_SECT_SIZE_X>
+            <LSC_SECT_SIZE_Y index="1" type="double" size="[1 8]">
+               [110 115 118 123 124 126 128 128]
+            </LSC_SECT_SIZE_Y>
+            <vignetting index="1" type="double" size="[1 1]">
+               [ 90]
+            </vignetting>
+            <LSC_SAMPLES_red index="1" type="double" size="[17 17]">
+               [1336 1320 1286 1255 1226 1195 1170 1149 1144 1146 1149 1162 1175 1198 1234 1260 1295 1328 1301 1268 1233 1200 1171 1142 1126 1120 1120 1129 1139 1156 1181 1201 1250 1272 1318 1286 1250 1220 1186 1155 1128 1107 1102 1105 1114 1129 1145 1167 1203 1226 1263 1297 1269 1238 1208 1174 1141 1116 1100 1091 1093 1106 1122 1138 1163 1189 1221 1249 1285 1256 1227 1194 1160 1128 1104 1088 1077 1083 1098 1119 1137 1159 1186 1213 1241 1272 1247 1214 1181 1143 1114 1091 1073 1060 1067 1091 1115 1135 1156 1183 1210 1233 1264 1231 1197 1160 1124 1094 1073 1054 1037 1051 1081 1105 1127 1150 1174 1201 1223 1252 1221 1187 1150 1113 1084 1059 1041 1026 1041 1070 1095 1119 1143 1169 1194 1220 1246 1213 1184 1149 1112 1083 1061 1038 1024 1042 1071 1097 1120 1144 1168 1193 1214 1244 1214 1182 1154 1123 1094 1068 1047 1031 1044 1070 1102 1127 1150 1169 1193 1210 1249 1219 1190 1162 1138 1112 1087 1062 1043 1052 1079 1109 1136 1158 1177 1197 1213 1255 1224 1196 1172 1150 1129 1103 1075 1059 1060 1085 1117 1141 1164 1181 1199 1217 1255 1225 1196 1173 1158 1141 1112 1088 1070 1072 1092 1119 1142 1161 1180 1197 1215 1260 1237 1205 1184 1167 1153 1128 1101 1086 1090 1109 1130 1147 1165 1184 1203 1224 1287 1240 1232 1198 1182 1167 1147 1124 1112 1116 1133 1147 1162 1181 1203 1225 1246 1294 1287 1241 1226 1200 1187 1171 1153 1144 1148 1159 1174 1188 1206 1226 1246 1267 1318 1290 1271 1248 1228 1209 1196 1185 1177 1181 1192 1199 1215 1233 1251 1268 1279]
+            </LSC_SAMPLES_red>
+            <LSC_SAMPLES_greenR index="1" type="double" size="[17 17]">
+               [1351 1329 1302 1264 1235 1204 1177 1157 1154 1153 1160 1172 1191 1216 1252 1283 1321 1337 1311 1275 1242 1207 1177 1148 1134 1124 1130 1137 1152 1169 1196 1223 1274 1294 1329 1293 1260 1225 1193 1158 1132 1111 1106 1109 1121 1136 1158 1182 1220 1246 1287 1304 1276 1245 1213 1177 1146 1120 1101 1092 1095 1111 1130 1149 1174 1207 1240 1272 1293 1267 1233 1198 1165 1131 1106 1088 1078 1084 1104 1125 1146 1172 1202 1232 1262 1284 1253 1220 1185 1147 1116 1094 1073 1059 1067 1094 1122 1144 1170 1199 1229 1259 1269 1238 1204 1165 1127 1095 1073 1052 1036 1051 1083 1110 1136 1160 1190 1219 1245 1258 1225 1190 1152 1114 1083 1059 1039 1024 1039 1071 1099 1126 1155 1183 1212 1240 1252 1218 1186 1152 1114 1084 1059 1037 1024 1041 1072 1100 1127 1154 1183 1208 1234 1252 1218 1187 1156 1125 1094 1067 1046 1030 1043 1073 1106 1135 1160 1185 1209 1232 1258 1223 1194 1165 1140 1114 1087 1060 1041 1051 1081 1116 1145 1170 1193 1213 1232 1262 1229 1198 1174 1153 1131 1103 1074 1057 1061 1089 1123 1150 1174 1196 1217 1237 1260 1231 1199 1175 1161 1140 1112 1086 1071 1073 1095 1126 1150 1172 1195 1215 1234 1267 1241 1208 1188 1167 1153 1129 1103 1087 1092 1114 1135 1156 1177 1199 1221 1243 1292 1248 1238 1201 1186 1168 1149 1126 1113 1119 1137 1154 1172 1193 1217 1241 1266 1302 1295 1247 1232 1206 1192 1176 1158 1149 1154 1167 1184 1199 1219 1246 1268 1288 1329 1298 1281 1254 1231 1216 1201 1189 1184 1188 1200 1208 1227 1250 1269 1288 1305]
+            </LSC_SAMPLES_greenR>
+            <LSC_SAMPLES_greenB index="1" type="double" size="[17 17]">
+               [1351 1331 1299 1264 1234 1206 1177 1160 1154 1153 1159 1173 1190 1216 1252 1283 1319 1339 1311 1278 1242 1209 1176 1149 1132 1125 1128 1138 1150 1169 1197 1221 1271 1293 1329 1293 1259 1226 1192 1160 1131 1112 1106 1110 1120 1137 1157 1182 1220 1245 1283 1305 1277 1245 1213 1178 1146 1118 1101 1092 1097 1111 1129 1148 1175 1205 1239 1271 1294 1266 1233 1200 1163 1132 1107 1089 1078 1084 1102 1125 1146 1170 1201 1230 1263 1286 1254 1221 1185 1147 1117 1094 1072 1058 1067 1095 1121 1144 1169 1199 1228 1254 1270 1237 1203 1165 1127 1096 1072 1053 1035 1051 1082 1109 1134 1161 1188 1218 1244 1259 1226 1191 1151 1113 1082 1058 1037 1026 1038 1072 1099 1126 1153 1182 1211 1238 1253 1219 1186 1151 1114 1083 1060 1038 1024 1041 1071 1101 1128 1153 1181 1209 1231 1251 1218 1187 1157 1125 1095 1067 1045 1030 1042 1074 1106 1133 1160 1184 1207 1231 1258 1223 1194 1165 1139 1114 1086 1061 1042 1053 1081 1114 1145 1169 1193 1212 1232 1261 1230 1198 1174 1152 1131 1103 1075 1058 1060 1089 1123 1149 1174 1194 1215 1235 1263 1229 1200 1176 1161 1140 1112 1087 1070 1073 1094 1124 1149 1172 1193 1212 1233 1268 1242 1209 1187 1169 1153 1130 1103 1086 1091 1113 1133 1156 1176 1198 1221 1242 1294 1247 1236 1202 1185 1170 1149 1127 1115 1120 1137 1155 1171 1192 1217 1240 1263 1303 1297 1249 1232 1208 1192 1176 1157 1149 1154 1169 1182 1199 1220 1246 1267 1289 1330 1299 1283 1254 1233 1216 1202 1191 1185 1188 1199 1209 1228 1249 1268 1289 1301]
+            </LSC_SAMPLES_greenB>
+            <LSC_SAMPLES_blue index="1" type="double" size="[17 17]">
+               [1354 1343 1301 1273 1240 1214 1186 1166 1163 1164 1171 1185 1204 1234 1270 1295 1336 1339 1320 1280 1248 1215 1183 1158 1137 1131 1139 1146 1163 1185 1208 1234 1286 1309 1326 1301 1265 1231 1198 1164 1141 1120 1111 1117 1131 1146 1171 1194 1232 1258 1299 1307 1285 1249 1219 1184 1148 1126 1106 1096 1102 1116 1138 1159 1186 1213 1250 1287 1291 1272 1240 1202 1172 1137 1111 1092 1077 1089 1107 1130 1156 1183 1215 1243 1273 1287 1257 1228 1189 1153 1120 1100 1077 1057 1070 1100 1124 1151 1179 1207 1236 1265 1270 1242 1209 1166 1135 1098 1076 1056 1036 1051 1084 1113 1139 1165 1195 1225 1252 1260 1229 1197 1153 1120 1086 1064 1039 1024 1041 1072 1100 1129 1159 1188 1217 1246 1254 1223 1194 1153 1120 1089 1064 1041 1025 1040 1075 1105 1130 1160 1186 1216 1239 1256 1219 1195 1158 1130 1099 1070 1049 1033 1045 1075 1109 1138 1164 1189 1213 1236 1261 1225 1202 1168 1140 1118 1087 1062 1044 1053 1083 1115 1151 1177 1197 1219 1237 1263 1230 1205 1177 1155 1132 1102 1076 1060 1063 1094 1122 1148 1181 1203 1217 1238 1267 1226 1203 1176 1160 1139 1109 1087 1070 1072 1097 1126 1149 1173 1199 1216 1235 1268 1237 1211 1186 1165 1150 1123 1102 1087 1091 1113 1134 1155 1177 1201 1223 1248 1294 1242 1236 1202 1179 1168 1146 1125 1114 1117 1136 1154 1170 1192 1218 1243 1265 1303 1289 1246 1228 1202 1188 1169 1154 1147 1149 1164 1179 1198 1220 1243 1266 1285 1330 1295 1277 1252 1225 1213 1196 1183 1182 1178 1198 1204 1223 1243 1271 1283 1301]
+            </LSC_SAMPLES_blue>
+         </cell>
+         <cell index="2" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 16]">
+               2592x1944_D50_90
+            </name>
+            <resolution index="1" type="char" size="[1 9]">
+               2592x1944
+            </resolution>
+            <illumination index="1" type="char" size="[1 3]">
+               D50
+            </illumination>
+            <LSC_sectors index="1" type="double" size="[1 1]">
+               [ 16]
+            </LSC_sectors>
+            <LSC_No index="1" type="double" size="[1 1]">
+               [ 10]
+            </LSC_No>
+            <LSC_Xo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Xo>
+            <LSC_Yo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Yo>
+            <LSC_SECT_SIZE_X index="1" type="double" size="[1 8]">
+               [133 143 152 159 166 175 183 185]
+            </LSC_SECT_SIZE_X>
+            <LSC_SECT_SIZE_Y index="1" type="double" size="[1 8]">
+               [111 114 120 121 125 126 128 127]
+            </LSC_SECT_SIZE_Y>
+            <vignetting index="1" type="double" size="[1 1]">
+               [ 90]
+            </vignetting>
+            <LSC_SAMPLES_red index="1" type="double" size="[17 17]">
+               [1331 1303 1274 1245 1221 1196 1179 1162 1155 1161 1173 1194 1220 1239 1277 1299 1332 1312 1284 1253 1227 1197 1178 1157 1140 1134 1137 1151 1172 1196 1226 1242 1292 1310 1304 1267 1242 1210 1185 1161 1140 1121 1112 1119 1133 1155 1181 1204 1241 1262 1300 1288 1258 1227 1197 1169 1145 1122 1101 1093 1096 1115 1139 1165 1194 1221 1253 1283 1273 1244 1212 1182 1155 1126 1100 1079 1069 1075 1098 1124 1151 1177 1209 1238 1266 1259 1232 1200 1168 1141 1110 1083 1057 1043 1054 1080 1109 1136 1166 1193 1227 1253 1251 1222 1190 1160 1129 1100 1071 1044 1025 1041 1072 1100 1129 1156 1186 1217 1243 1244 1218 1186 1153 1122 1094 1064 1039 1024 1036 1064 1095 1122 1150 1181 1211 1239 1241 1212 1182 1152 1120 1093 1066 1039 1024 1039 1067 1092 1120 1148 1179 1207 1235 1240 1211 1184 1152 1125 1096 1068 1044 1029 1042 1067 1097 1124 1153 1179 1207 1236 1236 1212 1183 1155 1126 1099 1072 1048 1035 1047 1069 1097 1127 1155 1183 1210 1234 1236 1212 1185 1158 1128 1100 1076 1053 1042 1050 1073 1099 1129 1157 1185 1213 1236 1241 1214 1187 1157 1132 1107 1080 1064 1058 1063 1080 1105 1133 1160 1191 1216 1240 1247 1223 1192 1166 1138 1114 1093 1080 1075 1078 1093 1113 1139 1168 1193 1222 1245 1268 1221 1212 1177 1150 1131 1112 1100 1096 1100 1113 1129 1153 1177 1205 1235 1258 1267 1264 1215 1197 1169 1148 1133 1121 1118 1120 1130 1149 1169 1192 1222 1250 1278 1296 1264 1240 1215 1190 1169 1152 1142 1136 1141 1156 1165 1189 1213 1239 1269 1291]
+            </LSC_SAMPLES_red>
+            <LSC_SAMPLES_greenR index="1" type="double" size="[17 17]">
+               [1334 1312 1282 1250 1226 1204 1182 1168 1159 1165 1177 1199 1221 1248 1281 1305 1337 1324 1292 1262 1233 1206 1182 1162 1145 1138 1141 1156 1178 1203 1231 1249 1298 1315 1312 1277 1244 1217 1189 1166 1144 1125 1117 1121 1137 1158 1184 1211 1247 1268 1303 1293 1265 1232 1203 1174 1149 1125 1104 1094 1099 1117 1143 1169 1198 1227 1260 1289 1285 1252 1220 1188 1160 1131 1105 1081 1070 1078 1099 1127 1154 1184 1215 1246 1276 1270 1238 1207 1175 1144 1115 1086 1059 1044 1054 1083 1113 1143 1170 1201 1232 1264 1260 1231 1196 1164 1134 1103 1073 1046 1027 1042 1074 1104 1134 1162 1193 1223 1255 1253 1224 1192 1158 1126 1096 1067 1039 1024 1037 1066 1097 1126 1157 1186 1218 1248 1250 1220 1188 1156 1125 1096 1068 1040 1026 1040 1067 1095 1125 1153 1184 1214 1244 1247 1220 1189 1159 1129 1099 1070 1046 1031 1043 1070 1100 1128 1158 1187 1214 1245 1246 1220 1190 1159 1131 1103 1074 1050 1037 1048 1071 1102 1131 1161 1190 1216 1244 1247 1219 1191 1161 1132 1104 1078 1055 1043 1052 1076 1105 1132 1162 1191 1220 1246 1250 1222 1193 1163 1137 1111 1084 1064 1059 1064 1082 1109 1137 1167 1196 1222 1248 1256 1232 1199 1173 1144 1119 1096 1083 1077 1082 1096 1117 1144 1173 1201 1229 1254 1278 1230 1220 1182 1157 1134 1117 1104 1099 1102 1115 1132 1157 1183 1212 1241 1269 1285 1274 1224 1205 1175 1155 1137 1126 1122 1125 1136 1153 1174 1201 1231 1258 1286 1309 1273 1254 1221 1195 1176 1158 1146 1142 1145 1158 1172 1194 1219 1248 1275 1301]
+            </LSC_SAMPLES_greenR>
+            <LSC_SAMPLES_greenB index="1" type="double" size="[17 17]">
+               [1339 1311 1282 1253 1225 1202 1183 1168 1160 1165 1177 1199 1224 1249 1282 1305 1335 1326 1292 1264 1233 1206 1184 1163 1145 1139 1143 1156 1180 1202 1231 1249 1298 1314 1315 1276 1247 1219 1190 1167 1144 1126 1116 1120 1138 1159 1186 1212 1248 1267 1304 1296 1265 1233 1204 1174 1149 1126 1105 1095 1100 1116 1143 1170 1197 1227 1259 1291 1284 1253 1220 1188 1160 1132 1105 1081 1071 1076 1100 1127 1154 1186 1215 1244 1277 1270 1241 1208 1176 1145 1116 1086 1059 1043 1054 1084 1113 1143 1171 1202 1231 1261 1262 1232 1198 1166 1135 1104 1074 1046 1027 1043 1074 1103 1134 1163 1192 1223 1254 1255 1226 1192 1160 1126 1096 1067 1040 1024 1037 1066 1097 1126 1157 1186 1217 1246 1250 1221 1189 1157 1126 1096 1068 1041 1027 1040 1068 1096 1125 1154 1185 1215 1244 1249 1220 1190 1159 1129 1100 1071 1046 1031 1044 1069 1099 1128 1157 1186 1214 1243 1248 1221 1190 1161 1132 1103 1075 1051 1036 1048 1073 1101 1132 1160 1191 1218 1243 1246 1220 1192 1161 1133 1105 1079 1055 1043 1053 1075 1105 1133 1163 1192 1219 1247 1252 1223 1194 1164 1137 1111 1084 1065 1060 1063 1084 1108 1138 1166 1197 1222 1248 1258 1232 1201 1173 1146 1119 1097 1084 1078 1082 1097 1118 1145 1173 1201 1230 1255 1278 1231 1221 1184 1158 1135 1117 1105 1100 1103 1114 1133 1157 1184 1211 1239 1267 1287 1276 1225 1205 1176 1156 1139 1126 1123 1126 1137 1153 1176 1201 1232 1259 1287 1307 1276 1256 1222 1197 1175 1159 1149 1143 1146 1158 1174 1192 1222 1248 1276 1302]
+            </LSC_SAMPLES_greenB>
+            <LSC_SAMPLES_blue index="1" type="double" size="[17 17]">
+               [1330 1313 1277 1251 1230 1203 1188 1168 1163 1166 1183 1202 1229 1252 1287 1309 1340 1318 1294 1259 1233 1207 1185 1167 1146 1138 1148 1158 1185 1208 1237 1254 1305 1318 1301 1278 1245 1216 1191 1167 1150 1126 1117 1122 1140 1160 1191 1215 1249 1273 1311 1289 1265 1231 1201 1177 1148 1128 1107 1095 1100 1118 1146 1173 1201 1228 1261 1295 1273 1251 1220 1187 1160 1130 1105 1080 1069 1081 1102 1128 1159 1189 1219 1247 1280 1262 1237 1206 1172 1145 1113 1087 1060 1040 1054 1086 1114 1144 1174 1203 1233 1266 1255 1226 1199 1160 1134 1103 1073 1047 1026 1042 1075 1106 1135 1166 1194 1225 1252 1248 1223 1192 1154 1129 1097 1066 1041 1024 1037 1068 1097 1129 1158 1189 1219 1250 1248 1215 1190 1153 1124 1094 1069 1042 1027 1040 1070 1098 1127 1157 1186 1219 1241 1244 1214 1193 1156 1127 1099 1070 1048 1029 1042 1071 1102 1130 1159 1189 1216 1242 1243 1211 1189 1158 1129 1102 1073 1050 1036 1047 1073 1100 1134 1163 1192 1214 1243 1242 1214 1188 1158 1129 1105 1076 1055 1042 1051 1079 1101 1129 1165 1192 1217 1240 1248 1213 1194 1160 1135 1109 1079 1064 1057 1060 1084 1109 1135 1163 1197 1219 1244 1252 1223 1194 1170 1139 1118 1092 1080 1075 1080 1094 1117 1143 1171 1202 1227 1252 1272 1220 1213 1179 1150 1132 1111 1101 1097 1098 1113 1130 1154 1181 1209 1236 1263 1277 1263 1215 1198 1167 1150 1131 1123 1119 1119 1133 1150 1169 1197 1225 1251 1278 1299 1263 1245 1215 1185 1168 1151 1139 1138 1141 1151 1167 1189 1213 1245 1270 1285]
+            </LSC_SAMPLES_blue>
+         </cell>
+         <cell index="3" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 16]">
+               2592x1944_D65_90
+            </name>
+            <resolution index="1" type="char" size="[1 9]">
+               2592x1944
+            </resolution>
+            <illumination index="1" type="char" size="[1 3]">
+               D65
+            </illumination>
+            <LSC_sectors index="1" type="double" size="[1 1]">
+               [ 16]
+            </LSC_sectors>
+            <LSC_No index="1" type="double" size="[1 1]">
+               [ 10]
+            </LSC_No>
+            <LSC_Xo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Xo>
+            <LSC_Yo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Yo>
+            <LSC_SECT_SIZE_X index="1" type="double" size="[1 8]">
+               [136 142 153 156 166 174 181 188]
+            </LSC_SECT_SIZE_X>
+            <LSC_SECT_SIZE_Y index="1" type="double" size="[1 8]">
+               [111 112 120 122 126 126 127 128]
+            </LSC_SECT_SIZE_Y>
+            <vignetting index="1" type="double" size="[1 1]">
+               [ 90]
+            </vignetting>
+            <LSC_SAMPLES_red index="1" type="double" size="[17 17]">
+               [1341 1324 1295 1262 1230 1200 1176 1156 1149 1152 1158 1171 1186 1210 1248 1278 1313 1333 1308 1274 1238 1207 1176 1148 1130 1124 1126 1134 1149 1167 1194 1218 1268 1291 1320 1287 1257 1221 1190 1155 1128 1111 1102 1107 1118 1132 1152 1177 1212 1238 1277 1295 1267 1234 1206 1171 1138 1113 1095 1086 1089 1104 1123 1141 1167 1194 1227 1257 1278 1249 1222 1186 1154 1120 1098 1080 1069 1076 1094 1115 1133 1158 1187 1217 1245 1269 1242 1208 1174 1137 1107 1084 1066 1052 1059 1087 1112 1133 1157 1185 1215 1240 1266 1236 1202 1164 1127 1096 1074 1054 1036 1052 1083 1111 1135 1159 1185 1215 1240 1260 1229 1194 1154 1119 1088 1061 1044 1029 1044 1076 1104 1130 1155 1183 1211 1235 1248 1217 1186 1149 1114 1082 1060 1038 1024 1042 1072 1100 1124 1152 1178 1204 1226 1240 1210 1179 1150 1120 1089 1062 1042 1025 1039 1067 1099 1129 1152 1175 1197 1218 1244 1212 1183 1156 1128 1104 1079 1053 1036 1044 1073 1104 1137 1156 1180 1199 1215 1253 1219 1194 1165 1146 1126 1098 1071 1052 1055 1082 1116 1143 1167 1184 1206 1222 1263 1233 1203 1179 1164 1145 1118 1091 1073 1076 1099 1128 1152 1173 1194 1214 1233 1270 1245 1213 1193 1173 1160 1133 1107 1091 1097 1118 1139 1157 1179 1201 1221 1242 1291 1245 1236 1202 1185 1170 1151 1129 1114 1121 1140 1155 1172 1190 1213 1239 1258 1292 1288 1240 1227 1203 1187 1171 1152 1144 1148 1163 1176 1194 1214 1236 1260 1278 1316 1286 1272 1245 1224 1207 1195 1182 1176 1182 1192 1203 1217 1239 1258 1276 1288]
+            </LSC_SAMPLES_red>
+            <LSC_SAMPLES_greenR index="1" type="double" size="[17 17]">
+               [1349 1329 1300 1267 1235 1207 1178 1164 1156 1159 1166 1180 1199 1226 1267 1295 1335 1339 1312 1278 1243 1212 1179 1153 1135 1130 1134 1144 1160 1180 1209 1233 1286 1309 1325 1290 1256 1223 1190 1159 1132 1113 1106 1110 1123 1140 1162 1188 1227 1256 1296 1297 1268 1238 1206 1171 1139 1113 1095 1087 1092 1106 1128 1148 1177 1207 1243 1276 1280 1254 1222 1188 1155 1122 1099 1078 1070 1075 1096 1119 1143 1168 1202 1231 1263 1274 1243 1212 1176 1140 1108 1086 1065 1051 1061 1090 1117 1142 1168 1198 1229 1258 1269 1238 1205 1166 1129 1098 1074 1053 1037 1052 1084 1114 1140 1167 1199 1230 1256 1262 1228 1195 1156 1120 1087 1063 1043 1028 1045 1077 1107 1136 1164 1194 1225 1254 1249 1217 1184 1150 1114 1083 1058 1037 1024 1041 1071 1102 1132 1157 1189 1216 1242 1244 1210 1180 1150 1119 1090 1063 1042 1026 1040 1070 1104 1133 1160 1186 1210 1236 1245 1213 1184 1156 1131 1103 1077 1052 1033 1046 1074 1109 1141 1166 1191 1212 1233 1254 1221 1192 1167 1146 1124 1097 1069 1052 1057 1086 1121 1150 1174 1198 1219 1240 1263 1232 1204 1179 1163 1143 1115 1091 1075 1079 1101 1132 1158 1183 1205 1228 1249 1271 1246 1213 1191 1173 1157 1133 1109 1093 1100 1122 1143 1166 1187 1212 1236 1261 1292 1246 1238 1202 1185 1169 1150 1128 1118 1122 1141 1160 1178 1200 1226 1251 1278 1298 1290 1243 1226 1203 1187 1171 1154 1145 1153 1168 1182 1200 1222 1250 1273 1296 1320 1291 1273 1246 1224 1209 1195 1184 1179 1183 1196 1206 1225 1249 1270 1291 1310]
+            </LSC_SAMPLES_greenR>
+            <LSC_SAMPLES_greenB index="1" type="double" size="[17 17]">
+               [1349 1331 1301 1265 1237 1207 1179 1166 1155 1158 1167 1182 1201 1226 1266 1297 1335 1344 1313 1279 1245 1212 1179 1154 1135 1130 1136 1145 1159 1180 1208 1234 1286 1309 1325 1290 1258 1224 1192 1159 1131 1113 1106 1112 1123 1142 1163 1188 1228 1256 1293 1297 1269 1238 1205 1172 1139 1113 1097 1088 1092 1107 1129 1149 1176 1208 1243 1278 1282 1255 1222 1189 1155 1123 1099 1079 1069 1076 1097 1119 1142 1169 1202 1232 1261 1273 1244 1213 1176 1141 1109 1087 1066 1051 1060 1089 1118 1142 1168 1198 1229 1259 1273 1240 1205 1167 1129 1099 1074 1054 1036 1053 1085 1114 1141 1169 1198 1230 1257 1261 1229 1196 1155 1120 1087 1063 1042 1030 1044 1077 1108 1135 1164 1195 1225 1252 1249 1218 1185 1152 1115 1084 1059 1038 1024 1042 1072 1103 1132 1159 1189 1216 1243 1245 1211 1181 1151 1121 1090 1063 1041 1027 1039 1070 1104 1133 1160 1186 1212 1235 1245 1215 1185 1156 1132 1106 1077 1054 1034 1046 1076 1109 1140 1167 1192 1214 1234 1255 1223 1192 1168 1147 1125 1098 1069 1053 1058 1085 1121 1150 1173 1199 1219 1240 1264 1234 1205 1180 1165 1143 1115 1092 1075 1078 1103 1132 1159 1183 1207 1227 1250 1273 1247 1213 1193 1175 1156 1135 1109 1094 1101 1121 1144 1166 1189 1212 1237 1261 1292 1248 1239 1202 1186 1170 1151 1130 1116 1123 1141 1159 1179 1200 1227 1252 1277 1301 1293 1245 1228 1204 1188 1172 1154 1147 1153 1167 1183 1201 1223 1250 1273 1296 1320 1291 1277 1247 1226 1210 1196 1186 1180 1184 1197 1207 1227 1248 1271 1293 1309]
+            </LSC_SAMPLES_greenB>
+            <LSC_SAMPLES_blue index="1" type="double" size="[17 17]">
+               [1343 1331 1293 1267 1237 1208 1185 1166 1163 1165 1175 1191 1211 1238 1276 1302 1345 1330 1310 1273 1243 1212 1182 1158 1140 1133 1141 1150 1170 1190 1219 1243 1297 1317 1315 1287 1254 1221 1192 1158 1136 1115 1109 1114 1129 1148 1172 1197 1233 1264 1303 1287 1266 1233 1202 1173 1138 1116 1097 1088 1095 1110 1132 1156 1183 1213 1249 1284 1272 1252 1221 1187 1156 1122 1100 1080 1068 1077 1098 1123 1148 1176 1208 1236 1271 1266 1242 1210 1174 1142 1110 1086 1066 1048 1061 1092 1119 1144 1173 1203 1234 1265 1262 1235 1204 1165 1133 1099 1076 1054 1036 1051 1085 1115 1143 1172 1202 1233 1260 1257 1225 1194 1154 1122 1090 1065 1044 1029 1044 1077 1106 1136 1165 1197 1228 1257 1245 1213 1185 1147 1116 1086 1062 1040 1024 1041 1074 1102 1132 1161 1190 1220 1243 1239 1208 1181 1147 1119 1091 1063 1044 1027 1040 1069 1104 1133 1160 1188 1213 1239 1244 1207 1185 1155 1129 1104 1077 1052 1034 1046 1075 1108 1143 1166 1192 1213 1240 1247 1214 1193 1163 1144 1121 1092 1068 1052 1058 1087 1117 1146 1178 1199 1220 1241 1259 1224 1200 1175 1157 1137 1108 1087 1075 1076 1101 1129 1155 1179 1208 1227 1251 1264 1234 1207 1187 1164 1148 1125 1104 1091 1096 1118 1140 1163 1184 1210 1236 1258 1279 1233 1228 1193 1174 1161 1140 1123 1113 1116 1135 1153 1172 1194 1222 1248 1273 1285 1274 1229 1217 1188 1176 1159 1146 1139 1142 1158 1173 1193 1214 1241 1264 1287 1306 1275 1260 1233 1212 1198 1182 1174 1170 1173 1185 1196 1214 1241 1262 1285 1300]
+            </LSC_SAMPLES_blue>
+         </cell>
+         <cell index="4" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 16]">
+               2592x1944_D75_90
+            </name>
+            <resolution index="1" type="char" size="[1 9]">
+               2592x1944
+            </resolution>
+            <illumination index="1" type="char" size="[1 3]">
+               D75
+            </illumination>
+            <LSC_sectors index="1" type="double" size="[1 1]">
+               [ 16]
+            </LSC_sectors>
+            <LSC_No index="1" type="double" size="[1 1]">
+               [ 10]
+            </LSC_No>
+            <LSC_Xo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Xo>
+            <LSC_Yo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Yo>
+            <LSC_SECT_SIZE_X index="1" type="double" size="[1 8]">
+               [134 142 150 159 168 175 182 186]
+            </LSC_SECT_SIZE_X>
+            <LSC_SECT_SIZE_Y index="1" type="double" size="[1 8]">
+               [109 116 120 121 124 126 129 127]
+            </LSC_SECT_SIZE_Y>
+            <vignetting index="1" type="double" size="[1 1]">
+               [ 90]
+            </vignetting>
+            <LSC_SAMPLES_red index="1" type="double" size="[17 17]">
+               [1340 1317 1286 1261 1232 1209 1190 1173 1167 1171 1183 1207 1232 1254 1290 1315 1346 1320 1288 1260 1231 1204 1180 1162 1144 1138 1139 1158 1177 1203 1230 1247 1296 1316 1305 1272 1242 1213 1186 1163 1141 1121 1114 1118 1133 1156 1182 1207 1244 1263 1301 1289 1257 1230 1200 1173 1146 1123 1105 1095 1099 1118 1141 1169 1196 1225 1254 1287 1287 1256 1224 1194 1164 1136 1111 1087 1076 1084 1106 1132 1160 1189 1218 1250 1279 1277 1250 1216 1185 1156 1125 1097 1069 1057 1066 1094 1125 1153 1182 1210 1239 1272 1265 1237 1205 1173 1142 1111 1083 1055 1036 1051 1084 1112 1142 1169 1200 1230 1257 1249 1223 1192 1158 1127 1097 1067 1042 1026 1039 1068 1099 1127 1157 1185 1216 1245 1243 1213 1184 1151 1122 1092 1066 1036 1024 1038 1066 1093 1119 1149 1181 1207 1236 1240 1215 1188 1156 1126 1099 1069 1046 1030 1044 1069 1097 1130 1156 1183 1212 1237 1248 1224 1195 1166 1137 1110 1081 1057 1045 1054 1078 1107 1136 1166 1195 1223 1248 1253 1229 1203 1170 1143 1116 1088 1067 1056 1064 1090 1115 1144 1174 1203 1229 1254 1253 1229 1201 1171 1144 1117 1091 1072 1068 1072 1090 1116 1142 1174 1202 1231 1253 1254 1228 1197 1173 1142 1119 1095 1083 1077 1083 1095 1118 1143 1172 1199 1225 1252 1267 1222 1214 1178 1153 1131 1114 1101 1096 1098 1113 1128 1153 1179 1206 1236 1258 1276 1268 1220 1200 1172 1153 1135 1124 1121 1122 1134 1153 1174 1198 1226 1254 1282 1307 1274 1255 1226 1201 1179 1161 1151 1146 1150 1161 1178 1201 1224 1252 1280 1305]
+            </LSC_SAMPLES_red>
+            <LSC_SAMPLES_greenR index="1" type="double" size="[17 17]">
+               [1348 1319 1292 1260 1237 1211 1192 1176 1170 1172 1185 1206 1232 1259 1292 1316 1346 1325 1292 1264 1236 1207 1185 1164 1147 1139 1144 1158 1181 1204 1232 1250 1299 1318 1309 1274 1243 1213 1187 1163 1141 1122 1114 1118 1133 1156 1183 1209 1245 1265 1302 1293 1262 1232 1203 1174 1147 1124 1103 1093 1098 1118 1141 1170 1198 1227 1258 1289 1292 1261 1227 1195 1168 1139 1111 1087 1078 1083 1106 1134 1161 1193 1222 1253 1285 1285 1253 1222 1190 1159 1127 1100 1071 1056 1067 1096 1128 1156 1186 1216 1247 1279 1274 1241 1210 1177 1145 1114 1083 1055 1036 1051 1084 1114 1144 1174 1203 1234 1267 1254 1226 1194 1160 1128 1097 1068 1041 1025 1038 1067 1098 1128 1157 1189 1219 1249 1246 1218 1186 1154 1123 1092 1066 1037 1024 1037 1064 1093 1122 1151 1182 1212 1241 1248 1219 1189 1159 1130 1099 1070 1045 1030 1043 1070 1099 1129 1158 1186 1215 1244 1256 1229 1199 1169 1141 1111 1083 1059 1043 1056 1079 1110 1140 1171 1201 1226 1253 1261 1234 1206 1175 1146 1118 1091 1068 1056 1064 1090 1116 1147 1177 1207 1234 1261 1259 1233 1203 1174 1148 1119 1094 1074 1068 1072 1093 1119 1146 1177 1207 1232 1260 1258 1233 1201 1174 1146 1121 1096 1084 1078 1084 1096 1119 1146 1174 1204 1231 1256 1274 1229 1218 1179 1156 1132 1114 1101 1097 1099 1113 1130 1155 1181 1208 1237 1266 1285 1275 1225 1206 1176 1155 1139 1126 1123 1127 1136 1154 1175 1201 1231 1258 1288 1314 1282 1260 1229 1204 1183 1164 1155 1150 1152 1165 1179 1201 1229 1255 1283 1312]
+            </LSC_SAMPLES_greenR>
+            <LSC_SAMPLES_greenB index="1" type="double" size="[17 17]">
+               [1350 1320 1291 1263 1237 1211 1193 1178 1170 1174 1187 1207 1236 1259 1292 1315 1348 1327 1294 1264 1237 1208 1186 1164 1146 1139 1145 1159 1180 1204 1233 1251 1301 1315 1310 1274 1245 1215 1187 1164 1142 1123 1114 1117 1135 1158 1184 1210 1245 1265 1301 1296 1263 1232 1204 1174 1150 1125 1104 1094 1100 1117 1142 1168 1198 1226 1260 1288 1294 1261 1229 1198 1168 1139 1111 1088 1077 1085 1106 1134 1164 1193 1223 1253 1284 1288 1254 1223 1191 1161 1130 1100 1072 1055 1067 1098 1127 1157 1186 1217 1247 1278 1273 1243 1210 1178 1145 1113 1084 1056 1036 1052 1083 1115 1145 1174 1204 1235 1265 1257 1227 1194 1161 1130 1098 1069 1041 1027 1038 1068 1099 1128 1159 1189 1220 1248 1247 1218 1186 1156 1123 1093 1066 1039 1024 1037 1065 1094 1123 1152 1183 1211 1243 1249 1221 1190 1159 1131 1100 1071 1046 1031 1043 1070 1100 1130 1159 1186 1215 1244 1257 1230 1200 1171 1141 1112 1084 1059 1044 1057 1081 1110 1141 1170 1202 1227 1255 1263 1236 1207 1176 1148 1119 1092 1069 1056 1066 1090 1118 1148 1178 1208 1234 1261 1264 1234 1205 1175 1147 1121 1094 1075 1069 1073 1093 1119 1147 1178 1207 1233 1260 1257 1236 1201 1176 1146 1122 1098 1085 1079 1085 1097 1119 1147 1176 1204 1231 1256 1278 1230 1219 1181 1157 1132 1116 1103 1098 1101 1113 1131 1156 1181 1209 1237 1266 1289 1276 1227 1208 1176 1157 1139 1128 1123 1127 1138 1154 1176 1202 1233 1259 1290 1315 1283 1262 1230 1207 1182 1166 1155 1150 1155 1164 1181 1202 1228 1255 1286 1308]
+            </LSC_SAMPLES_greenB>
+            <LSC_SAMPLES_blue index="1" type="double" size="[17 17]">
+               [1341 1321 1288 1263 1237 1214 1195 1180 1172 1180 1190 1216 1240 1264 1302 1317 1359 1318 1294 1261 1234 1209 1186 1169 1148 1142 1148 1161 1186 1210 1239 1256 1307 1318 1301 1273 1243 1213 1188 1165 1145 1124 1114 1122 1136 1161 1190 1213 1248 1272 1310 1285 1264 1229 1201 1177 1147 1128 1106 1094 1102 1121 1145 1174 1204 1229 1263 1297 1282 1262 1230 1195 1169 1140 1114 1089 1079 1088 1111 1138 1169 1200 1228 1258 1289 1280 1252 1224 1190 1163 1130 1102 1074 1055 1071 1103 1132 1162 1192 1221 1250 1283 1266 1240 1210 1175 1147 1114 1084 1060 1038 1054 1087 1119 1148 1179 1208 1237 1269 1250 1223 1194 1157 1129 1098 1069 1043 1025 1040 1071 1101 1132 1162 1192 1222 1250 1242 1211 1185 1152 1122 1093 1066 1041 1024 1038 1069 1096 1127 1154 1185 1214 1244 1243 1215 1190 1157 1129 1101 1068 1047 1031 1043 1073 1103 1133 1161 1189 1218 1243 1254 1222 1202 1167 1140 1113 1083 1060 1046 1059 1082 1113 1145 1174 1200 1228 1257 1257 1230 1205 1174 1146 1120 1091 1070 1057 1066 1094 1118 1147 1182 1212 1235 1259 1259 1225 1203 1171 1146 1120 1091 1074 1069 1071 1094 1121 1147 1178 1210 1233 1260 1253 1223 1197 1172 1140 1120 1094 1082 1077 1082 1098 1118 1146 1174 1204 1228 1255 1265 1217 1210 1176 1147 1130 1109 1100 1094 1096 1110 1128 1153 1180 1207 1235 1262 1275 1261 1214 1199 1167 1151 1132 1123 1120 1121 1135 1151 1172 1198 1226 1253 1278 1304 1269 1251 1220 1193 1177 1157 1147 1146 1148 1161 1176 1194 1224 1252 1277 1301]
+            </LSC_SAMPLES_blue>
+         </cell>
+         <cell index="5" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 16]">
+               2592x1944_F11_90
+            </name>
+            <resolution index="1" type="char" size="[1 9]">
+               2592x1944
+            </resolution>
+            <illumination index="1" type="char" size="[1 3]">
+               F11
+            </illumination>
+            <LSC_sectors index="1" type="double" size="[1 1]">
+               [ 16]
+            </LSC_sectors>
+            <LSC_No index="1" type="double" size="[1 1]">
+               [ 10]
+            </LSC_No>
+            <LSC_Xo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Xo>
+            <LSC_Yo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Yo>
+            <LSC_SECT_SIZE_X index="1" type="double" size="[1 8]">
+               [135 143 151 159 164 177 181 186]
+            </LSC_SECT_SIZE_X>
+            <LSC_SECT_SIZE_Y index="1" type="double" size="[1 8]">
+               [110 115 119 121 124 126 127 130]
+            </LSC_SECT_SIZE_Y>
+            <vignetting index="1" type="double" size="[1 1]">
+               [ 90]
+            </vignetting>
+            <LSC_SAMPLES_red index="1" type="double" size="[17 17]">
+               [1346 1323 1292 1261 1234 1211 1191 1175 1168 1173 1185 1209 1235 1257 1293 1319 1354 1329 1300 1267 1238 1210 1186 1166 1148 1141 1146 1161 1184 1207 1239 1256 1307 1326 1314 1277 1248 1217 1190 1167 1144 1126 1115 1122 1137 1160 1187 1213 1250 1272 1311 1293 1263 1232 1200 1174 1145 1123 1102 1093 1097 1116 1143 1169 1198 1227 1259 1292 1284 1253 1221 1190 1159 1132 1104 1081 1070 1078 1100 1128 1156 1186 1217 1247 1281 1275 1246 1212 1181 1150 1120 1091 1062 1048 1060 1089 1119 1148 1178 1207 1240 1271 1270 1238 1204 1173 1140 1110 1079 1051 1032 1048 1081 1111 1140 1169 1201 1233 1260 1256 1229 1197 1161 1130 1097 1068 1043 1026 1040 1068 1100 1129 1158 1190 1224 1254 1249 1218 1186 1155 1122 1094 1065 1040 1024 1039 1066 1095 1123 1153 1184 1215 1245 1243 1215 1186 1154 1125 1095 1066 1041 1027 1039 1066 1096 1125 1155 1184 1213 1243 1246 1219 1190 1160 1130 1102 1073 1050 1036 1047 1072 1101 1132 1161 1190 1219 1246 1249 1224 1197 1165 1136 1109 1082 1058 1047 1057 1081 1109 1137 1167 1198 1225 1253 1255 1227 1198 1168 1142 1115 1087 1069 1063 1069 1087 1115 1142 1172 1202 1229 1255 1255 1232 1199 1174 1145 1120 1097 1084 1079 1084 1097 1119 1144 1174 1202 1231 1259 1271 1225 1217 1179 1154 1132 1113 1100 1097 1099 1112 1131 1154 1182 1208 1240 1265 1276 1267 1217 1198 1169 1149 1133 1121 1117 1121 1133 1149 1173 1195 1226 1256 1282 1299 1267 1250 1219 1195 1174 1156 1145 1140 1143 1157 1173 1194 1219 1248 1275 1301]
+            </LSC_SAMPLES_red>
+            <LSC_SAMPLES_greenR index="1" type="double" size="[17 17]">
+               [1344 1315 1289 1258 1232 1209 1189 1173 1168 1171 1185 1205 1232 1258 1293 1315 1352 1327 1294 1265 1235 1209 1185 1165 1148 1141 1145 1160 1184 1208 1237 1256 1305 1325 1311 1273 1244 1215 1187 1165 1143 1125 1115 1120 1136 1160 1187 1213 1250 1271 1307 1289 1258 1229 1199 1170 1145 1122 1101 1091 1098 1115 1142 1168 1198 1225 1259 1291 1282 1252 1217 1187 1158 1131 1103 1080 1069 1077 1099 1128 1155 1186 1218 1247 1280 1273 1242 1211 1180 1149 1118 1090 1062 1047 1059 1088 1120 1149 1177 1208 1239 1272 1265 1235 1202 1168 1139 1108 1078 1050 1031 1046 1080 1110 1140 1170 1201 1233 1263 1255 1225 1192 1160 1127 1097 1068 1041 1025 1039 1068 1098 1130 1160 1192 1221 1253 1245 1217 1184 1153 1121 1093 1065 1037 1024 1038 1066 1095 1123 1153 1186 1214 1246 1244 1211 1183 1153 1124 1093 1066 1041 1027 1039 1065 1097 1125 1156 1184 1213 1243 1243 1217 1187 1157 1129 1101 1072 1049 1035 1047 1072 1102 1131 1162 1193 1218 1244 1249 1221 1193 1163 1133 1107 1081 1057 1045 1056 1080 1109 1135 1168 1197 1226 1252 1252 1223 1196 1165 1140 1113 1085 1067 1062 1066 1086 1113 1141 1171 1202 1228 1256 1255 1231 1197 1172 1143 1118 1095 1083 1077 1082 1097 1118 1145 1174 1203 1230 1260 1270 1223 1214 1176 1151 1129 1111 1100 1095 1098 1111 1128 1153 1180 1209 1238 1267 1276 1267 1217 1197 1169 1148 1132 1120 1116 1120 1131 1150 1169 1196 1226 1254 1284 1299 1266 1246 1216 1190 1171 1151 1142 1136 1142 1154 1170 1191 1217 1244 1274 1301]
+            </LSC_SAMPLES_greenR>
+            <LSC_SAMPLES_greenB index="1" type="double" size="[17 17]">
+               [1346 1317 1289 1258 1232 1208 1190 1175 1167 1171 1185 1208 1230 1258 1292 1317 1348 1327 1295 1265 1237 1209 1186 1166 1148 1142 1146 1161 1183 1207 1237 1254 1304 1321 1310 1275 1244 1216 1188 1166 1143 1124 1115 1121 1137 1160 1187 1214 1248 1269 1309 1290 1261 1228 1200 1171 1146 1122 1101 1092 1098 1115 1141 1167 1197 1227 1257 1289 1282 1251 1219 1187 1159 1130 1104 1080 1070 1077 1099 1128 1156 1186 1216 1248 1279 1273 1245 1211 1179 1150 1119 1090 1063 1047 1058 1088 1119 1149 1177 1207 1239 1270 1268 1235 1204 1170 1139 1108 1078 1050 1030 1047 1079 1110 1140 1170 1200 1233 1261 1256 1226 1193 1159 1128 1098 1067 1041 1026 1038 1069 1100 1130 1161 1192 1221 1254 1246 1216 1185 1153 1122 1093 1065 1038 1024 1038 1066 1094 1124 1153 1184 1213 1245 1244 1214 1184 1153 1124 1094 1066 1042 1026 1040 1066 1096 1125 1156 1184 1213 1241 1244 1217 1187 1158 1130 1101 1072 1049 1035 1048 1071 1101 1132 1160 1191 1217 1245 1249 1222 1194 1164 1134 1107 1081 1058 1045 1056 1079 1108 1136 1167 1197 1224 1251 1252 1224 1196 1167 1140 1114 1086 1068 1063 1067 1086 1113 1141 1172 1202 1227 1254 1256 1230 1199 1171 1143 1118 1095 1084 1077 1084 1095 1119 1145 1173 1202 1231 1257 1272 1224 1215 1177 1152 1131 1113 1100 1095 1098 1111 1130 1153 1181 1209 1238 1266 1279 1268 1217 1198 1169 1148 1132 1121 1116 1121 1131 1148 1172 1195 1226 1253 1284 1299 1268 1248 1215 1193 1171 1153 1143 1139 1142 1154 1170 1190 1217 1245 1273 1298]
+            </LSC_SAMPLES_greenB>
+            <LSC_SAMPLES_blue index="1" type="double" size="[17 17]">
+               [1339 1321 1288 1260 1236 1210 1195 1177 1173 1178 1191 1217 1243 1269 1302 1327 1362 1319 1295 1261 1235 1210 1190 1172 1152 1143 1156 1166 1192 1219 1246 1266 1318 1331 1303 1275 1243 1214 1192 1163 1151 1127 1117 1123 1144 1167 1195 1222 1256 1281 1319 1282 1261 1227 1197 1173 1147 1127 1103 1094 1103 1120 1148 1175 1204 1234 1266 1305 1273 1253 1218 1187 1160 1132 1107 1084 1071 1084 1105 1134 1165 1195 1226 1256 1286 1265 1240 1212 1177 1152 1119 1093 1065 1049 1063 1094 1124 1155 1187 1216 1248 1279 1260 1231 1203 1166 1140 1108 1078 1054 1033 1049 1083 1117 1146 1176 1208 1238 1267 1247 1224 1192 1155 1128 1096 1070 1044 1024 1042 1072 1105 1135 1166 1198 1230 1256 1242 1209 1186 1146 1120 1093 1065 1042 1024 1038 1070 1097 1129 1160 1189 1221 1251 1235 1207 1185 1150 1122 1096 1064 1043 1027 1040 1069 1102 1131 1158 1189 1218 1246 1241 1208 1189 1154 1126 1101 1073 1049 1036 1048 1074 1102 1139 1168 1194 1221 1250 1244 1213 1191 1161 1132 1107 1078 1059 1046 1054 1084 1108 1136 1173 1201 1225 1251 1250 1212 1193 1160 1134 1112 1084 1066 1061 1065 1088 1116 1141 1172 1205 1230 1254 1247 1219 1194 1165 1135 1117 1089 1080 1073 1077 1095 1119 1145 1175 1204 1232 1254 1262 1212 1207 1171 1141 1124 1106 1096 1091 1095 1109 1129 1151 1179 1208 1237 1262 1266 1254 1207 1188 1159 1142 1125 1114 1114 1112 1129 1146 1168 1193 1223 1250 1278 1290 1252 1238 1207 1181 1163 1144 1133 1133 1136 1148 1163 1187 1213 1245 1268 1287]
+            </LSC_SAMPLES_blue>
+         </cell>
+         <cell index="6" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 15]">
+               2592x1944_F2_90
+            </name>
+            <resolution index="1" type="char" size="[1 9]">
+               2592x1944
+            </resolution>
+            <illumination index="1" type="char" size="[1 2]">
+               F2
+            </illumination>
+            <LSC_sectors index="1" type="double" size="[1 1]">
+               [ 16]
+            </LSC_sectors>
+            <LSC_No index="1" type="double" size="[1 1]">
+               [ 10]
+            </LSC_No>
+            <LSC_Xo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Xo>
+            <LSC_Yo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Yo>
+            <LSC_SECT_SIZE_X index="1" type="double" size="[1 8]">
+               [136 143 149 160 167 174 182 185]
+            </LSC_SECT_SIZE_X>
+            <LSC_SECT_SIZE_Y index="1" type="double" size="[1 8]">
+               [110 116 118 122 124 126 128 128]
+            </LSC_SECT_SIZE_Y>
+            <vignetting index="1" type="double" size="[1 1]">
+               [ 90]
+            </vignetting>
+            <LSC_SAMPLES_red index="1" type="double" size="[17 17]">
+               [1336 1309 1282 1255 1227 1201 1185 1167 1161 1166 1179 1202 1227 1250 1286 1312 1348 1323 1290 1260 1230 1204 1181 1162 1144 1138 1141 1157 1177 1203 1232 1249 1299 1320 1309 1272 1243 1214 1186 1163 1140 1122 1114 1119 1135 1157 1184 1211 1245 1269 1305 1289 1258 1227 1197 1170 1142 1122 1099 1091 1096 1114 1139 1167 1194 1223 1256 1289 1276 1246 1213 1183 1154 1125 1099 1077 1067 1073 1096 1122 1151 1182 1209 1241 1272 1265 1235 1204 1172 1142 1113 1084 1057 1044 1053 1083 1112 1141 1169 1199 1231 1262 1258 1230 1196 1164 1132 1102 1073 1047 1026 1043 1074 1105 1135 1163 1192 1223 1253 1251 1222 1190 1156 1125 1093 1065 1039 1025 1036 1067 1095 1126 1155 1186 1218 1247 1242 1217 1183 1152 1121 1091 1065 1038 1024 1039 1066 1093 1123 1150 1181 1214 1240 1240 1213 1181 1151 1123 1093 1064 1040 1026 1038 1064 1094 1123 1151 1180 1209 1239 1240 1212 1183 1155 1123 1097 1069 1045 1033 1042 1068 1095 1126 1157 1184 1212 1240 1241 1216 1189 1156 1129 1101 1077 1053 1041 1050 1075 1102 1130 1160 1188 1218 1242 1246 1220 1192 1162 1135 1109 1081 1064 1060 1064 1083 1108 1136 1167 1196 1222 1251 1253 1227 1195 1170 1140 1116 1094 1080 1076 1079 1095 1114 1142 1170 1198 1228 1250 1269 1222 1214 1175 1152 1130 1111 1099 1096 1099 1112 1129 1153 1179 1206 1236 1266 1273 1264 1214 1196 1168 1146 1129 1118 1115 1117 1130 1147 1168 1192 1224 1252 1277 1293 1263 1242 1212 1188 1169 1150 1140 1134 1139 1151 1168 1187 1214 1242 1270 1294]
+            </LSC_SAMPLES_red>
+            <LSC_SAMPLES_greenR index="1" type="double" size="[17 17]">
+               [1340 1313 1283 1256 1227 1206 1186 1170 1163 1167 1179 1202 1227 1254 1287 1310 1344 1326 1293 1264 1235 1207 1183 1164 1148 1139 1144 1159 1180 1206 1234 1253 1303 1321 1310 1275 1244 1215 1188 1164 1143 1123 1116 1119 1135 1159 1185 1213 1248 1269 1308 1292 1258 1227 1198 1169 1144 1121 1100 1090 1097 1114 1140 1165 1196 1224 1258 1288 1278 1249 1215 1185 1155 1127 1100 1076 1067 1074 1096 1123 1152 1182 1212 1243 1277 1270 1238 1205 1174 1144 1115 1086 1059 1044 1054 1085 1114 1144 1172 1203 1234 1266 1265 1232 1199 1166 1135 1104 1074 1048 1028 1044 1076 1106 1136 1166 1196 1228 1261 1255 1224 1192 1158 1126 1095 1067 1040 1025 1038 1067 1098 1128 1158 1190 1221 1251 1247 1216 1185 1153 1122 1092 1064 1037 1024 1038 1065 1094 1124 1154 1184 1215 1245 1243 1213 1183 1152 1123 1093 1065 1040 1026 1038 1065 1095 1124 1154 1183 1212 1241 1244 1215 1185 1155 1127 1097 1071 1046 1032 1044 1069 1098 1128 1159 1189 1215 1243 1247 1218 1189 1159 1131 1103 1077 1053 1042 1052 1077 1104 1133 1163 1193 1223 1248 1252 1224 1195 1165 1138 1111 1084 1065 1060 1065 1084 1110 1138 1168 1198 1226 1255 1256 1231 1197 1172 1142 1117 1096 1083 1077 1082 1096 1117 1144 1175 1203 1230 1259 1274 1225 1216 1178 1153 1131 1113 1101 1095 1101 1110 1130 1155 1181 1210 1240 1269 1281 1268 1219 1198 1169 1149 1132 1120 1117 1119 1132 1149 1169 1197 1226 1253 1285 1300 1268 1247 1216 1191 1168 1154 1141 1138 1142 1153 1168 1191 1218 1243 1275 1300]
+            </LSC_SAMPLES_greenR>
+            <LSC_SAMPLES_greenB index="1" type="double" size="[17 17]">
+               [1345 1315 1288 1256 1230 1207 1188 1172 1165 1169 1180 1205 1229 1254 1289 1311 1349 1327 1296 1265 1236 1209 1185 1165 1147 1142 1144 1160 1182 1206 1236 1254 1305 1319 1313 1276 1245 1217 1190 1165 1144 1125 1117 1120 1138 1160 1188 1214 1248 1270 1308 1292 1261 1229 1200 1171 1145 1121 1101 1092 1098 1114 1141 1167 1196 1225 1259 1291 1281 1250 1217 1186 1157 1128 1102 1078 1068 1074 1098 1124 1155 1183 1214 1245 1277 1273 1241 1209 1177 1145 1116 1086 1059 1044 1056 1085 1116 1145 1175 1203 1235 1267 1267 1233 1200 1169 1137 1105 1076 1049 1029 1046 1076 1107 1137 1168 1197 1229 1260 1257 1227 1193 1160 1128 1097 1068 1041 1025 1038 1069 1098 1128 1160 1190 1220 1254 1250 1218 1186 1155 1123 1094 1066 1040 1024 1039 1067 1096 1124 1154 1185 1216 1247 1245 1215 1184 1154 1125 1095 1066 1041 1026 1040 1065 1096 1126 1157 1184 1212 1242 1245 1216 1187 1157 1128 1100 1071 1047 1034 1045 1070 1098 1130 1159 1189 1216 1245 1248 1220 1191 1161 1132 1104 1079 1055 1043 1052 1078 1106 1133 1165 1194 1222 1249 1253 1224 1196 1166 1139 1112 1085 1068 1061 1066 1084 1111 1141 1170 1201 1226 1255 1261 1234 1200 1174 1145 1118 1097 1084 1079 1083 1098 1118 1146 1174 1204 1232 1259 1279 1227 1218 1181 1154 1132 1114 1102 1097 1101 1112 1131 1156 1183 1210 1240 1269 1280 1271 1220 1201 1171 1151 1134 1121 1118 1123 1132 1151 1171 1198 1229 1257 1287 1307 1270 1251 1217 1194 1170 1154 1143 1139 1143 1153 1168 1193 1216 1245 1275 1300]
+            </LSC_SAMPLES_greenB>
+            <LSC_SAMPLES_blue index="1" type="double" size="[17 17]">
+               [1332 1314 1283 1253 1234 1210 1189 1175 1170 1173 1188 1211 1238 1262 1300 1317 1356 1317 1295 1262 1234 1207 1187 1170 1149 1143 1151 1164 1190 1218 1244 1263 1315 1325 1299 1274 1242 1211 1193 1164 1149 1124 1116 1122 1142 1166 1194 1219 1252 1277 1318 1281 1257 1222 1196 1169 1142 1122 1102 1090 1101 1117 1144 1174 1202 1229 1264 1296 1263 1244 1213 1178 1157 1124 1102 1079 1067 1079 1100 1128 1160 1190 1218 1248 1282 1259 1235 1207 1169 1144 1113 1087 1059 1042 1057 1090 1119 1150 1180 1208 1240 1269 1255 1225 1198 1162 1136 1103 1074 1050 1029 1046 1080 1112 1143 1172 1202 1232 1265 1246 1218 1192 1152 1125 1096 1067 1041 1025 1039 1072 1102 1131 1165 1193 1225 1254 1236 1209 1182 1146 1120 1091 1064 1039 1025 1038 1070 1096 1129 1158 1187 1221 1244 1232 1203 1179 1146 1121 1091 1061 1040 1024 1038 1066 1097 1126 1156 1183 1213 1240 1237 1203 1183 1148 1119 1095 1068 1044 1031 1043 1068 1096 1133 1160 1187 1214 1240 1236 1206 1184 1153 1127 1100 1073 1054 1040 1051 1081 1103 1130 1167 1195 1218 1243 1245 1209 1189 1157 1130 1109 1079 1064 1057 1061 1083 1112 1137 1167 1201 1226 1248 1249 1214 1192 1165 1136 1114 1087 1078 1072 1077 1094 1116 1143 1173 1200 1229 1250 1262 1207 1203 1170 1139 1123 1104 1093 1090 1092 1108 1124 1149 1178 1207 1233 1262 1262 1249 1203 1186 1156 1139 1120 1111 1109 1111 1124 1143 1162 1190 1219 1243 1271 1286 1246 1229 1201 1174 1156 1140 1128 1128 1133 1144 1158 1178 1208 1236 1261 1284]
+            </LSC_SAMPLES_blue>
+         </cell>
+         <cell index="7" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 14]">
+               2592x1944_H_90
+            </name>
+            <resolution index="1" type="char" size="[1 9]">
+               2592x1944
+            </resolution>
+            <illumination index="1" type="char" size="[1 1]">
+               H
+            </illumination>
+            <LSC_sectors index="1" type="double" size="[1 1]">
+               [ 16]
+            </LSC_sectors>
+            <LSC_No index="1" type="double" size="[1 1]">
+               [ 10]
+            </LSC_No>
+            <LSC_Xo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Xo>
+            <LSC_Yo index="1" type="double" size="[1 1]">
+               [ 15]
+            </LSC_Yo>
+            <LSC_SECT_SIZE_X index="1" type="double" size="[1 8]">
+               [134 143 152 159 169 173 183 183]
+            </LSC_SECT_SIZE_X>
+            <LSC_SECT_SIZE_Y index="1" type="double" size="[1 8]">
+               [109 115 119 120 126 129 128 126]
+            </LSC_SECT_SIZE_Y>
+            <vignetting index="1" type="double" size="[1 1]">
+               [ 90]
+            </vignetting>
+            <LSC_SAMPLES_red index="1" type="double" size="[17 17]">
+               [1317 1295 1266 1238 1214 1191 1173 1160 1152 1157 1170 1189 1215 1236 1271 1296 1328 1310 1280 1252 1223 1198 1177 1158 1141 1136 1139 1153 1174 1195 1225 1242 1292 1306 1299 1266 1237 1209 1183 1162 1141 1123 1116 1120 1135 1156 1181 1207 1241 1262 1300 1278 1247 1218 1190 1164 1139 1118 1100 1090 1096 1112 1136 1161 1189 1215 1249 1278 1257 1231 1200 1171 1144 1117 1093 1072 1062 1069 1090 1116 1142 1170 1198 1229 1257 1245 1218 1188 1158 1131 1102 1075 1051 1038 1048 1074 1102 1129 1156 1184 1215 1244 1241 1213 1183 1153 1122 1094 1068 1042 1025 1038 1067 1096 1125 1151 1181 1211 1237 1241 1211 1182 1150 1120 1092 1064 1040 1024 1038 1066 1092 1122 1150 1179 1210 1239 1234 1208 1178 1149 1119 1091 1066 1040 1025 1041 1066 1093 1119 1148 1177 1206 1235 1227 1202 1174 1145 1118 1089 1063 1040 1025 1039 1064 1091 1119 1146 1174 1202 1229 1222 1196 1169 1142 1114 1088 1063 1041 1028 1039 1061 1087 1117 1144 1172 1199 1223 1223 1198 1173 1143 1116 1092 1067 1045 1037 1045 1066 1092 1119 1147 1177 1201 1227 1231 1205 1179 1151 1126 1101 1076 1060 1055 1060 1077 1102 1128 1155 1185 1209 1236 1242 1219 1188 1164 1138 1112 1093 1081 1076 1080 1093 1114 1139 1168 1191 1222 1245 1263 1214 1209 1172 1149 1128 1113 1101 1095 1100 1111 1129 1152 1176 1203 1233 1258 1260 1254 1205 1189 1162 1142 1127 1115 1114 1116 1128 1144 1163 1187 1215 1243 1272 1279 1246 1226 1201 1177 1157 1143 1133 1126 1131 1142 1158 1179 1202 1229 1256 1278]
+            </LSC_SAMPLES_red>
+            <LSC_SAMPLES_greenR index="1" type="double" size="[17 17]">
+               [1334 1304 1278 1248 1222 1199 1178 1164 1159 1161 1174 1197 1220 1246 1283 1304 1339 1322 1291 1262 1233 1206 1183 1164 1148 1140 1145 1158 1180 1204 1234 1252 1302 1321 1312 1276 1245 1217 1191 1166 1145 1127 1119 1123 1139 1162 1188 1215 1251 1271 1309 1289 1257 1227 1199 1169 1144 1121 1102 1091 1098 1116 1139 1167 1195 1224 1258 1289 1271 1241 1209 1177 1150 1121 1095 1073 1064 1070 1091 1119 1146 1177 1207 1236 1269 1258 1226 1195 1164 1135 1105 1078 1052 1037 1048 1076 1105 1135 1163 1193 1223 1255 1253 1224 1191 1159 1127 1097 1069 1043 1024 1039 1070 1100 1130 1158 1188 1220 1250 1252 1221 1189 1157 1125 1094 1067 1040 1024 1038 1067 1096 1126 1157 1188 1218 1249 1249 1217 1188 1154 1124 1095 1068 1041 1026 1040 1068 1096 1125 1154 1186 1217 1246 1238 1213 1181 1152 1122 1093 1065 1040 1026 1039 1066 1094 1124 1153 1181 1211 1240 1233 1204 1178 1147 1119 1090 1065 1040 1028 1039 1063 1091 1121 1150 1181 1207 1233 1233 1208 1179 1150 1122 1095 1069 1047 1036 1045 1069 1094 1124 1154 1183 1211 1238 1243 1214 1187 1158 1132 1104 1080 1061 1056 1061 1080 1105 1133 1161 1193 1219 1244 1253 1229 1197 1171 1142 1118 1095 1084 1078 1083 1097 1118 1144 1174 1202 1231 1256 1274 1226 1218 1180 1155 1133 1116 1104 1100 1102 1115 1132 1157 1184 1213 1242 1270 1275 1267 1216 1198 1169 1150 1133 1121 1117 1122 1131 1150 1170 1196 1227 1254 1283 1292 1258 1241 1207 1184 1162 1147 1135 1132 1135 1148 1162 1184 1209 1238 1266 1291]
+            </LSC_SAMPLES_greenR>
+            <LSC_SAMPLES_greenB index="1" type="double" size="[17 17]">
+               [1337 1309 1279 1250 1225 1201 1181 1167 1160 1165 1176 1197 1223 1248 1283 1306 1338 1326 1294 1265 1235 1209 1185 1167 1147 1143 1145 1160 1182 1206 1235 1253 1303 1319 1314 1278 1247 1220 1193 1167 1146 1129 1120 1124 1139 1162 1189 1214 1251 1272 1311 1290 1260 1228 1200 1171 1146 1123 1103 1092 1099 1116 1142 1167 1196 1224 1257 1287 1274 1243 1210 1178 1152 1122 1097 1074 1065 1071 1092 1119 1147 1177 1208 1236 1269 1260 1229 1198 1166 1136 1107 1078 1052 1038 1048 1077 1105 1135 1163 1194 1224 1254 1256 1224 1193 1159 1130 1098 1071 1044 1024 1040 1072 1099 1131 1159 1189 1219 1250 1251 1223 1191 1159 1127 1096 1067 1041 1026 1038 1068 1098 1127 1157 1189 1218 1249 1249 1220 1189 1155 1125 1095 1070 1042 1027 1042 1070 1096 1126 1155 1186 1217 1245 1242 1213 1182 1153 1123 1093 1066 1042 1027 1040 1066 1095 1124 1154 1182 1209 1239 1233 1208 1178 1149 1120 1093 1065 1042 1028 1041 1063 1092 1122 1150 1181 1207 1235 1235 1207 1181 1151 1123 1096 1070 1049 1037 1045 1070 1095 1126 1155 1183 1210 1236 1243 1217 1188 1159 1132 1107 1081 1062 1058 1062 1080 1106 1133 1163 1193 1218 1247 1255 1231 1200 1174 1144 1118 1098 1085 1079 1084 1098 1118 1146 1175 1202 1232 1256 1279 1228 1220 1180 1158 1135 1118 1106 1100 1104 1116 1134 1159 1185 1213 1241 1270 1278 1270 1220 1200 1172 1150 1135 1122 1119 1122 1134 1151 1172 1198 1228 1254 1282 1293 1262 1243 1210 1186 1165 1147 1138 1133 1137 1146 1163 1185 1210 1238 1268 1291]
+            </LSC_SAMPLES_greenB>
+            <LSC_SAMPLES_blue index="1" type="double" size="[17 17]">
+               [1342 1324 1282 1262 1233 1208 1190 1175 1168 1173 1184 1210 1235 1260 1299 1313 1358 1329 1306 1274 1241 1220 1193 1176 1153 1147 1158 1167 1193 1220 1247 1267 1320 1332 1314 1290 1254 1226 1200 1172 1158 1132 1124 1132 1147 1170 1200 1226 1259 1286 1327 1288 1272 1232 1205 1179 1150 1129 1107 1096 1103 1121 1146 1176 1204 1232 1267 1303 1271 1248 1216 1182 1157 1125 1101 1077 1064 1075 1096 1123 1154 1186 1214 1244 1274 1259 1233 1204 1165 1142 1107 1081 1053 1037 1051 1080 1108 1139 1169 1202 1231 1263 1253 1229 1198 1162 1132 1100 1070 1046 1025 1040 1073 1104 1134 1165 1195 1226 1254 1255 1229 1198 1157 1131 1098 1070 1042 1024 1039 1071 1100 1133 1162 1196 1225 1258 1253 1222 1195 1156 1129 1096 1072 1043 1024 1042 1070 1100 1128 1163 1192 1223 1250 1243 1212 1191 1153 1124 1096 1064 1044 1025 1038 1067 1097 1129 1156 1186 1217 1241 1239 1205 1185 1149 1119 1093 1066 1040 1027 1038 1062 1089 1124 1155 1182 1206 1236 1238 1207 1184 1152 1124 1094 1070 1049 1036 1044 1072 1093 1124 1159 1189 1212 1232 1254 1211 1194 1158 1132 1109 1077 1062 1056 1060 1081 1108 1132 1164 1198 1220 1243 1259 1228 1203 1174 1142 1121 1095 1083 1078 1082 1100 1118 1148 1176 1204 1233 1258 1280 1225 1218 1183 1152 1137 1115 1108 1099 1102 1117 1133 1160 1186 1214 1243 1271 1278 1267 1218 1198 1168 1148 1129 1120 1120 1118 1133 1150 1172 1199 1226 1253 1277 1290 1257 1239 1210 1178 1164 1143 1131 1132 1132 1146 1161 1181 1206 1240 1265 1282]
+            </LSC_SAMPLES_blue>
+         </cell>
+      </LSC>
+      <CC index="1" type="cell" size="[1 7]">
+         <cell index="1" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 4]">
+               A_90
+            </name>
+            <saturation index="1" type="double" size="[1 1]">
+               [ 90]
+            </saturation>
+            <ccMatrix index="1" type="double" size="[3 3]">
+               [2.0612 -1.0655 0.0042956 -0.497342 1.60118 -0.103843 0.0735513 -1.88905 2.8155]
+            </ccMatrix>
+            <ccOffsets index="1" type="double" size="[1 3]">
+               [0 0 0]
+            </ccOffsets>
+            <wb index="1" type="double" size="[1 4]">
+               [1.30931 1 1 3.0664]
+            </wb>
+         </cell>
+         <cell index="2" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 6]">
+               D50_90
+            </name>
+            <saturation index="1" type="double" size="[1 1]">
+               [ 90]
+            </saturation>
+            <ccMatrix index="1" type="double" size="[3 3]">
+               [2.021572 -1.142586 0.121013 -0.426270 1.783624 -0.357358 0.162924 -1.149157 1.98628]
+            </ccMatrix>
+            <ccOffsets index="1" type="double" size="[1 3]">
+               [0 0 0]
+            </ccOffsets>
+            <wb index="1" type="double" size="[1 4]">
+               [1.85811 1 1 2.1735]
+            </wb>
+         </cell>
+         <cell index="3" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 6]">
+               D65_90
+            </name>
+            <saturation index="1" type="double" size="[1 1]">
+               [ 90]
+            </saturation>
+            <ccMatrix index="1" type="double" size="[3 3]">
+               [1.785124 -0.710272 -0.074851 -0.376450 1.782952 -0.406505 0.050996 -0.765767 1.7152]
+            </ccMatrix>
+            <ccOffsets index="1" type="double" size="[1 3]">
+               [0 0 0]
+            </ccOffsets>
+            <wb index="1" type="double" size="[1 4]">
+               [2.10287 1 1 1.876]
+            </wb>
+         </cell>
+         <cell index="4" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 6]">
+               D75_90
+            </name>
+            <saturation index="1" type="double" size="[1 1]">
+               [ 90]
+            </saturation>
+            <ccMatrix index="1" type="double" size="[3 3]">
+               [1.74922 -0.843728 0.094508 -0.251222 1.58356 -0.332334 0.123104 -0.73635 1.614]
+            </ccMatrix>
+            <ccOffsets index="1" type="double" size="[1 3]">
+               [0 0 0]
+            </ccOffsets>
+            <wb index="1" type="double" size="[1 4]">
+               [2.26243 1 1 1.7944]
+            </wb>
+         </cell>
+         <cell index="5" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 6]">
+               F11_90
+            </name>
+            <saturation index="1" type="double" size="[1 1]">
+               [ 90]
+            </saturation>
+            <ccMatrix index="1" type="double" size="[3 3]">
+               [1.60816 -0.519297 -0.0888587 -0.578325 1.79303 -0.214701 0.0189899 -1.01654 1.9976]
+            </ccMatrix>
+            <ccOffsets index="1" type="double" size="[1 3]">
+               [0 0 0]
+            </ccOffsets>
+            <wb index="1" type="double" size="[1 4]">
+               [1.46488 1 1 2.7045]
+            </wb>
+         </cell>
+         <cell index="6" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 5]">
+               F2_90
+            </name>
+            <saturation index="1" type="double" size="[1 1]">
+               [ 90]
+            </saturation>
+            <ccMatrix index="1" type="double" size="[3 3]">
+               [2.05443 -0.940079 -0.114353 -0.446304 1.54937 -0.103071 0.136616 -1.13839 2.003]
+            </ccMatrix>
+            <ccOffsets index="1" type="double" size="[1 3]">
+               [0 0 0]
+            </ccOffsets>
+            <wb index="1" type="double" size="[1 4]">
+               [1.80145 1 1 2.8189]
+            </wb>
+         </cell>
+         <cell index="7" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 4]">
+               H_90
+            </name>
+            <saturation index="1" type="double" size="[1 1]">
+               [ 90]
+            </saturation>
+            <ccMatrix index="1" type="double" size="[3 3]">
+               [1.52359 -0.32968 -0.193907 -0.749199 1.60868 0.140524 -0.106224 -2.67113 3.7774]
+            </ccMatrix>
+            <ccOffsets index="1" type="double" size="[1 3]">
+               [0 0 0]
+            </ccOffsets>
+            <wb index="1" type="double" size="[1 4]">
+               [1.13773 1 1 3.3723]
+            </wb>
+         </cell>
+      </CC>
+      <AF index="1" type="struct" size="[1 1]">
+         <tbd index="1" type="double" size="[1 1]">
+            [ -1]
+         </tbd>
+      </AF>
+      <AEC index="1" type="struct" size="[1 1]">
+         <SetPoint index="1" type="double" size="[1 1]">
+            [ 25]
+         </SetPoint>
+         <ClmTolerance index="1" type="double" size="[1 1]">
+            [ 20]
+         </ClmTolerance>
+         <DampOver index="1" type="double" size="[1 1]">
+            [ 0.6]
+         </DampOver>
+         <DampUnder index="1" type="double" size="[1 1]">
+            [ 0.6]
+         </DampUnder>
+         <DampOverVideo index="1" type="double" size="[1 1]">
+            [ 0.6]
+         </DampOverVideo>
+         <DampUnderVideo index="1" type="double" size="[1 1]">
+            [ 0.6]
+         </DampUnderVideo>
+         <ECM index="1" type="cell" size="[1 3]">
+            <cell index="1" type="struct" size="[1 1]">
+               <name index="1" type="char" size="[1 16]">
+                  2592x1944_FPS_15
+               </name>
+               <PrioritySchemes index="1" type="cell" size="[1 3]">
+                  <cell index="1" type="struct" size="[1 1]">
+                     <name index="1" type="char" size="[1 4]">
+                        fast
+                     </name>
+                     <OffsetT0Fac index="1" type="double" size="[1 1]">
+                        [ 1]
+                     </OffsetT0Fac>
+                     <SlopeA0 index="1" type="double" size="[1 1]">
+                        [ 2]
+                     </SlopeA0>
+                  </cell>
+                  <cell index="2" type="struct" size="[1 1]">
+                     <name index="1" type="char" size="[1 6]">
+                        normal
+                     </name>
+                     <OffsetT0Fac index="1" type="double" size="[1 1]">
+                        [ 1]
+                     </OffsetT0Fac>
+                     <SlopeA0 index="1" type="double" size="[1 1]">
+                        [ 1]
+                     </SlopeA0>
+                  </cell>
+                  <cell index="3" type="struct" size="[1 1]">
+                     <name index="1" type="char" size="[1 4]">
+                        slow
+                     </name>
+                     <OffsetT0Fac index="1" type="double" size="[1 1]">
+                        [ 2]
+                     </OffsetT0Fac>
+                     <SlopeA0 index="1" type="double" size="[1 1]">
+                        [ 1]
+                     </SlopeA0>
+                  </cell>
+               </PrioritySchemes>
+            </cell>
+            <cell index="2" type="struct" size="[1 1]">
+               <name index="1" type="char" size="[1 16]">
+                  2592x1944_FPS_10
+               </name>
+               <PrioritySchemes index="1" type="cell" size="[1 3]">
+                  <cell index="1" type="struct" size="[1 1]">
+                     <name index="1" type="char" size="[1 4]">
+                        fast
+                     </name>
+                     <OffsetT0Fac index="1" type="double" size="[1 1]">
+                        [ 1]
+                     </OffsetT0Fac>
+                     <SlopeA0 index="1" type="double" size="[1 1]">
+                        [ 2]
+                     </SlopeA0>
+                  </cell>
+                  <cell index="2" type="struct" size="[1 1]">
+                     <name index="1" type="char" size="[1 6]">
+                        normal
+                     </name>
+                     <OffsetT0Fac index="1" type="double" size="[1 1]">
+                        [ 1]
+                     </OffsetT0Fac>
+                     <SlopeA0 index="1" type="double" size="[1 1]">
+                        [ 1]
+                     </SlopeA0>
+                  </cell>
+                  <cell index="3" type="struct" size="[1 1]">
+                     <name index="1" type="char" size="[1 4]">
+                        slow
+                     </name>
+                     <OffsetT0Fac index="1" type="double" size="[1 1]">
+                        [ 2]
+                     </OffsetT0Fac>
+                     <SlopeA0 index="1" type="double" size="[1 1]">
+                        [ 1]
+                     </SlopeA0>
+                  </cell>
+               </PrioritySchemes>
+            </cell>
+            <cell index="3" type="struct" size="[1 1]">
+               <name index="1" type="char" size="[1 16]">
+                  2592x1944_FPS_05
+               </name>
+               <PrioritySchemes index="1" type="cell" size="[1 3]">
+                  <cell index="1" type="struct" size="[1 1]">
+                     <name index="1" type="char" size="[1 4]">
+                        fast
+                     </name>
+                     <OffsetT0Fac index="1" type="double" size="[1 1]">
+                        [ 1]
+                     </OffsetT0Fac>
+                     <SlopeA0 index="1" type="double" size="[1 1]">
+                        [ 1]
+                     </SlopeA0>
+                  </cell>
+                  <cell index="2" type="struct" size="[1 1]">
+                     <name index="1" type="char" size="[1 6]">
+                        normal
+                     </name>
+                     <OffsetT0Fac index="1" type="double" size="[1 1]">
+                        [ 2]
+                     </OffsetT0Fac>
+                     <SlopeA0 index="1" type="double" size="[1 1]">
+                        [ 0.9]
+                     </SlopeA0>
+                  </cell>
+                  <cell index="3" type="struct" size="[1 1]">
+                     <name index="1" type="char" size="[1 4]">
+                        slow
+                     </name>
+                     <OffsetT0Fac index="1" type="double" size="[1 1]">
+                        [ 4]
+                     </OffsetT0Fac>
+                     <SlopeA0 index="1" type="double" size="[1 1]">
+                        [ 0.9]
+                     </SlopeA0>
+                  </cell>
+               </PrioritySchemes>
+            </cell>
+         </ECM>
+         <aFpsMaxGain index="1" type="double" size="[1 1]">
+            [ 8]
+         </aFpsMaxGain>
+      </AEC>
+      <BLS index="1" type="cell" size="[1 1]">
+         <cell index="1" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 9]">
+               2592x1944
+            </name>
+            <resolution index="1" type="char" size="[1 9]">
+               2592x1944
+            </resolution>
+            <blsData index="1" type="double" size="[1 4]">
+               [200 200 200 200]
+            </blsData>
+         </cell>
+      </BLS>
+      <DEGAMMA index="1" type="cell" size="[1 1]">
+         <cell index="1" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 6]">
+               linear
+            </name>
+            <degamma_dx index="1" type="double" size="[1 16]">
+               [256 512 768 1024 1280 1536 1792 2048 2304 2560 2816 3072 3328 3584 3840 4096]
+            </degamma_dx>
+            <degamma_y index="1" type="double" size="[1 17]">
+               [0 256 512 768 1024 1280 1536 1792 2048 2304 2560 2816 3072 3328 3584 3840 4095]
+            </degamma_y>
+         </cell>
+      </DEGAMMA>
+      <WDR index="1" type="struct" size="[1 1]">
+         <tbd index="1" type="double" size="[1 1]">
+            [ -1]
+         </tbd>
+         <curve1 index="1" type="struct" size="[1 1]">
+            <xval index="1" type="double" size="[1 33]">
+               [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
+            </xval>
+            <yval index="1" type="double" size="[1 33]">
+               [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
+            </yval>
+         </curve1>
+         <curve2 index="1" type="struct" size="[1 1]">
+            <xval index="1" type="double" size="[1 33]">
+               [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
+            </xval>
+            <yval index="1" type="double" size="[1 33]">
+               [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
+            </yval>
+         </curve2>
+      </WDR>
+      <CAC index="1" type="cell" size="[1 1]">
+         <cell index="1" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 9]">
+               2592x1944
+            </name>
+            <resolution index="1" type="char" size="[1 9]">
+               2592x1944
+            </resolution>
+            <x_normshift index="1" type="double" size="[1 1]">
+               [ 6]
+            </x_normshift>
+            <x_normfactor index="1" type="double" size="[1 1]">
+               [ 20]
+            </x_normfactor>
+            <y_normshift index="1" type="double" size="[1 1]">
+               [ 6]
+            </y_normshift>
+            <y_normfactor index="1" type="double" size="[1 1]">
+               [ 20]
+            </y_normfactor>
+            <x_offset index="1" type="double" size="[1 1]">
+               [ 0]
+            </x_offset>
+            <y_offset index="1" type="double" size="[1 1]">
+               [ 0]
+            </y_offset>
+            <red_parameters index="1" type="double" size="[1 3]">
+               [0.222507 -0.541457 0.3294]
+            </red_parameters>
+            <blue_parameters index="1" type="double" size="[1 3]">
+               [0.305019 -2.48857 1.3702]
+            </blue_parameters>
+         </cell>
+      </CAC>
+      <DPF index="1" type="cell" size="[1 1]">
+         <cell index="1" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 9]">
+               2592x1944
+            </name>
+            <resolution index="1" type="char" size="[1 9]">
+               2592x1944
+            </resolution>
+            <NLL_SEGMENTATION index="1" type="double" size="[1 1]">
+               [ 1]
+            </NLL_SEGMENTATION>
+            <nll_coeff_n index="1" type="double" size="[1 17]">
+               [1023 1023 1023 1023 1023 1023 1023 1023 1023 1023 1023 1023 1023 1023 1023 1023 1023]
+            </nll_coeff_n>
+            <SigmaGreen index="1" type="double" size="[1 1]">
+               [ 4]
+            </SigmaGreen>
+            <SigmaRedBlue index="1" type="double" size="[1 1]">
+               [ 4]
+            </SigmaRedBlue>
+            <Gradient index="1" type="double" size="[1 1]">
+               [ 0.15]
+            </Gradient>
+            <Offset index="1" type="double" size="[1 1]">
+               [ 0]
+            </Offset>
+            <NlGains index="1" type="double" size="[1 4]">
+               [1 1 1 1]
+            </NlGains>
+         </cell>
+      </DPF>
+      <DPCC index="1" type="cell" size="[1 1]">
+         <cell index="1" type="struct" size="[1 1]">
+            <name index="1" type="char" size="[1 9]">
+               2592x1944
+            </name>
+            <resolution index="1" type="char" size="[1 9]">
+               2592x1944
+            </resolution>
+            <register index="1" type="cell" size="[1 23]">
+               <cell index="1" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 13]">
+                     ISP_DPCC_MODE
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0004
+                  </value>
+               </cell>
+               <cell index="2" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 17]">
+                     ISP_DPCC_OUT_MODE
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0003
+                  </value>
+               </cell>
+               <cell index="3" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 16]">
+                     ISP_DPCC_SET_USE
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0007
+                  </value>
+               </cell>
+               <cell index="4" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 21]">
+                     ISP_DPCC_METHODS_SET1
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x1D1D
+                  </value>
+               </cell>
+               <cell index="5" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 21]">
+                     ISP_DPCC_METHODS_SET2
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0707
+                  </value>
+               </cell>
+               <cell index="6" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 21]">
+                     ISP_DPCC_METHODS_SET3
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x1F1F
+                  </value>
+               </cell>
+               <cell index="7" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 22]">
+                     ISP_DPCC_LINE_THRESH_1
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0808
+                  </value>
+               </cell>
+               <cell index="8" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 23]">
+                     ISP_DPCC_LINE_MAD_FAC_1
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0404
+                  </value>
+               </cell>
+               <cell index="9" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 17]">
+                     ISP_DPCC_PG_FAC_1
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0403
+                  </value>
+               </cell>
+               <cell index="10" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 21]">
+                     ISP_DPCC_RND_THRESH_1
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0A0A
+                  </value>
+               </cell>
+               <cell index="11" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 17]">
+                     ISP_DPCC_RG_FAC_1
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x2020
+                  </value>
+               </cell>
+               <cell index="12" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 22]">
+                     ISP_DPCC_LINE_THRESH_2
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x100C
+                  </value>
+               </cell>
+               <cell index="13" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 23]">
+                     ISP_DPCC_LINE_MAD_FAC_2
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x1810
+                  </value>
+               </cell>
+               <cell index="14" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 17]">
+                     ISP_DPCC_PG_FAC_2
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0403
+                  </value>
+               </cell>
+               <cell index="15" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 21]">
+                     ISP_DPCC_RND_THRESH_2
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0808
+                  </value>
+               </cell>
+               <cell index="16" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 17]">
+                     ISP_DPCC_RG_FAC_2
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0808
+                  </value>
+               </cell>
+               <cell index="17" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 22]">
+                     ISP_DPCC_LINE_THRESH_3
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x2020
+                  </value>
+               </cell>
+               <cell index="18" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 23]">
+                     ISP_DPCC_LINE_MAD_FAC_3
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0404
+                  </value>
+               </cell>
+               <cell index="19" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 17]">
+                     ISP_DPCC_PG_FAC_3
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0403
+                  </value>
+               </cell>
+               <cell index="20" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 21]">
+                     ISP_DPCC_RND_THRESH_3
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0806
+                  </value>
+               </cell>
+               <cell index="21" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 17]">
+                     ISP_DPCC_RG_FAC_3
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0404
+                  </value>
+               </cell>
+               <cell index="22" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 18]">
+                     ISP_DPCC_RO_LIMITS
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0A0A
+                  </value>
+               </cell>
+               <cell index="23" type="struct" size="[1 1]">
+                  <name index="1" type="char" size="[1 17]">
+                     ISP_DPCC_RND_OFFS
+                  </name>
+                  <value index="1" type="char" size="[1 6]">
+                     0x0FFF
+                  </value>
+               </cell>
+            </register>
+         </cell>
+      </DPCC>
+   </sensor>
+   <system type="struct" size="[1 1]">
+      <AFPS index="1" type="struct" size="[1 1]">
+         <aFpsDefault index="1" type="char" size="[1 2]">
+            on
+         </aFpsDefault>
+      </AFPS>
+   </system>
+</matfile>

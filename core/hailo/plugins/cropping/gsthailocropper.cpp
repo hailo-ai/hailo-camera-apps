@@ -36,8 +36,7 @@ enum
 };
 
 #define GST_TYPE_HAILOCROPPER_RESIZE_METHOD (gst_hailocropper_resize_method_get_type())
-static GType
-gst_hailocropper_resize_method_get_type(void)
+static GType gst_hailocropper_resize_method_get_type(void)
 {
     static GType hailocropper_resize_method_type = 0;
     static const GEnumValue hailocropper_resize_methods[] = {
@@ -55,23 +54,20 @@ gst_hailocropper_resize_method_get_type(void)
     return hailocropper_resize_method_type;
 }
 
-#define _do_init \
-    GST_DEBUG_CATEGORY_INIT(gst_hailocropper_debug, "hailocropper", 0, "hailocropper element");
+#define _do_init GST_DEBUG_CATEGORY_INIT(gst_hailocropper_debug, "hailocropper", 0, "hailocropper element");
 #define gst_hailocropper_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE(GstHailoCropper, gst_hailocropper, GST_TYPE_HAILO_BASE_CROPPER, _do_init);
 
-static void gst_hailocropper_set_property(GObject *object,
-                                          guint prop_id, const GValue *value, GParamSpec *pspec);
-static void gst_hailocropper_get_property(GObject *object,
-                                          guint prop_id, GValue *value, GParamSpec *pspec);
+static void gst_hailocropper_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec);
+static void gst_hailocropper_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec);
 
-static std::vector<HailoROIPtr> gst_hailocropper_prepare_crops(GstHailoBaseCropper *hailocropper,
-                                                               GstBuffer *buf);
+static std::vector<HailoROIPtr> gst_hailocropper_prepare_crops(GstHailoBaseCropper *hailocropper, GstBuffer *buf);
 static GstStateChangeReturn gst_hailocropper_change_state(GstElement *element, GstStateChange transition);
-void gst_hailocropper_resize_by_method(GstHailoBaseCropper *basecropper, std::vector<cv::Mat> &cropped_image_vec, std::vector<cv::Mat> &resized_image_vec, HailoROIPtr roi, GstVideoFormat image_format);
+void gst_hailocropper_resize_by_method(GstHailoBaseCropper *basecropper, std::vector<cv::Mat> &cropped_image_vec,
+                                       std::vector<cv::Mat> &resized_image_vec, HailoROIPtr roi,
+                                       GstVideoFormat image_format);
 
-static void
-gst_hailocropper_class_init(GstHailoCropperClass *klass)
+static void gst_hailocropper_class_init(GstHailoCropperClass *klass)
 {
     GObjectClass *gobject_class;
     GstElementClass *gstelement_class;
@@ -83,46 +79,48 @@ gst_hailocropper_class_init(GstHailoCropperClass *klass)
     gobject_class->set_property = gst_hailocropper_set_property;
     gobject_class->get_property = gst_hailocropper_get_property;
 
-    gst_element_class_set_details_simple(gstelement_class,
-                                         "hailocropper",
-                                         "Hailo/Tools",
-                                         "Create a sub pipeline with cropped and scaled images determined by an so function.", "hailo.ai <contact@hailo.ai>");
-    g_object_class_install_property(gobject_class, PROP_PROCESS_LIB,
-                                    g_param_spec_string("so-path", "process so Path Location - Mandatory",
-                                                        "Location of the so file to load", NULL,
-                                                        (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
-    g_object_class_install_property(gobject_class, PROP_PROCESS_FUNC_NAME,
-                                    g_param_spec_string("function-name", "Name of function in the so file - Mandatory",
-                                                        "function-name", "",
-                                                        (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
+    gst_element_class_set_details_simple(
+        gstelement_class, "hailocropper", "Hailo/Tools",
+        "Create a sub pipeline with cropped and scaled images determined by an so function.",
+        "hailo.ai <contact@hailo.ai>");
+    g_object_class_install_property(
+        gobject_class, PROP_PROCESS_LIB,
+        g_param_spec_string("so-path", "process so Path Location - Mandatory", "Location of the so file to load", NULL,
+                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
+    g_object_class_install_property(
+        gobject_class, PROP_PROCESS_FUNC_NAME,
+        g_param_spec_string("function-name", "Name of function in the so file - Mandatory", "function-name", "",
+                            (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_READY)));
     g_object_class_install_property(gobject_class, PROP_RESIZE_METHOD,
                                     g_param_spec_enum("resize-method", "resize method", "Resize method for each crop",
                                                       GST_TYPE_HAILOCROPPER_RESIZE_METHOD, (gint)cv::INTER_LINEAR,
                                                       (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-    g_object_class_install_property(gobject_class, PROP_USE_LETTERBOX,
-                                    g_param_spec_boolean("use-letterbox", "Use letterbox",
-                                                         "If true, then this element will resize with  aspect ratio preserving. Default false.", false,
-                                                         (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-    g_object_class_install_property(gobject_class, PROP_NO_SCALING_BBOX,
-                                    g_param_spec_boolean("no-scaling-bbox", "No scaling bbox",
-                                                         "If true, when setting use-letterbox no scaling box will be added. Use this if the crop you are using should not modify the original bbox data. For example running face recognition on a face. Default false.", false,
-                                                         (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property(
+        gobject_class, PROP_USE_LETTERBOX,
+        g_param_spec_boolean("use-letterbox", "Use letterbox",
+                             "If true, then this element will resize with  aspect ratio preserving. Default false.",
+                             false,
+                             (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property(
+        gobject_class, PROP_NO_SCALING_BBOX,
+        g_param_spec_boolean(
+            "no-scaling-bbox", "No scaling bbox",
+            "If true, when setting use-letterbox no scaling box will be added. Use this if the crop you are using "
+            "should not modify the original bbox data. For example running face recognition on a face. Default false.",
+            false, (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
     gstelement_class->change_state = GST_DEBUG_FUNCPTR(gst_hailocropper_change_state);
     basecropper_class->prepare_crops = gst_hailocropper_prepare_crops;
     basecropper_class->resize = gst_hailocropper_resize_by_method;
 }
 
-static void
-gst_hailocropper_init(GstHailoCropper *hailocropper)
+static void gst_hailocropper_init(GstHailoCropper *hailocropper)
 {
     GST_DEBUG_OBJECT(hailocropper, "init");
     hailocropper->method = cv::INTER_LINEAR;
     hailocropper->use_letterbox = false;
 }
 
-static void
-gst_hailocropper_set_property(GObject *object, guint prop_id,
-                              const GValue *value, GParamSpec *pspec)
+static void gst_hailocropper_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec)
 {
     GstHailoCropper *hailocropper = GST_HAILO_CROPPER(object);
 
@@ -151,9 +149,7 @@ gst_hailocropper_set_property(GObject *object, guint prop_id,
     }
 }
 
-static void
-gst_hailocropper_get_property(GObject *object, guint prop_id,
-                              GValue *value, GParamSpec *pspec)
+static void gst_hailocropper_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
 {
     GstHailoCropper *hailocropper = GST_HAILO_CROPPER(object);
 
@@ -182,12 +178,15 @@ gst_hailocropper_get_property(GObject *object, guint prop_id,
     }
 }
 
-void gst_hailocropper_resize_by_method(GstHailoBaseCropper *basecropper, std::vector<cv::Mat> &cropped_image_vec, std::vector<cv::Mat> &resized_image_vec, HailoROIPtr roi, GstVideoFormat image_format)
+void gst_hailocropper_resize_by_method(GstHailoBaseCropper *basecropper, std::vector<cv::Mat> &cropped_image_vec,
+                                       std::vector<cv::Mat> &resized_image_vec, HailoROIPtr roi,
+                                       GstVideoFormat image_format)
 {
     GstHailoCropper *hailocropper = GST_HAILO_CROPPER(basecropper);
     if (hailocropper->use_letterbox)
     {
-        resize_letterbox(hailocropper->method, cropped_image_vec, resized_image_vec, roi, image_format, hailocropper->no_scaling_bbox);
+        resize_letterbox(hailocropper->method, cropped_image_vec, resized_image_vec, roi, image_format,
+                         hailocropper->no_scaling_bbox);
     }
     else
     {
@@ -220,8 +219,7 @@ static std::vector<HailoROIPtr> gst_hailocropper_prepare_crops(GstHailoBaseCropp
     return crop_rois;
 }
 
-static gboolean
-gst_hailocropper_load_symbol(GstHailoCropper *hailocropper)
+static gboolean gst_hailocropper_load_symbol(GstHailoCropper *hailocropper)
 {
     // Load the give SO using dlopen.
     hailocropper->loaded_lib = dlopen(hailocropper->lib_path, RTLD_LAZY);
@@ -233,7 +231,8 @@ gst_hailocropper_load_symbol(GstHailoCropper *hailocropper)
     // reset errors
     dlerror();
 
-    hailocropper->handler = (std::vector<HailoROIPtr>(*)(std::shared_ptr<HailoMat>, HailoROIPtr))dlsym(hailocropper->loaded_lib, hailocropper->function_name);
+    hailocropper->handler = (std::vector<HailoROIPtr>(*)(std::shared_ptr<HailoMat>, HailoROIPtr))dlsym(
+        hailocropper->loaded_lib, hailocropper->function_name);
     // If there was an error loading one of the symbols, close the dl and break.
     const char *dlsym_error = dlerror();
     if (dlsym_error || !hailocropper->handler)
@@ -246,8 +245,7 @@ gst_hailocropper_load_symbol(GstHailoCropper *hailocropper)
     return TRUE;
 }
 
-static gboolean
-gst_hailocropper_free_symbol(GstHailoCropper *hailocropper)
+static gboolean gst_hailocropper_free_symbol(GstHailoCropper *hailocropper)
 {
     if (hailocropper->loaded_lib)
     {
@@ -256,8 +254,7 @@ gst_hailocropper_free_symbol(GstHailoCropper *hailocropper)
     return TRUE;
 }
 
-static GstStateChangeReturn
-gst_hailocropper_change_state(GstElement *element, GstStateChange transition)
+static GstStateChangeReturn gst_hailocropper_change_state(GstElement *element, GstStateChange transition)
 {
     GstStateChangeReturn ret;
 
@@ -271,8 +268,7 @@ gst_hailocropper_change_state(GstElement *element, GstStateChange transition)
         if (!gst_hailocropper_load_symbol(GST_HAILO_CROPPER(element)))
             ret = GST_STATE_CHANGE_FAILURE;
         break;
-    case GST_STATE_CHANGE_PAUSED_TO_READY:
-    {
+    case GST_STATE_CHANGE_PAUSED_TO_READY: {
         if (!gst_hailocropper_free_symbol(GST_HAILO_CROPPER(element)))
             ret = GST_STATE_CHANGE_FAILURE;
         break;

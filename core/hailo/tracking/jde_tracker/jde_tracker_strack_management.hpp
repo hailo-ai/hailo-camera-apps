@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 #pragma once
 
 // General cpp includes
@@ -20,39 +20,38 @@
 // Macros
 const float IOU_THRESHOLD = 0.15;
 
-
 /**
  * @brief Returns a union of two vectors of STracks
- * 
+ *
  * @param tlista  -  std::vector<STrack *>
  *        A set of STracks to join (by pointer)
  *
  * @param tlistb  -  std::vector<STrack *>
  *        A set of STracks to join (by pointer)
  *
- * @return std::vector<STrack *> 
+ * @return std::vector<STrack *>
  *         Pointers to the union of the two sets
  */
-inline std::vector<STrack *> JDETracker::joint_strack_pointers(std::vector<STrack *> &tlista, std::vector<STrack *> &tlistb)
+inline std::vector<STrack *> JDETracker::joint_strack_pointers(std::vector<STrack *> &tlista,
+                                                               std::vector<STrack *> &tlistb)
 {
     std::vector<STrack *> new_pool;
-    new_pool.reserve( tlista.size() + tlistb.size() ); // preallocate memory
-    new_pool.insert( new_pool.end(), tlista.begin(), tlista.end() );
-    new_pool.insert( new_pool.end(), tlistb.begin(), tlistb.end() );
+    new_pool.reserve(tlista.size() + tlistb.size()); // preallocate memory
+    new_pool.insert(new_pool.end(), tlista.begin(), tlista.end());
+    new_pool.insert(new_pool.end(), tlistb.begin(), tlistb.end());
     return new_pool;
 }
 
-
 /**
  * @brief Returns a union of two vectors of STracks
- * 
+ *
  * @param tlista  -  std::vector<STrack>
  *        A set of STracks to join
  *
  * @param tlistb  -  std::vector<STrack>
  *        A set of STracks to join
  *
- * @return std::vector<STrack *> 
+ * @return std::vector<STrack *>
  *         Pointers to the union of the two sets
  */
 inline std::vector<STrack *> JDETracker::joint_strack_pointers(std::vector<STrack> &tlista, std::vector<STrack> &tlistb)
@@ -78,14 +77,14 @@ inline std::vector<STrack *> JDETracker::joint_strack_pointers(std::vector<STrac
 
 /**
  * @brief Returns a union of two vectors of STracks
- * 
+ *
  * @param tlista  -  std::vector<STrack *>
  *        A set of STracks to join
  *
  * @param tlistb  -  std::vector<STrack>
  *        A set of STracks to join
  *
- * @return std::vector<STrack *> 
+ * @return std::vector<STrack *>
  *         A vector union of the two sets
  */
 inline std::vector<STrack> JDETracker::joint_stracks(std::vector<STrack> &tlista, std::vector<STrack> &tlistb)
@@ -111,14 +110,14 @@ inline std::vector<STrack> JDETracker::joint_stracks(std::vector<STrack> &tlista
 
 /**
  * @brief Subtract one set of Stracks from another
- * 
+ *
  * @param tlista  -  std::vector<STrack>
  *        The STracks to subtract from
  *
  * @param tlistb  -  std::vector<STrack>
  *        The STracks to subtract from tlista
  *
- * @return std::vector<STrack> 
+ * @return std::vector<STrack>
  *         A vector of STracks in tlista that don't appear tlistb.
  */
 inline std::vector<STrack> JDETracker::sub_stracks(std::vector<STrack> &tlista, std::vector<STrack> &tlistb)
@@ -149,7 +148,7 @@ inline std::vector<STrack> JDETracker::sub_stracks(std::vector<STrack> &tlista, 
  * @brief Perform a difference between two sets of STracks,
  *        Ending up with two sets of exclusive instances.
  *        No return is made, the vestors are changed in place.
- * 
+ *
  * @param resa  -  std::vector<STrack>
  *        A vector to fill in with STracks that are exclusive to stracksa
  *

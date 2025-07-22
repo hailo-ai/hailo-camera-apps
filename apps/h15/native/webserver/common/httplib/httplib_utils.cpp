@@ -1,13 +1,14 @@
 #include "httplib_utils.hpp"
 #include <nlohmann/json.hpp>
 #include <iostream>
+#include <ctime>
 
 class HTTPServer::Impl
 {
-private:
+  private:
     httplib::Server m_server;
 
-public:
+  public:
     Impl();
     static std::shared_ptr<HTTPServer::Impl> create();
     void listen(const std::string &host, int port);
@@ -19,10 +20,12 @@ public:
     void Post(const std::string &pattern, std::function<void(const nlohmann::json &)> callback);
     void Post(const std::string &pattern, std::function<nlohmann::json(const nlohmann::json &)> callback);
     void Post(const std::string &pattern, std::function<bool(const httplib::MultipartFormData &)> callback);
+    void Post(const std::string &pattern,
+              std::function<std::pair<nlohmann::json, int>(const nlohmann::json &)> callback);
     void Redirect(const std::string &pattern, const std::string &target);
     void Delete(const std::string &pattern, std::function<nlohmann::json(const nlohmann::json &)> callback);
     void set_cors();
-    void set_exception_handler(const ExceptionHandler& exception_handler);
+    void set_exception_handler(const ExceptionHandler &exception_handler);
 };
 
 HTTPServer::HTTPServer()
@@ -81,6 +84,12 @@ void HTTPServer::Post(const std::string &pattern, std::function<bool(const httpl
     m_impl->Post(pattern, callback);
 }
 
+void HTTPServer::Post(const std::string &pattern,
+                      std::function<std::pair<nlohmann::json, int>(const nlohmann::json &)> callback)
+{
+    m_impl->Post(pattern, callback);
+}
+
 void HTTPServer::Redirect(const std::string &pattern, const std::string &target)
 {
     m_impl->Redirect(pattern, target);
@@ -96,7 +105,7 @@ void HTTPServer::set_cors()
     m_impl->set_cors();
 }
 
-void HTTPServer::set_exception_handler(const ExceptionHandler& exception_handler)
+void HTTPServer::set_exception_handler(const ExceptionHandler &exception_handler)
 {
     m_impl->set_exception_handler(exception_handler);
 }
@@ -122,59 +131,72 @@ void HTTPServer::Impl::set_mount_point(const std::string &mount_point, const std
 
 void HTTPServer::Impl::Get(const std::string &pattern, std::function<void()> callback)
 {
-    m_server.Get(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res)
-                 { callback(); });
+    m_server.Get(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res) { callback(); });
 }
 
 void HTTPServer::Impl::Get(const std::string &pattern, std::function<nlohmann::json()> callback)
 {
-    m_server.Get(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res)
-                 { res.set_content(callback().dump(), "application/json"); });
+    m_server.Get(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res) {
+        res.set_content(callback().dump(), "application/json");
+    });
 }
 
 void HTTPServer::Impl::Put(const std::string &pattern, std::function<nlohmann::json(const nlohmann::json &)> callback)
 {
-    m_server.Put(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res)
-                 {
-                     nlohmann::json json = nlohmann::json::parse(req.body);
-                     nlohmann::json response = callback(json);
-                     res.set_content(response.dump(), "application/json"); });
+    m_server.Put(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res) {
+        nlohmann::json json = nlohmann::json::parse(req.body);
+        nlohmann::json response = callback(json);
+        res.set_content(response.dump(), "application/json");
+    });
 }
 
 void HTTPServer::Impl::Patch(const std::string &pattern, std::function<nlohmann::json(const nlohmann::json &)> callback)
 {
-    m_server.Patch(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res)
-                   {
-                       nlohmann::json json = nlohmann::json::parse(req.body);
-                       nlohmann::json response = callback(json);
-                       res.set_content(response.dump(), "application/json"); });
+    m_server.Patch(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res) {
+        nlohmann::json json = nlohmann::json::parse(req.body);
+        nlohmann::json response = callback(json);
+        res.set_content(response.dump(), "application/json");
+    });
 }
 
 void HTTPServer::Impl::Post(const std::string &pattern, std::function<void(const nlohmann::json &)> callback)
 {
-    m_server.Post(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res)
-                  {
-                      nlohmann::json json = nlohmann::json::parse(req.body);
-                      callback(json); });
+    m_server.Post(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res) {
+        nlohmann::json json = nlohmann::json::parse(req.body);
+        callback(json);
+    });
 }
 
 void HTTPServer::Impl::Post(const std::string &pattern, std::function<nlohmann::json(const nlohmann::json &)> callback)
 {
-    m_server.Post(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res)
-                  {
-                      nlohmann::json json = nlohmann::json::parse(req.body);
-                      nlohmann::json response = callback(json);
-                      res.set_content(response.dump(), "application/json"); });
+    m_server.Post(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res) {
+        nlohmann::json json = nlohmann::json::parse(req.body);
+        nlohmann::json response = callback(json);
+        res.set_content(response.dump(), "application/json");
+    });
 }
 
-void HTTPServer::Impl::Post(const std::string &pattern, std::function<bool(const httplib::MultipartFormData &)> callback)
+void HTTPServer::Impl::Post(const std::string &pattern,
+                            std::function<std::pair<nlohmann::json, int>(const nlohmann::json &)> callback)
 {
     m_server.Post(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res) {
-        if (!req.has_file("file")) {
-                res.status = 400;
-                res.set_content("No file provided", "text/plain");
-                return;
-            }
+        nlohmann::json json = nlohmann::json::parse(req.body);
+        std::pair<nlohmann::json, int> response = callback(json);
+        res.status = response.second;
+        res.set_content(response.first.dump(), "application/json");
+    });
+}
+
+void HTTPServer::Impl::Post(const std::string &pattern,
+                            std::function<bool(const httplib::MultipartFormData &)> callback)
+{
+    m_server.Post(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res) {
+        if (!req.has_file("file"))
+        {
+            res.status = 400;
+            res.set_content("No file provided", "text/plain");
+            return;
+        }
         const auto &file = req.get_file_value("file");
         if (callback(file))
         {
@@ -191,17 +213,18 @@ void HTTPServer::Impl::Post(const std::string &pattern, std::function<bool(const
 
 void HTTPServer::Impl::Redirect(const std::string &pattern, const std::string &target)
 {
-    m_server.Get(pattern.c_str(), [target](const httplib::Request &req, httplib::Response &res)
-                 { res.set_redirect(target.c_str()); });
+    m_server.Get(pattern.c_str(),
+                 [target](const httplib::Request &req, httplib::Response &res) { res.set_redirect(target.c_str()); });
 }
 
-void HTTPServer::Impl::Delete(const std::string &pattern, std::function<nlohmann::json(const nlohmann::json &)> callback)
+void HTTPServer::Impl::Delete(const std::string &pattern,
+                              std::function<nlohmann::json(const nlohmann::json &)> callback)
 {
-    m_server.Delete(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res)
-                    {
-                        nlohmann::json json = nlohmann::json::parse(req.body);
-                        nlohmann::json response = callback(json);
-                        res.set_content(response.dump(), "application/json"); });
+    m_server.Delete(pattern.c_str(), [callback](const httplib::Request &req, httplib::Response &res) {
+        nlohmann::json json = nlohmann::json::parse(req.body);
+        nlohmann::json response = callback(json);
+        res.set_content(response.dump(), "application/json");
+    });
 }
 
 void HTTPServer::Impl::set_cors()
@@ -214,16 +237,20 @@ void HTTPServer::Impl::set_cors()
         res.set_header("Access-Control-Allow-Credentials", "true");
 
         // Handle preflight OPTIONS requests
-        if (req.method == "OPTIONS") {
+        if (req.method == "OPTIONS")
+        {
             res.status = 204; // No Content
             return httplib::Server::HandlerResponse::Handled;
         }
+
+        std::time_t now = std::time(nullptr);
+        res.set_header("X-Timestamp", std::to_string(now));
 
         return httplib::Server::HandlerResponse::Unhandled; // Allow other requests to proceed
     });
 }
 
-void HTTPServer::Impl::set_exception_handler(const ExceptionHandler& exception_handler)
+void HTTPServer::Impl::set_exception_handler(const ExceptionHandler &exception_handler)
 {
     m_server.set_exception_handler(exception_handler);
 }

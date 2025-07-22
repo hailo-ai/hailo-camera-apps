@@ -1,0 +1,14 @@
+{
+    "version": "1.0.0",
+    "default_profile": "Daylight",
+    "profiles": [
+        {
+            "name": "Daylight",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx715/kit/4k/profiles/daylight/webserver_daylight_profile.json"
+        },
+        {
+            "name": "High_Dynamic_Range",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx715/kit/4k/profiles/HDR/webserver_HDR_profile.json"
+        }
+    ]
+}

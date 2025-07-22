@@ -39,24 +39,24 @@ using OutputModulePtr = std::shared_ptr<OutputModule>;
 
 class OutputModule
 {
-private:
+  private:
     GstAppSrc *m_appsrc;
     GMainLoop *m_main_loop;
     std::shared_ptr<std::thread> m_main_loop_thread;
     std::string m_name;
+    bool m_print_fps;
 
-protected:
+  protected:
     EncodingType m_type;
     GstElement *m_pipeline;
 
-public:
+  public:
     virtual ~OutputModule();
-    OutputModule(std::string name, EncodingType type);
+    OutputModule(std::string name, EncodingType type, bool print_fps);
     AppStatus start();
     AppStatus stop();
     AppStatus add_buffer(HailoMediaLibraryBufferPtr ptr, size_t size);
-    void on_fps_measurement(GstElement *fpssink, gdouble fps, gdouble droprate,
-                            gdouble avgfps);
+    void on_fps_measurement(GstElement *fpssink, gdouble fps, gdouble droprate, gdouble avgfps);
     gboolean on_bus_call(GstBus *bus, GstMessage *msg);
     static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data)
     {
@@ -65,10 +65,8 @@ public:
     }
     void set_gst_callbacks(std::string source);
 
-private:
-    static void fps_measurement(GstElement *fpssink, gdouble fps,
-                                gdouble droprate, gdouble avgfps,
-                                gpointer user_data)
+  private:
+    static void fps_measurement(GstElement *fpssink, gdouble fps, gdouble droprate, gdouble avgfps, gpointer user_data)
     {
         OutputModule *output_module = static_cast<OutputModule *>(user_data);
         output_module->on_fps_measurement(fpssink, fps, droprate, avgfps);
@@ -76,8 +74,8 @@ private:
     GstFlowReturn add_buffer_internal(GstBuffer *buffer);
 };
 
-inline OutputModule::OutputModule(std::string name, EncodingType type)
-    : m_name(name), m_type(type)
+inline OutputModule::OutputModule(std::string name, EncodingType type, bool print_fps)
+    : m_name(name), m_print_fps(print_fps), m_type(type)
 {
     m_main_loop = g_main_loop_new(NULL, FALSE);
 }
@@ -92,17 +90,14 @@ inline OutputModule::~OutputModule()
 
 inline AppStatus OutputModule::start()
 {
-    GstStateChangeReturn ret =
-        gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
+    GstStateChangeReturn ret = gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
     if (ret == GST_STATE_CHANGE_FAILURE)
     {
         std::cerr << "Failed to start output pipeline" << std::endl;
         REFERENCE_CAMERA_LOG_ERROR("Failed to start output pipeline");
         return AppStatus::PIPELINE_ERROR;
     }
-    m_main_loop_thread = std::make_shared<std::thread>(
-        [this]()
-        { g_main_loop_run(m_main_loop); });
+    m_main_loop_thread = std::make_shared<std::thread>([this]() { g_main_loop_run(m_main_loop); });
 
     return AppStatus::SUCCESS;
 }
@@ -128,14 +123,13 @@ inline AppStatus OutputModule::stop()
  *
  * @note Prints the FPS to the stdout.
  */
-inline void OutputModule::on_fps_measurement(GstElement *fpsdisplaysink,
-                                    gdouble fps,
-                                    gdouble droprate,
-                                    gdouble avgfps)
+inline void OutputModule::on_fps_measurement(GstElement *fpsdisplaysink, gdouble fps, gdouble droprate, gdouble avgfps)
 {
     gchar *name;
     g_object_get(G_OBJECT(fpsdisplaysink), "name", &name, NULL);
-    std::cout << m_name << ", DROP RATE: " << droprate << " FPS: " << fps << " AVG_FPS: " << avgfps << std::endl;
+    if (m_print_fps)
+        std::cout << m_name << ", DROP RATE: " << droprate << " FPS: " << fps << " AVG_FPS: " << avgfps << std::endl;
+    REFERENCE_CAMERA_LOG_DEBUG("FPS: {} DROP RATE: {} AVG_FPS: {}", fps, droprate, avgfps);
     g_free(name);
 }
 
@@ -148,7 +142,7 @@ inline void OutputModule::set_gst_callbacks(std::string appsrc_name)
 {
     // set fps callbacks
     GstElement *fpssink = gst_bin_get_by_name(GST_BIN(m_pipeline), "fpsdisplaysink");
-    g_signal_connect(fpssink, "fps-measurements", G_CALLBACK(fps_measurement),this);
+    g_signal_connect(fpssink, "fps-measurements", G_CALLBACK(fps_measurement), this);
     gst_object_unref(fpssink);
 
     GstElement *appsrc = gst_bin_get_by_name(GST_BIN(m_pipeline), appsrc_name.c_str());
@@ -160,16 +154,14 @@ inline gboolean OutputModule::on_bus_call(GstBus *bus, GstMessage *msg)
 {
     switch (GST_MESSAGE_TYPE(msg))
     {
-    case GST_MESSAGE_EOS:
-    {
-        //TODO: EOS never received
+    case GST_MESSAGE_EOS: {
+        // TODO: EOS never received
         gst_element_set_state(m_pipeline, GST_STATE_NULL);
         g_main_loop_quit(m_main_loop);
         m_main_loop_thread->join();
         break;
     }
-    case GST_MESSAGE_ERROR:
-    {
+    case GST_MESSAGE_ERROR: {
         gchar *debug;
         GError *err;
 
@@ -204,12 +196,11 @@ inline AppStatus OutputModule::add_buffer(HailoMediaLibraryBufferPtr ptr, size_t
     // convert to GstBuffer
     OutputPtrWrapper *wrapper = new OutputPtrWrapper();
     wrapper->ptr = ptr;
-    GstBuffer *gst_buffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_PHYSICALLY_CONTIGUOUS,
-                                                        ptr->get_plane_ptr(0),
-                                                        ptr->get_plane_size(0),
-                                                        0, size, wrapper, GDestroyNotify(hailo_media_library_output_release));
+    GstBuffer *gst_buffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_PHYSICALLY_CONTIGUOUS, ptr->get_plane_ptr(0),
+                                                        ptr->get_plane_size(0), 0, size, wrapper,
+                                                        GDestroyNotify(hailo_media_library_output_release));
     gst_buffer_add_hailo_buffer_meta(gst_buffer, ptr, size);
-    
+
     GstFlowReturn ret = this->add_buffer_internal(gst_buffer);
     if (ret != GST_FLOW_OK)
     {

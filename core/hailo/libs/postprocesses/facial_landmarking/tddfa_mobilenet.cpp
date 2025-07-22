@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -42,8 +42,8 @@ The Basel Face Model is a 3D morphable Face model that is publicly available.
 
 bool is_path_exists(const std::string &s)
 {
-  struct stat buffer;
-  return (stat (s.c_str(), &buffer) == 0);
+    struct stat buffer;
+    return (stat(s.c_str(), &buffer) == 0);
 }
 
 std::string get_post_proc_data_dir()
@@ -52,26 +52,27 @@ std::string get_post_proc_data_dir()
     std::string post_proc_data_dir = "/usr/lib/hailo-post-processes/post_processes_data";
     std::string w_exp_base = "/usr/lib/hailo-post-processes/post_processes_data/w_exp_base.npy";
     std::string w_shp_base = "/usr/lib/hailo-post-processes/post_processes_data/w_shp_base.npy";
-    if(!is_path_exists(post_proc_data_dir))
-        throw std::invalid_argument("WARNING: Missing ppost-process data path, please create folder: /usr/lib/hailo-post-processes/post_processes_data");
+    if (!is_path_exists(post_proc_data_dir))
+        throw std::invalid_argument("WARNING: Missing ppost-process data path, please create folder: "
+                                    "/usr/lib/hailo-post-processes/post_processes_data");
     if (!is_path_exists(w_exp_base))
-        throw std::invalid_argument("ERROR: Missing file required for tddfa_mobilenet post process: w_exp_base.npy "
-                                    "Copy the file to /usr/lib/hailo-post-processes/post_processes_data/w_exp_base.npy \n"
-                                    "Please contact Hailo Support on how to obtain the file.");
+        throw std::invalid_argument(
+            "ERROR: Missing file required for tddfa_mobilenet post process: w_exp_base.npy "
+            "Copy the file to /usr/lib/hailo-post-processes/post_processes_data/w_exp_base.npy \n"
+            "Please contact Hailo Support on how to obtain the file.");
     if (!is_path_exists(w_shp_base))
-        throw std::invalid_argument("ERROR: Missing file required for tddfa_mobilenet post process: w_shp_base.npy "
-                                    "Copy the file to /usr/lib/hailo-post-processes/post_processes_data/w_shp_base.npy \n"
-                                    "Please contact Hailo Support on how to obtain the file.");
-    
+        throw std::invalid_argument(
+            "ERROR: Missing file required for tddfa_mobilenet post process: w_shp_base.npy "
+            "Copy the file to /usr/lib/hailo-post-processes/post_processes_data/w_shp_base.npy \n"
+            "Please contact Hailo Support on how to obtain the file.");
+
     return post_proc_data_dir;
 }
 
 std::string post_proc_data_dir = get_post_proc_data_dir();
 // read large const arrays from memory
-xt::xarray<float> W_EXP_BASE =
-  xt::load_npy<float>(post_proc_data_dir + "/w_exp_base.npy");
-xt::xarray<float> W_SHP_BASE =
-  xt::load_npy<float>(post_proc_data_dir + "/w_shp_base.npy");
+xt::xarray<float> W_EXP_BASE = xt::load_npy<float>(post_proc_data_dir + "/w_exp_base.npy");
+xt::xarray<float> W_SHP_BASE = xt::load_npy<float>(post_proc_data_dir + "/w_shp_base.npy");
 xt::xarray<float> trans_bfm_u_base = xt::transpose(bfm_u_base);
 
 xt::xarray<float> calc_params_view(xt::xarray<float> face_3dmm_params)
@@ -157,8 +158,8 @@ xt::xarray<float> calc_bfm_params_xarray(HailoTensorPtr bfm_params)
 {
     xt::xarray<uint8_t> bfm_params_xarray = common::get_xtensor(bfm_params);
     xt::xarray<uint8_t> flatten_bfm_params = xt::flatten(bfm_params_xarray);
-    auto qp_zp = bfm_params->vstream_info().quant_info.qp_zp;
-    auto qp_scale = bfm_params->vstream_info().quant_info.qp_scale;
+    auto qp_zp = bfm_params->qp_zp();
+    auto qp_scale = bfm_params->qp_scale();
     xt::xarray<float> bfm_params_dequantize = common::dequantize(flatten_bfm_params, qp_scale, qp_zp);
     return bfm_params_dequantize;
 }

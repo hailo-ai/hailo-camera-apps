@@ -24,6 +24,6 @@
 G_BEGIN_DECLS
 
 #define GST_TYPE_PROC_TIME_TRACER (gst_proc_time_tracer_get_type())
-G_DECLARE_FINAL_TYPE (GstProcTimeTracer, gst_proc_time_tracer, GST, PROC_TIME_TRACER, GstSharkTracer)
+G_DECLARE_FINAL_TYPE(GstProcTimeTracer, gst_proc_time_tracer, GST, PROC_TIME_TRACER, GstSharkTracer)
 
 G_END_DECLS

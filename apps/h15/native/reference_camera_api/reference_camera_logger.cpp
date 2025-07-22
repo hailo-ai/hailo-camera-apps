@@ -39,18 +39,14 @@ std::shared_ptr<spdlog::logger> _reference_camera_logger;
 COMPAT__INITIALIZER(libmedialib_initialize_logger)
 {
     // Init logger
-    const auto log_level_file_c_str =
-        std::getenv(REFERENCE_CAMERA_LOGGER_LEVEL_ENV_VAR);
-    const auto log_level_console_c_str =
-        std::getenv(REFERENCE_CAMERA_LOGGER_CONSOLE_ENV_VAR);
+    const auto log_level_file_c_str = std::getenv(REFERENCE_CAMERA_LOGGER_LEVEL_ENV_VAR);
+    const auto log_level_console_c_str = std::getenv(REFERENCE_CAMERA_LOGGER_CONSOLE_ENV_VAR);
 
-    auto spdlog_file_level =
-        get_level(log_level_file_c_str, spdlog::level::level_enum::info);
-    auto spdlog_console_level =
-        get_level(log_level_console_c_str, spdlog::level::level_enum::warn);
+    auto spdlog_file_level = get_level(log_level_file_c_str, spdlog::level::level_enum::info);
+    auto spdlog_console_level = get_level(log_level_console_c_str, spdlog::level::level_enum::warn);
 
-    _reference_camera_logger = media_lib_logger_setup::create_logger(LOGGER_NAME, spdlog_file_level,
-                                                                     spdlog_console_level, LOGGER_FILENAME);
+    _reference_camera_logger =
+        media_lib_logger_setup::create_logger(LOGGER_NAME, spdlog_file_level, spdlog_console_level, LOGGER_FILENAME);
     if (_reference_camera_logger == nullptr)
     {
         throw std::runtime_error("Failed to create reference camera logger");

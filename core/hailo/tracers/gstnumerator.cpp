@@ -4,8 +4,8 @@
  **/
 /**
  * SECTION:gstnumerator
- * @short_description: this tracer numberates the offset of the buffers 
- * after the decoding phase, meaning that the first buffer 
+ * @short_description: this tracer numberates the offset of the buffers
+ * after the decoding phase, meaning that the first buffer
  * will have offset 1, the second 2, and so on.
  *
  */
@@ -25,16 +25,13 @@ struct _GstNumeratorTracer
     GstSharkTracer parent;
 };
 
-#define _do_init \
-    GST_DEBUG_CATEGORY_INIT(gst_numerator_debug, "numerator", 0, "numerator tracer");
+#define _do_init GST_DEBUG_CATEGORY_INIT(gst_numerator_debug, "numerator", 0, "numerator tracer");
 
-G_DEFINE_TYPE_WITH_CODE(GstNumeratorTracer, gst_numerator_tracer,
-                        GST_SHARK_TYPE_TRACER, _do_init);
+G_DEFINE_TYPE_WITH_CODE(GstNumeratorTracer, gst_numerator_tracer, GST_SHARK_TYPE_TRACER, _do_init);
 
 static GstElementFactory *avdec_factory = NULL;
 
-static GstElement *
-get_parent_element(GstPad *pad)
+static GstElement *get_parent_element(GstPad *pad)
 {
     GstElement *element;
     GstObject *parent;
@@ -66,8 +63,7 @@ static gboolean is_decoder(GstElement *element)
     return (efactory == avdec_factory);
 }
 
-static void gst_numerator_buffer_pre(GObject *self, GstClockTime ts,
-                                     GstPad *pad, GstBuffer *buffer);
+static void gst_numerator_buffer_pre(GObject *self, GstClockTime ts, GstPad *pad, GstBuffer *buffer);
 
 std::map<gchar *, int> map_stream_ids_offsets; // stream_id, offset
 static void gst_numerator_buffer_pre(GObject *self, GstClockTime ts, GstPad *pad, GstBuffer *buffer)
@@ -100,11 +96,11 @@ static void gst_numerator_buffer_pre(GObject *self, GstClockTime ts, GstPad *pad
 }
 
 /* tracer class */
-static void
-gst_numerator_tracer_class_init(GstNumeratorTracerClass *klass) {}
+static void gst_numerator_tracer_class_init(GstNumeratorTracerClass *klass)
+{
+}
 
-static void
-gst_numerator_tracer_init(GstNumeratorTracer *self)
+static void gst_numerator_tracer_init(GstNumeratorTracer *self)
 {
     GstSharkTracer *tracer = GST_SHARK_TRACER(self);
 
@@ -112,6 +108,5 @@ gst_numerator_tracer_init(GstNumeratorTracer *self)
     the element under inspection to see if it is a decoder */
     avdec_factory = gst_element_factory_find("avdec_h264");
 
-    gst_shark_tracer_register_hook(tracer, "pad-push-pre",
-                                   G_CALLBACK(gst_numerator_buffer_pre));
+    gst_shark_tracer_register_hook(tracer, "pad-push-pre", G_CALLBACK(gst_numerator_buffer_pre));
 }

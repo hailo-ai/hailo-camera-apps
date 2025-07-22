@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 #pragma once
 
 // General cpp includes
@@ -17,12 +17,11 @@
 #include "strack.hpp"
 #include "tracker_macros.hpp"
 
-
 /**
  * @brief Performs linear assignment on a given cost matrix.
  *        No return is made, instead vectors are filled with
  *        matching indices for row and column items.
- * 
+ *
  * @param cost  -  std::vector<std::vector<float>>
  *        A 2D cost matrix of distances between 2 sets of objects
  *
@@ -40,10 +39,8 @@
  * @param return_cost  -  bool
  *        If true, then return the total cost, default true.
  */
-inline double lapjv_external(const std::vector<std::vector<float>> &cost,
-                             std::vector<int> &rowsol,
-                             std::vector<int> &colsol,
-                             float cost_limit = LONG_MAX, bool return_cost = true)
+inline double lapjv_external(const std::vector<std::vector<float>> &cost, std::vector<int> &rowsol,
+                             std::vector<int> &colsol, float cost_limit = LONG_MAX, bool return_cost = true)
 {
     std::vector<std::vector<float>> cost_c;
     cost_c.assign(cost.begin(), cost.end());
@@ -63,7 +60,8 @@ inline double lapjv_external(const std::vector<std::vector<float>> &cost,
 
     n = n_rows + n_cols;
     cost_c_extended.resize(n);
-    for (uint i = 0; i < cost_c_extended.size(); i++) {
+    for (uint i = 0; i < cost_c_extended.size(); i++)
+    {
         cost_c_extended[i].resize(n);
     }
 
@@ -163,12 +161,11 @@ inline double lapjv_external(const std::vector<std::vector<float>> &cost,
     return opt;
 }
 
-
 /**
  * @brief Performs linear assignment on a given cost matrix.
  *        No return is made, instead a given matrix of matches is filled,
  *        and vectors are filled for unmatched members of each list.
- * 
+ *
  * @param cost_matrix  -  std::vector<std::vector<float>>
  *        A 2D cost matrix of distances between 2 sets of objects
  *
@@ -184,31 +181,27 @@ inline double lapjv_external(const std::vector<std::vector<float>> &cost,
  * @param unmatched_b  - std::vector<int>
  *        Indices of unmatched objects from the column items
  */
-inline void JDETracker::linear_assignment(std::vector<std::vector<float>> &cost_matrix,
-                                          int cost_matrix_rows,
-                                          int cost_matrix_cols,
-                                          float thresh,
-                                          std::vector<std::pair<int,int>> &matches,
-                                          std::vector<int> &unmatched_a,
-                                          std::vector<int> &unmatched_b)
+inline void JDETracker::linear_assignment(std::vector<std::vector<float>> &cost_matrix, int cost_matrix_rows,
+                                          int cost_matrix_cols, float thresh, std::vector<std::pair<int, int>> &matches,
+                                          std::vector<int> &unmatched_a, std::vector<int> &unmatched_b)
 {
     // Clear the vectors to fill in
     matches.clear();
     unmatched_a.clear();
     unmatched_b.clear();
 
-	if (cost_matrix.size() == 0)
-	{
-		for (int i = 0; i < cost_matrix_rows; i++)
-		{
-			unmatched_a.push_back(i);
-		}
-		for (int i = 0; i < cost_matrix_cols; i++)
-		{
-			unmatched_b.push_back(i);
-		}
-		return;
-	}
+    if (cost_matrix.size() == 0)
+    {
+        for (int i = 0; i < cost_matrix_rows; i++)
+        {
+            unmatched_a.push_back(i);
+        }
+        for (int i = 0; i < cost_matrix_cols; i++)
+        {
+            unmatched_b.push_back(i);
+        }
+        return;
+    }
 
     std::vector<int> rowsol;
     std::vector<int> colsol;

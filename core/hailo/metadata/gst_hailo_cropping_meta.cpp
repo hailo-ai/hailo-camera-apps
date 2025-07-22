@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 #include "gst_hailo_cropping_meta.hpp"
 
 #include "stdio.h"
@@ -10,8 +10,8 @@
 
 static gboolean gst_hailo_cropping_meta_init(GstMeta *meta, gpointer params, GstBuffer *buffer);
 static void gst_hailo_cropping_meta_free(GstMeta *meta, GstBuffer *buffer);
-static gboolean gst_hailo_cropping_meta_transform(GstBuffer *transbuf, GstMeta *meta, GstBuffer *buffer,
-                                                  GQuark type, gpointer data);
+static gboolean gst_hailo_cropping_meta_transform(GstBuffer *transbuf, GstMeta *meta, GstBuffer *buffer, GQuark type,
+                                                  gpointer data);
 
 GType gst_hailo_cropping_meta_api_get_type(void)
 {
@@ -34,8 +34,7 @@ const GstMetaInfo *gst_hailo_cropping_meta_get_info(void)
         const GstMetaInfo *meta = gst_meta_register(GST_HAILO_CROPPING_META_API_TYPE, /* api type */
                                                     "GstHailoCroppingMeta",           /* implementation type */
                                                     sizeof(GstHailoCroppingMeta),     /* size of the structure */
-                                                    gst_hailo_cropping_meta_init,
-                                                    gst_hailo_cropping_meta_free,
+                                                    gst_hailo_cropping_meta_init, gst_hailo_cropping_meta_free,
                                                     gst_hailo_cropping_meta_transform);
         g_once_init_leave(&gst_hailo_cropping_meta_info, meta);
     }
@@ -55,8 +54,8 @@ static void gst_hailo_cropping_meta_free(GstMeta *meta, GstBuffer *buffer)
     gst_hailo_cropping_meta->num_of_crops = 0;
 }
 
-static gboolean gst_hailo_cropping_meta_transform(GstBuffer *transbuf, GstMeta *meta, GstBuffer *buffer,
-                                                  GQuark type, gpointer data)
+static gboolean gst_hailo_cropping_meta_transform(GstBuffer *transbuf, GstMeta *meta, GstBuffer *buffer, GQuark type,
+                                                  gpointer data)
 {
     GstHailoCroppingMeta *gst_hailo_cropping_meta = (GstHailoCroppingMeta *)meta;
     gst_buffer_add_hailo_cropping_meta(transbuf, gst_hailo_cropping_meta->num_of_crops);
@@ -65,7 +64,8 @@ static gboolean gst_hailo_cropping_meta_transform(GstBuffer *transbuf, GstMeta *
 
 GstHailoCroppingMeta *gst_buffer_get_hailo_cropping_meta(GstBuffer *buffer)
 {
-    GstHailoCroppingMeta *meta = (GstHailoCroppingMeta *)gst_buffer_get_meta((buffer), GST_HAILO_CROPPING_META_API_TYPE);
+    GstHailoCroppingMeta *meta =
+        (GstHailoCroppingMeta *)gst_buffer_get_meta((buffer), GST_HAILO_CROPPING_META_API_TYPE);
     return meta;
 }
 
@@ -89,7 +89,8 @@ gboolean gst_buffer_remove_hailo_cropping_meta(GstBuffer *buffer)
 {
     g_return_val_if_fail((int)GST_IS_BUFFER(buffer), false);
 
-    GstHailoCroppingMeta *meta = (GstHailoCroppingMeta *)gst_buffer_get_meta((buffer), GST_HAILO_CROPPING_META_API_TYPE);
+    GstHailoCroppingMeta *meta =
+        (GstHailoCroppingMeta *)gst_buffer_get_meta((buffer), GST_HAILO_CROPPING_META_API_TYPE);
 
     if (meta == NULL)
         return TRUE;

@@ -1,6 +1,10 @@
 {
-    "osd":
-    {
+    "privacy_mask": {
+        "mask_type": "COLOR",
+        "pixelization_size": 60,
+        "color_value": [0, 0, 0]
+    },
+    "osd": {
         "image": [
             {
                 "id": "example_image1",
@@ -19,11 +23,7 @@
                 "id": "example_datetime1",
                 "font_size": 45,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 0.01,
                 "y": 0.96,
                 "z-index": 1,
@@ -37,11 +37,7 @@
                 "label": "fhd stream",
                 "font_size": 45,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 0.9,
                 "y": 0.88,
                 "z-index": 1,
@@ -53,11 +49,7 @@
                 "label": "stream 1",
                 "font_size": 45,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 0.0,
                 "y": 0.0,
                 "z-index": 2,

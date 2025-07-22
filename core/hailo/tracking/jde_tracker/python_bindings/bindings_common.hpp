@@ -1,7 +1,7 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 /*
   Common Pybind API assets
 */
@@ -35,7 +35,7 @@
 #include "pybind11/complex.h"
 #include "pybind11/functional.h"
 
-#define HAILOTAPPASAPI __attribute__ ((visibility ("default")))
+#define HAILOTAPPASAPI __attribute__((visibility("default")))
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -44,14 +44,15 @@ __BEGIN_DECLS
 
 /**
  * @brief Converts a 1D numpy array to an std::vector of floats.
- * 
+ *
  * @param input  -  py::array_t<float>
  *        A 1D numpy array to convert.
  *
- * @return std::vector<float> 
+ * @return std::vector<float>
  *         The converted std::vector
  */
-HAILOTAPPASAPI std::vector<float> numpy_to_float_vector(py::array_t<float, py::array::c_style | py::array::forcecast> input)
+HAILOTAPPASAPI std::vector<float> numpy_to_float_vector(
+    py::array_t<float, py::array::c_style | py::array::forcecast> input)
 {
     py::buffer_info buffer = input.request();
 
@@ -60,8 +61,8 @@ HAILOTAPPASAPI std::vector<float> numpy_to_float_vector(py::array_t<float, py::a
         throw std::runtime_error("numpy.ndarray dims must be 1!");
     }
 
-    //Pointer reads and writes numpy.ndarray
-    float* ptr1 = (float*)buffer.ptr;
+    // Pointer reads and writes numpy.ndarray
+    float *ptr1 = (float *)buffer.ptr;
 
     std::vector<float> converted_vector(buffer.shape[0]);
 
@@ -76,15 +77,16 @@ HAILOTAPPASAPI std::vector<float> numpy_to_float_vector(py::array_t<float, py::a
 /**
  * @brief Converts a 2d numpy array input into a
  *        vector of HailoDetectionPtr
- * 
+ *
  * @param input  - py::array_t<float>
  *        A numpy array of detections, in the format
  *        [xmin,ymin,xmax,ymax,confidence].
  *
  * @return std::vector<HailoDetectionPtr>
- *         
+ *
  */
-HAILOTAPPASAPI std::vector<HailoDetectionPtr> numpy_to_detections(py::array_t<float, py::array::c_style | py::array::forcecast> input)
+HAILOTAPPASAPI std::vector<HailoDetectionPtr> numpy_to_detections(
+    py::array_t<float, py::array::c_style | py::array::forcecast> input)
 {
     py::buffer_info buffer = input.request();
 
@@ -96,8 +98,8 @@ HAILOTAPPASAPI std::vector<HailoDetectionPtr> numpy_to_detections(py::array_t<fl
     std::vector<HailoDetectionPtr> converted_detections(buffer.shape[0]);
     float xmin, ymin, xmax, ymax, confidence;
 
-    //Pointer reads and writes numpy.ndarray
-    float* ptr1 = (float*)buffer.ptr;
+    // Pointer reads and writes numpy.ndarray
+    float *ptr1 = (float *)buffer.ptr;
 
     for (int i = 0; i < buffer.shape[0]; i++)
     {

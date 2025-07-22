@@ -68,8 +68,10 @@ std::pair<float, float> Yolov5OL::get_shape(uint row, uint col, uint anchor, uin
 {
     float w, h = 0.0f;
     uint channel = _tensor->features() / NUM_ANCHORS * anchor + NUM_CENTERS;
-    w = pow(2.0f * _tensor->get_full_percision(row, col, channel, _is_uint16), 2.0f) * _anchors[anchor * 2] / image_width;
-    h = pow(2.0f * _tensor->get_full_percision(row, col, channel + 1, _is_uint16), 2.0f) * _anchors[anchor * 2 + 1] / image_height;
+    w = pow(2.0f * _tensor->get_full_percision(row, col, channel, _is_uint16), 2.0f) * _anchors[anchor * 2] /
+        image_width;
+    h = pow(2.0f * _tensor->get_full_percision(row, col, channel + 1, _is_uint16), 2.0f) * _anchors[anchor * 2 + 1] /
+        image_height;
     return std::pair<float, float>(w, h);
 }
 
@@ -126,13 +128,21 @@ std::pair<float, float> Yolov4OL::get_center(uint row, uint col, uint anchor)
     float x;
     float y;
     uint channel = (_center->features() / NUM_ANCHORS) * anchor;
-    if (_perform_sigmoid) {
-        x = (sigmoid(_center->get_full_percision(row, col, channel, _is_uint16)) * SCALE_XY - 0.5f * (SCALE_XY - 1) + col) / _width;
-        y = (sigmoid(_center->get_full_percision(row, col, channel + 1, _is_uint16)) * SCALE_XY - 0.5f * (SCALE_XY - 1) + row) / _height;
+    if (_perform_sigmoid)
+    {
+        x = (sigmoid(_center->get_full_percision(row, col, channel, _is_uint16)) * SCALE_XY - 0.5f * (SCALE_XY - 1) +
+             col) /
+            _width;
+        y = (sigmoid(_center->get_full_percision(row, col, channel + 1, _is_uint16)) * SCALE_XY -
+             0.5f * (SCALE_XY - 1) + row) /
+            _height;
     }
-    else {
-        x = (_center->get_full_percision(row, col, channel, _is_uint16) * SCALE_XY - 0.5f * (SCALE_XY - 1) + col) / _width;
-        y = (_center->get_full_percision(row, col, channel + 1, _is_uint16) * SCALE_XY - 0.5f * (SCALE_XY - 1) + row) / _height;
+    else
+    {
+        x = (_center->get_full_percision(row, col, channel, _is_uint16) * SCALE_XY - 0.5f * (SCALE_XY - 1) + col) /
+            _width;
+        y = (_center->get_full_percision(row, col, channel + 1, _is_uint16) * SCALE_XY - 0.5f * (SCALE_XY - 1) + row) /
+            _height;
     }
     return std::pair<float, float>(x, y);
 }
@@ -149,8 +159,12 @@ std::pair<float, float> Yolov4OL::get_shape(uint row, uint col, uint anchor, uin
 std::pair<float, float> TinyYolov4OL::get_center(uint row, uint col, uint anchor)
 {
     uint channel = (_tensor->features() / NUM_ANCHORS) * anchor;
-    float x = (sigmoid(_tensor->get_full_percision(row, col, channel, _is_uint16)) * SCALE_XY - 0.5f * (SCALE_XY - 1) + col) / _width;
-    float y = (sigmoid(_tensor->get_full_percision(row, col, channel + 1, _is_uint16)) * SCALE_XY - 0.5f * (SCALE_XY - 1) + row) / _height;
+    float x =
+        (sigmoid(_tensor->get_full_percision(row, col, channel, _is_uint16)) * SCALE_XY - 0.5f * (SCALE_XY - 1) + col) /
+        _width;
+    float y = (sigmoid(_tensor->get_full_percision(row, col, channel + 1, _is_uint16)) * SCALE_XY -
+               0.5f * (SCALE_XY - 1) + row) /
+              _height;
     return std::pair<float, float>(x, y);
 }
 

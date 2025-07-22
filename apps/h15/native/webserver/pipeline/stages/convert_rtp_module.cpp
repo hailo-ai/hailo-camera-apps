@@ -7,11 +7,11 @@ struct GstPtrWrapper
     HailoMediaLibraryBufferPtr ptr;
 };
 
-
-tl::expected<ConvertRtpModulePtr, AppStatus> ConvertRtpModule::create(std::string name, EncodingType type)
+tl::expected<ConvertRtpModulePtr, AppStatus> ConvertRtpModule::create(std::string name, EncodingType type,
+                                                                      bool print_fps)
 {
     AppStatus status = AppStatus::UNINITIALIZED;
-    ConvertRtpModulePtr rtp_module = std::make_shared<ConvertRtpModule>(name, type, status);
+    ConvertRtpModulePtr rtp_module = std::make_shared<ConvertRtpModule>(name, type, status, print_fps);
     if (status != AppStatus::SUCCESS)
     {
         return tl::make_unexpected(status);
@@ -19,8 +19,8 @@ tl::expected<ConvertRtpModulePtr, AppStatus> ConvertRtpModule::create(std::strin
     return rtp_module;
 }
 
-ConvertRtpModule::ConvertRtpModule(std::string name, EncodingType type, AppStatus &status)
-    : OutputModule(name, type), m_appsink(nullptr)
+ConvertRtpModule::ConvertRtpModule(std::string name, EncodingType type, AppStatus &status, bool print_fps)
+    : OutputModule(name, type, print_fps), m_appsink(nullptr)
 {
     // Initialize gstreamer.
     gst_init(nullptr, nullptr);
@@ -38,10 +38,8 @@ ConvertRtpModule::ConvertRtpModule(std::string name, EncodingType type, AppStatu
     status = AppStatus::SUCCESS;
 }
 
-
 std::string ConvertRtpModule::create_pipeline_string()
 {
-    std::cout << "Creating RTP converter pipeline" << std::endl;
     std::string caps_type;
     std::string rtp_payloader;
     std::string encoding_name;
@@ -69,27 +67,33 @@ std::string ConvertRtpModule::create_pipeline_string()
 
     std::ostringstream pipelineStream;
     pipelineStream << "appsrc do-timestamp=true format=time block=true is-live=true max-bytes=0 "
-                      "max-buffers=1 name="<< std::string(SRC_NAME) <<" ! "
-                      "queue name=" << SRC_QUEUE_NAME << " leaky=downstream max-size-buffers=3 max-size-bytes=0 max-size-time=0 ! "
-                      << caps2.str() << " ! "
+                      "max-buffers=1 name="
+                   << std::string(SRC_NAME)
+                   << " ! "
+                      "queue name="
+                   << SRC_QUEUE_NAME << " leaky=downstream max-size-buffers=3 max-size-bytes=0 max-size-time=0 ! "
+                   << caps2.str()
+                   << " ! "
                       "tee name=tee0 "
                       "tee0. ! "
-                          "queue leaky=no max-size-buffers=1 max-size-bytes=0 max-size-time=0 ! "
-                          << rtp_parser << " ! "
-                          "queue leaky=no max-size-buffers=0 max-size-bytes=0 max-size-time=0 ! "
-                          << rtp_payloader << " ! application/x-rtp, media=(string)video, encoding-name=(string)" << encoding_name << " ! "
-                          "queue leaky=no max-size-buffers=0 max-size-bytes=0 max-size-time=0 ! "
-                          << sink.str() <<
-                      "tee0. ! "
-                          "queue leaky=no max-size-buffers=2 max-size-bytes=0 max-size-time=0 ! "
-                          "fpsdisplaysink fps-update-interval=2000 signal-fps-measurements=true name=fpsdisplaysink "
-                          "text-overlay=false sync=true video-sink=fakesink ";
+                      "queue leaky=no max-size-buffers=1 max-size-bytes=0 max-size-time=0 ! "
+                   << rtp_parser
+                   << " ! "
+                      "queue leaky=no max-size-buffers=0 max-size-bytes=0 max-size-time=0 ! "
+                   << rtp_payloader << " ! application/x-rtp, media=(string)video, encoding-name=(string)"
+                   << encoding_name
+                   << " ! "
+                      "queue leaky=no max-size-buffers=0 max-size-bytes=0 max-size-time=0 ! "
+                   << sink.str()
+                   << "tee0. ! "
+                      "queue leaky=no max-size-buffers=2 max-size-bytes=0 max-size-time=0 ! "
+                      "fpsdisplaysink fps-update-interval=2000 signal-fps-measurements=true name=fpsdisplaysink "
+                      "text-overlay=false sync=true video-sink=fakesink ";
 
     std::string pipeline = pipelineStream.str();
     REFERENCE_CAMERA_LOG_INFO("Pipeline: {}", pipeline);
     return pipeline;
 }
-
 
 void ConvertRtpModule::get_appsink()
 {
@@ -106,8 +110,7 @@ void ConvertRtpModule::get_appsink()
     }
 }
 
-
-GstSample* ConvertRtpModule::get_frame()
+GstSample *ConvertRtpModule::get_frame()
 {
     if (!m_appsink)
     {

@@ -1,0 +1,22 @@
+{
+    "version": "1.0.0",
+    "default_profile": "Daylight",
+    "profiles": [
+        {
+            "name": "Daylight",
+            "config_file": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/daylight/daylight_profile.json"
+        },
+        {
+            "name": "High_Dynamic_Range",
+            "config_file": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/HDR/HDR_profile.json"
+        },
+        {
+            "name": "Lowlight",
+            "config_file": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/lowlight/lowlight_r0225c8_profile.json"
+        },
+        {
+            "name": "Infrared",
+            "config_file": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/IR/IR_profile.json"
+        }
+    ]
+}

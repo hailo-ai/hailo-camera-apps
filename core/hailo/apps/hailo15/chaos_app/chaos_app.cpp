@@ -7,9 +7,9 @@
 #include <gst/app/gstappsink.h>
 #include <fstream>
 #include <cxxopts/cxxopts.hpp>
-#include <filesystem> 
+#include <filesystem>
 #include <vector>
-#include <utility> 
+#include <utility>
 #include "apps_common.hpp"
 #include "media_library/encoder.hpp"
 #include "media_library/frontend.hpp"
@@ -19,8 +19,8 @@
 #include "utils/scenarios.hpp"
 
 // AI Pipeline Params
-#define AI_VISION_SINK "sink0" // The streamid from frontend to 4K stream that shows vision results 
-#define AI_SINK "sink3" // The streamid from frontend to AI
+#define AI_VISION_SINK "sink0" // The streamid from frontend to 4K stream that shows vision results
+#define AI_SINK "sink3"        // The streamid from frontend to AI
 
 // ai includes
 #include "hailo/tappas/reference_camera/pipeline.hpp"
@@ -35,12 +35,12 @@
 #define OVERLAY_STAGE "OverLay"
 #define TRACKER_STAGE "Tracker"
 // Detection AI Params
-#define YOLO_HEF_FILE "/home/root/apps/ai_example_app/resources/yolov5s_personface_nv12.hef"
+#define YOLO_HEF_FILE "/home/root/apps/ai_example_app/resources/yolov8n_personface_nv12.hef"
 #define DETECTION_AI_STAGE "yolo_detection"
 // Detection Postprocess Params
 #define POST_STAGE "yolo_post"
 #define YOLO_POST_SO "/usr/lib/hailo-post-processes/libyolo_hailortpp_post.so"
-#define YOLO_FUNC_NAME "yolov5s_personface"
+#define YOLO_FUNC_NAME "yolov8n_personface"
 // Aggregator Params
 #define AGGREGATOR_STAGE "aggregator"
 #define AGGREGATOR_STAGE_2 "aggregator2"
@@ -53,9 +53,8 @@
 #define TILLING_INPUT_HEIGHT 1080
 #define TILLING_OUTPUT_WIDTH 640
 #define TILLING_OUTPUT_HEIGHT 640
-std::vector<HailoBBox> TILES = {{0.0,0.0,0.6,0.6},  {0.4,0,0.6,0.6},  
-                                {0, 0.4, 0.6, 0.6},  {0.4, 0.4, 0.6, 0.6}, 
-                                {0.0, 0.0, 1.0, 1.0}};
+std::vector<HailoBBox> TILES = {
+    {0.0, 0.0, 0.6, 0.6}, {0.4, 0, 0.6, 0.6}, {0, 0.4, 0.6, 0.6}, {0.4, 0.4, 0.6, 0.6}, {0.0, 0.0, 1.0, 1.0}};
 
 // Bbox crop Parms
 #define BBOX_CROP_STAGE "bbox_crops"
@@ -74,13 +73,13 @@ std::vector<HailoBBox> TILES = {{0.0,0.0,0.6,0.6},  {0.4,0,0.6,0.6},
 #define LANDMARKS_FUNC_NAME "facial_landmarks_nv12"
 
 #define STRESS_CONFIGS_PATH "/home/root/apps/internals/validation_apps_configs/resources/configs/"
-//change it to stress_medialib_config.json after changing the app to stages
+// change it to stress_medialib_config.json after changing the app to stages
 #define FRONTEND_CONFIG_FILE STRESS_CONFIGS_PATH "stress_profile.json"
 #define BACKUP_FRONTEND_CONFIG_FILE "/tmp/frontend_config_example.json"
 
 std::string g_encoder_config_file_path = std::string(STRESS_CONFIGS_PATH) + "stress_encoder_sink";
 std::string g_output_file_path = "/var/volatile/tmp/chaos_out_video";
-std::streambuf* originalBuffer = std::cout.rdbuf();
+std::streambuf *originalBuffer = std::cout.rdbuf();
 
 static bool g_pipeline_is_running = false;
 static bool g_hdr_enabled = false;
@@ -99,7 +98,8 @@ struct MediaLibrary
 };
 std::shared_ptr<MediaLibrary> m_media_lib;
 
-struct ParsedOptions {
+struct ParsedOptions
+{
     int no_change_frames;
     int loop_test;
     int test_time;
@@ -109,21 +109,25 @@ struct ParsedOptions {
     bool ai_pipeline_enabled;
 };
 
-ParsedOptions parseArguments(int argc, char* argv[]) {
+ParsedOptions parseArguments(int argc, char *argv[])
+{
     cxxopts::Options options("ProgramName", "Program Help String");
-    options.add_options()
-        ("h,help", "Print usage")
-        ("test-time", "how much time to run 1 iteration, time is in seconds", cxxopts::value<int>()->default_value("300"))
-        ("loop-test", "how many iterations of the test to run", cxxopts::value<int>()->default_value("1"))
-        ("frames-to-skip", "Number of frames that the pipeline will not make dynamic changes between each change", cxxopts::value<int>()->default_value("10"))
-        ("number-of-resets", "Number of frontend resets and HDR flips", cxxopts::value<int>()->default_value("0"))
-        ("encoding-format", "Encoding format", cxxopts::value<std::string>()->default_value("h264"))
-        ("enable-rotate-90", "Enabling rotate 90, the output file will be valid when enabled", cxxopts::value<std::string>()->default_value("false"))
-        ("ai-pipeline", "will the ai pipeline be added to the overall pipeline", cxxopts::value<std::string>()->default_value("true"));
-    
+    options.add_options()("h,help", "Print usage")("test-time", "how much time to run 1 iteration, time is in seconds",
+                                                   cxxopts::value<int>()->default_value("300"))(
+        "loop-test", "how many iterations of the test to run", cxxopts::value<int>()->default_value("1"))(
+        "frames-to-skip", "Number of frames that the pipeline will not make dynamic changes between each change",
+        cxxopts::value<int>()->default_value("10"))("number-of-resets", "Number of frontend resets and HDR flips",
+                                                    cxxopts::value<int>()->default_value("0"))(
+        "encoding-format", "Encoding format", cxxopts::value<std::string>()->default_value("h264"))(
+        "enable-rotate-90", "Enabling rotate 90, the output file will be valid when enabled",
+        cxxopts::value<std::string>()->default_value("false"))("ai-pipeline",
+                                                               "will the ai pipeline be added to the overall pipeline",
+                                                               cxxopts::value<std::string>()->default_value("true"));
+
     auto result = options.parse(argc, argv);
 
-    if (result.count("help")) {
+    if (result.count("help"))
+    {
         std::cout << options.help() << std::endl;
         exit(0);
     }
@@ -143,13 +147,16 @@ ParsedOptions parseArguments(int argc, char* argv[]) {
 
 std::string get_output_paths(int id, ParsedOptions options)
 {
-    if ((options.encoding_format == "mjpeg") && (id == 1)) {
+    if ((options.encoding_format == "mjpeg") && (id == 1))
+    {
         return g_output_file_path + std::to_string(id) + ".jpeg";
     }
-    else if ((options.encoding_format == "h264") or (id != 1)) {
+    else if ((options.encoding_format == "h264") or (id != 1))
+    {
         return g_output_file_path + std::to_string(id) + ".h264";
     }
-    else {
+    else
+    {
         std::cerr << "Invalid encoding format" << std::endl;
         return "";
     }
@@ -161,11 +168,10 @@ std::string set_encoder_config_path(int id, ParsedOptions options)
         return g_encoder_config_file_path + std::to_string(id) + "_jpeg.json";
     else if ((options.encoding_format == "h264") or (id != 1))
         return g_encoder_config_file_path + std::to_string(id) + ".json";
-    else 
-        std::cerr << "Invalid encoding format" << std::endl;  
+    else
+        std::cerr << "Invalid encoding format" << std::endl;
     return "";
 }
-
 
 void write_encoded_data(HailoMediaLibraryBufferPtr buffer, uint32_t size, std::ofstream &output_file)
 {
@@ -178,37 +184,34 @@ void write_encoded_data(HailoMediaLibraryBufferPtr buffer, uint32_t size, std::o
     output_file.write(data, size);
 }
 
-
 void create_ai_pipeline(std::shared_ptr<MediaLibrary> m_media_lib)
 {
     // Create pipeline
     m_media_lib->pipeline = std::make_shared<Pipeline>();
 
     // Create pipeline stages
-    std::shared_ptr<TillingCropStage> tilling_stage = std::make_shared<TillingCropStage>(TILLING_STAGE,40, TILLING_INPUT_WIDTH, TILLING_INPUT_HEIGHT,
-                                                                                        TILLING_OUTPUT_WIDTH, TILLING_OUTPUT_HEIGHT,
-                                                                                        "", DETECTION_AI_STAGE, TILES,
-                                                                                        5, false, false);
-    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50 ,"device0", 5, 10, 5, false,
-                                                                                             std::chrono::milliseconds(100), false, StagePoolMode::BLOCKING);
-    std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, "", 5, false, false);
-    std::shared_ptr<AggregatorStage> agg_stage = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE, false, 5,
-                                                                                   AI_VISION_SINK, 2, false,
-                                                                                   POST_STAGE, 10, false,
-                                                                                   true, false, 0.3, 0.1,
-                                                                                   false);
+    std::shared_ptr<TillingCropStage> tilling_stage = std::make_shared<TillingCropStage>(
+        TILLING_STAGE, 40, TILLING_INPUT_WIDTH, TILLING_INPUT_HEIGHT, TILLING_OUTPUT_WIDTH, TILLING_OUTPUT_HEIGHT, "",
+        DETECTION_AI_STAGE, TILES, 5, false, false);
+    std::shared_ptr<HailortAsyncStage> detection_stage =
+        std::make_shared<HailortAsyncStage>(DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50, "device0", 5, 10, 5, false,
+                                            std::chrono::milliseconds(100), false, StagePoolMode::BLOCKING);
+    std::shared_ptr<PostprocessStage> detection_post_stage =
+        std::make_shared<PostprocessStage>(POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, "", 5, false, false);
+    std::shared_ptr<AggregatorStage> agg_stage = std::make_shared<AggregatorStage>(
+        AGGREGATOR_STAGE, false, 5, AI_VISION_SINK, 2, false, POST_STAGE, 10, false, true, false, 0.3, 0.1, false);
     std::shared_ptr<TrackerStage> tracker_stage = std::make_shared<TrackerStage>(TRACKER_STAGE, 1, false, -1, false);
-    std::shared_ptr<BBoxCropStage> bbox_crop_stage = std::make_shared<BBoxCropStage>(BBOX_CROP_STAGE, 100, BBOX_CROP_INPUT_WIDTH, BBOX_CROP_INPUT_HEIGHT,
-                                                                                    BBOX_CROP_OUTPUT_WIDTH, BBOX_CROP_OUTPUT_HEIGHT,
-                                                                                    AGGREGATOR_STAGE_2, LANDMARKS_AI_STAGE, BBOX_CROP_LABEL, 1, false, false);
-    std::shared_ptr<HailortAsyncStage> landmarks_stage = std::make_shared<HailortAsyncStage>(LANDMARKS_AI_STAGE, LANDMARKS_HEF_FILE, 20, 101 ,"device0", 1, 30, 1, false, 
-                                                                                             std::chrono::milliseconds(100), false, StagePoolMode::BLOCKING);
-    std::shared_ptr<PostprocessStage> landmarks_post_stage = std::make_shared<PostprocessStage>(LANDMARKS_POST_STAGE, LANDMARKS_POST_SO, LANDMARKS_FUNC_NAME, "", 50, false, false);
-    std::shared_ptr<AggregatorStage> agg_stage_2 = std::make_shared<AggregatorStage>(AGGREGATOR_STAGE_2, false, 
-                                                                                     BBOX_CROP_STAGE, 2, false,
-                                                                                     LANDMARKS_POST_STAGE, 30, false,
-                                                                                     false, false, 0.3, 0.1,
-                                                                                     false);
+    std::shared_ptr<BBoxCropStage> bbox_crop_stage = std::make_shared<BBoxCropStage>(
+        BBOX_CROP_STAGE, 100, BBOX_CROP_INPUT_WIDTH, BBOX_CROP_INPUT_HEIGHT, BBOX_CROP_OUTPUT_WIDTH,
+        BBOX_CROP_OUTPUT_HEIGHT, AGGREGATOR_STAGE_2, LANDMARKS_AI_STAGE, BBOX_CROP_LABEL, 1, false, false);
+    std::shared_ptr<HailortAsyncStage> landmarks_stage =
+        std::make_shared<HailortAsyncStage>(LANDMARKS_AI_STAGE, LANDMARKS_HEF_FILE, 20, 101, "device0", 50, 60, 50,
+                                            true, std::chrono::milliseconds(100), false, StagePoolMode::BLOCKING);
+    std::shared_ptr<PostprocessStage> landmarks_post_stage = std::make_shared<PostprocessStage>(
+        LANDMARKS_POST_STAGE, LANDMARKS_POST_SO, LANDMARKS_FUNC_NAME, "", 50, false, false);
+    std::shared_ptr<AggregatorStage> agg_stage_2 =
+        std::make_shared<AggregatorStage>(AGGREGATOR_STAGE_2, false, BBOX_CROP_STAGE, 2, false, LANDMARKS_POST_STAGE,
+                                          30, false, false, false, 0.3, 0.1, false);
     std::shared_ptr<OverlayStage> overlay_stage = std::make_shared<OverlayStage>(OVERLAY_STAGE, 1, false, false);
     std::shared_ptr<CallbackStage> sink_stage = std::make_shared<CallbackStage>(AI_CALLBACK_STAGE, 1, false);
 
@@ -255,8 +258,7 @@ void subscribe_elements(std::shared_ptr<MediaLibrary> media_lib, uint no_change_
         {
             std::cout << "subscribing ai pipeline to frontend for '" << s.id << "'" << std::endl;
             media_lib->pipeline->get_stage_by_name(TILLING_STAGE)->add_queue(s.id);
-            fe_callbacks[s.id] = [s, media_lib](HailoMediaLibraryBufferPtr buffer, size_t size)
-            {
+            fe_callbacks[s.id] = [s, media_lib](HailoMediaLibraryBufferPtr buffer, size_t size) {
                 BufferPtr wrapped_buffer = std::make_shared<Buffer>(buffer);
                 media_lib->pipeline->get_stage_by_name(TILLING_STAGE)->push(wrapped_buffer, s.id);
             };
@@ -264,9 +266,9 @@ void subscribe_elements(std::shared_ptr<MediaLibrary> media_lib, uint no_change_
         else if ((s.id == AI_VISION_SINK) && (ai_pipeline_enabled))
         {
             std::cout << "subscribing to frontend for '" << s.id << "'" << std::endl;
-            ConnectedStagePtr agg_stage = std::static_pointer_cast<ConnectedStage>(media_lib->pipeline->get_stage_by_name(AGGREGATOR_STAGE));
-            fe_callbacks[s.id] = [s, media_lib, agg_stage](HailoMediaLibraryBufferPtr buffer, size_t size)
-            {        
+            ConnectedStagePtr agg_stage =
+                std::static_pointer_cast<ConnectedStage>(media_lib->pipeline->get_stage_by_name(AGGREGATOR_STAGE));
+            fe_callbacks[s.id] = [s, media_lib, agg_stage](HailoMediaLibraryBufferPtr buffer, size_t size) {
                 BufferPtr wrapped_buffer = std::make_shared<Buffer>(buffer);
                 CroppingMetadataPtr cropping_meta = std::make_shared<CroppingMetadata>(TILES.size());
                 wrapped_buffer->add_metadata(cropping_meta);
@@ -275,25 +277,29 @@ void subscribe_elements(std::shared_ptr<MediaLibrary> media_lib, uint no_change_
         }
         else
         {
-            fe_callbacks[s.id] = [s, media_lib, no_change_frames](HailoMediaLibraryBufferPtr buffer, size_t size)
-            {
+            fe_callbacks[s.id] = [s, media_lib, no_change_frames](HailoMediaLibraryBufferPtr buffer, size_t size) {
                 m_media_lib->frame_counter_per_stream[s.id]++;
-                // Skip the first 100 frames so isp will more or less stabilize and checking that it's a frame that we want to make changes in
-                if ((m_media_lib->frame_counter_per_stream[s.id] > 100) && ((m_media_lib->frame_counter_per_stream[s.id] % no_change_frames) == 0))
+                // Skip the first 100 frames so isp will more or less stabilize and checking that it's a frame that we
+                // want to make changes in
+                if ((m_media_lib->frame_counter_per_stream[s.id] > 100) &&
+                    ((m_media_lib->frame_counter_per_stream[s.id] % no_change_frames) == 0))
                 {
-                    int frame_change_number = (m_media_lib->frame_counter_per_stream[s.id] - 100)/no_change_frames;
+                    int frame_change_number = (m_media_lib->frame_counter_per_stream[s.id] - 100) / no_change_frames;
                     std::cout << "Frame number: " << frame_change_number << " of " << s.id << std::endl;
-                    OSD_scenario(frame_change_number, m_media_lib->encoders[s.id], s.id);       
-                    encoder_scenario(frame_change_number, media_lib->encoders[s.id], media_lib->encoder_is_running[s.id],read_string_from_file(media_lib->encoder_file_path[s.id].c_str()));
-                  //  only one sink will change vision scenarios and the privacy mask for all sinks
+                    OSD_scenario(frame_change_number, m_media_lib->encoders[s.id], s.id);
+                    encoder_scenario(frame_change_number, media_lib->encoders[s.id],
+                                     media_lib->encoder_is_running[s.id],
+                                     read_string_from_file(media_lib->encoder_file_path[s.id].c_str()));
+                    PrivacyMaskBlenderPtr privacy_mask_blender = media_lib->encoders[s.id]->get_privacy_mask_blender();
+                    privacy_mask_scenario(frame_change_number, privacy_mask_blender);
+                    //  only one sink will change vision scenarios for all sinks
                     if (s.id == "sink1")
-                    {  
-                        privacy_mask_scenario(frame_change_number, media_lib->frontend);
+                    {
                         /// TODO: MSW-7367 - App hangs when running with 2+ streams and setting config
-                        //vision_scenario(frame_change_number, media_lib->frontend); 
+                        // vision_scenario(frame_change_number, media_lib->frontend);
                     }
                 }
-                
+
                 media_lib->encoders[s.id]->add_buffer(buffer);
             };
             media_lib->frontend->subscribe(fe_callbacks);
@@ -312,55 +318,59 @@ void subscribe_elements(std::shared_ptr<MediaLibrary> media_lib, uint no_change_
         output_stream_id_t streamId = entry.first;
         MediaLibraryEncoderPtr encoder = entry.second;
         std::cout << "subscribing output file to encoder for '" << streamId << "'" << std::endl;
-        media_lib->encoders[streamId]->subscribe(
-            [media_lib, streamId](HailoMediaLibraryBufferPtr buffer, size_t size)
-            {
-                write_encoded_data(buffer, size, media_lib->output_files[streamId]);
-            });
+        media_lib->encoders[streamId]->subscribe([media_lib, streamId](HailoMediaLibraryBufferPtr buffer, size_t size) {
+            write_encoded_data(buffer, size, media_lib->output_files[streamId]);
+        });
     }
     if (ai_pipeline_enabled)
     {
         // Subscribe ai stage to encoder
         std::cout << "subscribing ai pipeline to encoder '" << AI_VISION_SINK << "'" << std::endl;
-        CallbackStagePtr ai_sink_stage = std::static_pointer_cast<CallbackStage>(media_lib->pipeline->get_stage_by_name(AI_CALLBACK_STAGE));
+        CallbackStagePtr ai_sink_stage =
+            std::static_pointer_cast<CallbackStage>(media_lib->pipeline->get_stage_by_name(AI_CALLBACK_STAGE));
         ai_sink_stage->set_callback(
-            [media_lib](BufferPtr data)
-            {
-                media_lib->encoders[AI_VISION_SINK]->add_buffer(data->get_buffer());
-            });
+            [media_lib](BufferPtr data) { media_lib->encoders[AI_VISION_SINK]->add_buffer(data->get_buffer()); });
     }
 }
 
-int setup(std::shared_ptr<MediaLibrary> media_lib, ParsedOptions options) {
-    try {
-        std::filesystem::copy_file(FRONTEND_CONFIG_FILE, BACKUP_FRONTEND_CONFIG_FILE, std::filesystem::copy_options::overwrite_existing);
-    } catch (const std::filesystem::filesystem_error& e) {
+int setup(std::shared_ptr<MediaLibrary> media_lib, ParsedOptions options)
+{
+    try
+    {
+        std::filesystem::copy_file(FRONTEND_CONFIG_FILE, BACKUP_FRONTEND_CONFIG_FILE,
+                                   std::filesystem::copy_options::overwrite_existing);
+    }
+    catch (const std::filesystem::filesystem_error &e)
+    {
         std::cerr << "Error copying file: " << e.what() << '\n';
         return 1;
     }
 
-    //init_vision_config_file(FRONTEND_CONFIG_FILE);
+    // init_vision_config_file(FRONTEND_CONFIG_FILE);
     std::string frontend_config_string = read_string_from_file(FRONTEND_CONFIG_FILE);
     tl::expected<MediaLibraryFrontendPtr, media_library_return> frontend_expected = MediaLibraryFrontend::create();
-    if (!frontend_expected.has_value()) {
+    if (!frontend_expected.has_value())
+    {
         std::cout << "Failed to create frontend" << std::endl;
         return 1;
     }
     m_media_lib->frontend = frontend_expected.value();
-    if (m_media_lib->frontend->set_config(frontend_config_string ) != MEDIA_LIBRARY_SUCCESS)
+    if (m_media_lib->frontend->set_config(frontend_config_string) != MEDIA_LIBRARY_SUCCESS)
     {
         std::cout << "Failed to configure frontend" << std::endl;
         return 1;
     }
 
     auto streams = m_media_lib->frontend->get_outputs_streams();
-    if (!streams.has_value()) {
+    if (!streams.has_value())
+    {
         std::cout << "Failed to get stream ids" << std::endl;
         throw std::runtime_error("Failed to get stream ids");
     }
 
     int encoder_index = 0;
-    for (auto s : streams.value()) {
+    for (auto s : streams.value())
+    {
         if (options.ai_pipeline_enabled && (s.id == AI_SINK))
         {
             // AI pipeline does not get an encoder since it is merged into 4K
@@ -370,15 +380,18 @@ int setup(std::shared_ptr<MediaLibrary> media_lib, ParsedOptions options) {
         media_lib->encoder_file_path[s.id] = set_encoder_config_path(encoder_index, options);
         std::string encoderosd_config_string = read_string_from_file(media_lib->encoder_file_path[s.id].c_str());
         tl::expected<MediaLibraryEncoderPtr, media_library_return> encoder_expected = MediaLibraryEncoder::create();
-        if (!encoder_expected.has_value()) {
+        if (!encoder_expected.has_value())
+        {
             std::cout << "Failed to create encoder osd" << std::endl;
             return 1;
         }
         m_media_lib->encoders[s.id] = encoder_expected.value();
         std::string output_file_path = get_output_paths(encoder_index, options);
         delete_output_file(output_file_path);
-        m_media_lib->output_files[s.id].open(output_file_path.c_str(), std::ios::out | std::ios::binary | std::ios::app);
-        if (!m_media_lib->output_files[s.id].good()) {
+        m_media_lib->output_files[s.id].open(output_file_path.c_str(),
+                                             std::ios::out | std::ios::binary | std::ios::app);
+        if (!m_media_lib->output_files[s.id].good())
+        {
             std::cerr << "Error occurred at writing time!" << std::endl;
             return 1;
         }
@@ -408,34 +421,41 @@ void start_or_stop_all_encoders(std::shared_ptr<MediaLibrary> media_lib, bool st
     }
 }
 
-void clean(bool g_pipeline_is_running, const std::string& backup_config_file, std::streambuf* originalBuffer) {
-    if (g_pipeline_is_running) {
+void clean(bool g_pipeline_is_running, const std::string &backup_config_file, std::streambuf *originalBuffer)
+{
+    if (g_pipeline_is_running)
+    {
         std::cout << "Stopping" << std::endl;
         m_media_lib->frontend->stop();
         g_pipeline_is_running = false;
     }
     start_or_stop_all_encoders(m_media_lib, false);
 
-    for (auto &entry : m_media_lib->output_files) {
+    for (auto &entry : m_media_lib->output_files)
+    {
         entry.second.close();
     }
 
-    try {
-        std::filesystem::copy_file(backup_config_file, FRONTEND_CONFIG_FILE, std::filesystem::copy_options::overwrite_existing);
-    } catch (const std::filesystem::filesystem_error& e) {
+    try
+    {
+        std::filesystem::copy_file(backup_config_file, FRONTEND_CONFIG_FILE,
+                                   std::filesystem::copy_options::overwrite_existing);
+    }
+    catch (const std::filesystem::filesystem_error &e)
+    {
         std::cerr << "Error restoring file: " << e.what() << '\n';
     }
 
     std::cout.rdbuf(originalBuffer);
 }
 
-
 int main(int argc, char *argv[])
 {
     ParsedOptions options = parseArguments(argc, argv);
     m_media_lib = std::make_shared<MediaLibrary>();
     int result = setup(m_media_lib, options);
-    if (result != 0) {
+    if (result != 0)
+    {
         std::cout << "Failed to initialize test" << std::endl;
         return 1;
     }
@@ -445,10 +465,10 @@ int main(int argc, char *argv[])
         clean(g_pipeline_is_running, BACKUP_FRONTEND_CONFIG_FILE, originalBuffer);
         exit(0);
     });
-    //output resolutions to switch every frontend restart
-    //for (const auto& entry : resolutionMap) {
-    //    output_resolution.push_back(entry.second);
-   // }
+    // output resolutions to switch every frontend restart
+    // for (const auto& entry : resolutionMap) {
+    //     output_resolution.push_back(entry.second);
+    // }
     if (options.ai_pipeline_enabled)
         create_ai_pipeline(m_media_lib);
     subscribe_elements(m_media_lib, options.no_change_frames, options.ai_pipeline_enabled);
@@ -459,24 +479,29 @@ int main(int argc, char *argv[])
     g_pipeline_is_running = true;
     if (options.ai_pipeline_enabled)
         m_media_lib->pipeline->start_pipeline();
-    for(int i = 0; i < options.loop_test; i++)
+    for (int i = 0; i < options.loop_test; i++)
     {
         std::cout << "Running test iteration " << i + 1 << std::endl;
         if (options.number_of_frontend_restarts == 0)
             std::this_thread::sleep_for(std::chrono::seconds(options.test_time));
-        else {
-            for (int j = 0; j < options.number_of_frontend_restarts; j++) {
+        else
+        {
+            for (int j = 0; j < options.number_of_frontend_restarts; j++)
+            {
                 std::cout << "Stopping frontend for 1 second" << std::endl;
                 g_pipeline_is_running = false;
                 m_media_lib->frontend->stop();
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 start_or_stop_all_encoders(m_media_lib, false);
-                if (options.enable_90_rotate) {
-                    if (j % 3 == 1) {
-                        rotate_90(true, m_media_lib->encoder_file_path , FRONTEND_CONFIG_FILE);
+                if (options.enable_90_rotate)
+                {
+                    if (j % 3 == 1)
+                    {
+                        rotate_90(true, m_media_lib->encoder_file_path, FRONTEND_CONFIG_FILE);
                         rotate_output_resolutions(FRONTEND_CONFIG_FILE);
                     }
-                    else if (j % 3 == 2) {
+                    else if (j % 3 == 2)
+                    {
                         rotate_90(false, m_media_lib->encoder_file_path, FRONTEND_CONFIG_FILE);
                         rotate_output_resolutions(FRONTEND_CONFIG_FILE);
                     }
@@ -487,7 +512,8 @@ int main(int argc, char *argv[])
                 std::cout << "Starting frontend" << std::endl;
                 g_pipeline_is_running = true;
                 m_media_lib->frontend->start();
-                std::this_thread::sleep_for(std::chrono::seconds(options.test_time/options.number_of_frontend_restarts));
+                std::this_thread::sleep_for(
+                    std::chrono::seconds(options.test_time / options.number_of_frontend_restarts));
             }
         }
     }

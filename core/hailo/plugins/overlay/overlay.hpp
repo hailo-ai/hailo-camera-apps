@@ -1,16 +1,16 @@
 /**
-* Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
-* Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
-**/
+ * Copyright (c) 2021-2022 Hailo Technologies Ltd. All rights reserved.
+ * Distributed under the LGPL license (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt)
+ **/
 /**
  * @file overlay.hpp
  * @author your name (you@domain.com)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2022-01-20
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 #pragma once
 
@@ -27,7 +27,8 @@ typedef enum
 } overlay_status_t;
 
 __BEGIN_DECLS
-overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, float landmark_point_radius, bool show_confidence = true, bool local_gallery = false, uint mask_overlay_n_threads = 0);
+overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, float landmark_point_radius, bool show_confidence = true,
+                          bool local_gallery = false, uint mask_overlay_n_threads = 0);
 void face_blur(HailoMat &mat, HailoROIPtr roi);
 
 cv::Scalar indexToColor(size_t index);

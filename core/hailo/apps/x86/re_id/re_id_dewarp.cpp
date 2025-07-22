@@ -28,11 +28,8 @@ bool fisheye_map_created = false;
 void filter(HailoROIPtr roi, GstVideoFrame *frame, gchar *current_stream_id)
 {
     cv::Mat remap_mat;
-    cv::Mat image_mat(GST_VIDEO_FRAME_HEIGHT(frame),
-                GST_VIDEO_FRAME_WIDTH(frame),
-                CV_8UC3,
-                GST_VIDEO_FRAME_PLANE_DATA(frame, 0),
-                GST_VIDEO_FRAME_PLANE_STRIDE(frame, 0));
+    cv::Mat image_mat(GST_VIDEO_FRAME_HEIGHT(frame), GST_VIDEO_FRAME_WIDTH(frame), CV_8UC3,
+                      GST_VIDEO_FRAME_PLANE_DATA(frame, 0), GST_VIDEO_FRAME_PLANE_STRIDE(frame, 0));
     if (!fisheye_map_created)
     {
         // Static Matrices that represent the fisheye configuration for the specifix videos/cameras we use.
@@ -60,8 +57,7 @@ void filter(HailoROIPtr roi, GstVideoFrame *frame, gchar *current_stream_id)
 
         // Create Fisheye dewarp map.
         cv::fisheye::initUndistortRectifyMap(cam, dist, cv::Mat(), cam,
-                                             cv::Size(GST_VIDEO_FRAME_WIDTH(frame),
-                                                      GST_VIDEO_FRAME_HEIGHT(frame)),
+                                             cv::Size(GST_VIDEO_FRAME_WIDTH(frame), GST_VIDEO_FRAME_HEIGHT(frame)),
                                              CV_16SC2, fisheye_map1, fisheye_map2);
         // Mark boolean true in order to do this calculation only once.
         fisheye_map_created = true;

@@ -47,11 +47,7 @@ void top1(HailoROIPtr roi, std::string layer_name, int label_offset)
         label = labels;
     float confidence = scores->fix_scale(xscores(index));
     // Update the tensor with the classification result.
-    hailo_common::add_classification(roi,
-                                     std::string("imagenet"),
-                                     label,
-                                     confidence,
-                                     index);
+    hailo_common::add_classification(roi, std::string("imagenet"), label, confidence, index);
 }
 
 void filter(HailoROIPtr roi)

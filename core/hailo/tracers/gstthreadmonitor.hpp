@@ -9,6 +9,6 @@
 G_BEGIN_DECLS
 
 #define GST_TYPE_THREAD_MONITOR_TRACER (gst_thread_monitor_tracer_get_type())
-G_DECLARE_FINAL_TYPE (GstThreadMonitorTracer, gst_thread_monitor_tracer, GST, THREAD_MONITOR_TRACER, GstPeriodicTracer)
+G_DECLARE_FINAL_TYPE(GstThreadMonitorTracer, gst_thread_monitor_tracer, GST, THREAD_MONITOR_TRACER, GstPeriodicTracer)
 
 G_END_DECLS

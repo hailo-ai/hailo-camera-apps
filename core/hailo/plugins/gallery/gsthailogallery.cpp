@@ -38,12 +38,10 @@ enum
 // PAD TEMPLATES
 //******************************************************************
 /* Source Caps */
-#define VIDEO_SRC_CAPS \
-    gst_caps_new_any()
+#define VIDEO_SRC_CAPS gst_caps_new_any()
 
 /* Sink Caps */
-#define VIDEO_SINK_CAPS \
-    gst_caps_new_any()
+#define VIDEO_SINK_CAPS gst_caps_new_any()
 
 //******************************************************************
 // CLASS INITIALIZATION
@@ -54,8 +52,7 @@ G_DEFINE_TYPE_WITH_CODE(GstHailoGallery, gst_hailo_gallery, GST_TYPE_BASE_TRANSF
                                                 "debug category for hailogallery element"));
 
 /* Class initialization */
-static void
-gst_hailo_gallery_class_init(GstHailoGalleryClass *klass)
+static void gst_hailo_gallery_class_init(GstHailoGalleryClass *klass)
 {
     GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
     GstBaseTransformClass *base_transform_class = GST_BASE_TRANSFORM_CLASS(klass);
@@ -68,9 +65,7 @@ gst_hailo_gallery_class_init(GstHailoGalleryClass *klass)
                                        gst_pad_template_new("sink", GST_PAD_SINK, GST_PAD_ALWAYS, VIDEO_SINK_CAPS));
 
     // Set the element metadata
-    gst_element_class_set_static_metadata(GST_ELEMENT_CLASS(klass),
-                                          "Hailo gallery element",
-                                          "Hailo/Filter/Metadata",
+    gst_element_class_set_static_metadata(GST_ELEMENT_CLASS(klass), "Hailo gallery element", "Hailo/Filter/Metadata",
                                           "Represents a Gallery object for RE-ID purposes",
                                           "hailo.ai <contact@hailo.ai>");
 
@@ -80,37 +75,38 @@ gst_hailo_gallery_class_init(GstHailoGalleryClass *klass)
 
     base_transform_class->start = gst_hailo_gallery_start;
 
-    g_object_class_install_property(gobject_class, PROP_CLASS_ID,
-                                    g_param_spec_int("class-id", "class-id", "The class id of the class to update into the gallery. Default -1 crosses classes.", G_MININT, G_MAXINT, -1,
-                                                     (GParamFlags)(GST_PARAM_MUTABLE_READY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-    g_object_class_install_property(gobject_class, PROP_SIMILARITY_THR,
-                                    g_param_spec_float("similarity-thr", "Gallery Similarity Threshold",
-                                                       "Similarity threshold used in Gallery to find New ID's. Closer to 1.0 is less similar.",
-                                                       0.0, 1.0, 0.8,
-                                                       (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-    g_object_class_install_property(gobject_class, PROP_GALLERY_QUEUE_SIZE,
-                                    g_param_spec_int("gallery-queue-size", "Queue size",
-                                                     "Number of Matrixes to save for each global ID",
-                                                     0, G_MAXINT, 100,
-                                                     (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property(
+        gobject_class, PROP_CLASS_ID,
+        g_param_spec_int("class-id", "class-id",
+                         "The class id of the class to update into the gallery. Default -1 crosses classes.", G_MININT,
+                         G_MAXINT, -1,
+                         (GParamFlags)(GST_PARAM_MUTABLE_READY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property(
+        gobject_class, PROP_SIMILARITY_THR,
+        g_param_spec_float("similarity-thr", "Gallery Similarity Threshold",
+                           "Similarity threshold used in Gallery to find New ID's. Closer to 1.0 is less similar.", 0.0,
+                           1.0, 0.8,
+                           (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property(
+        gobject_class, PROP_GALLERY_QUEUE_SIZE,
+        g_param_spec_int("gallery-queue-size", "Queue size", "Number of Matrixes to save for each global ID", 0,
+                         G_MAXINT, 100,
+                         (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
-    g_object_class_install_property(gobject_class, PROP_LOCAL_GALLERY_FILE_PATH,
-                                    g_param_spec_string("gallery-file-path", "Load Gallery",
-                                                        "Gallery JSON file path to load",
-                                                        "",
-                                                        (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property(
+        gobject_class, PROP_LOCAL_GALLERY_FILE_PATH,
+        g_param_spec_string("gallery-file-path", "Load Gallery", "Gallery JSON file path to load", "",
+                            (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
-    g_object_class_install_property(gobject_class, PROP_LOAD_GALLERY,
-                                    g_param_spec_boolean("load-local-gallery", "Load Gallery",
-                                                         "Load Gallery from JSON file",
-                                                         FALSE,
-                                                         (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property(
+        gobject_class, PROP_LOAD_GALLERY,
+        g_param_spec_boolean("load-local-gallery", "Load Gallery", "Load Gallery from JSON file", FALSE,
+                             (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
-    g_object_class_install_property(gobject_class, PROP_SAVE_GALLERY,
-                                    g_param_spec_boolean("save-local-gallery", "Save Gallery",
-                                                         "Save Gallery to JSON file",
-                                                         FALSE,
-                                                         (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+    g_object_class_install_property(
+        gobject_class, PROP_SAVE_GALLERY,
+        g_param_spec_boolean("save-local-gallery", "Save Gallery", "Save Gallery to JSON file", FALSE,
+                             (GParamFlags)(GST_PARAM_CONTROLLABLE | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
     // Set virtual functions
     gobject_class->dispose = gst_hailo_gallery_dispose;
@@ -118,8 +114,7 @@ gst_hailo_gallery_class_init(GstHailoGalleryClass *klass)
 }
 
 /* Instance initialization */
-static void
-gst_hailo_gallery_init(GstHailoGallery *hailogallery)
+static void gst_hailo_gallery_init(GstHailoGallery *hailogallery)
 {
     hailogallery->debug = false;
     hailogallery->class_id = -1;
@@ -129,14 +124,15 @@ gst_hailo_gallery_init(GstHailoGallery *hailogallery)
     hailogallery->local_gallery_file_path = NULL;
 }
 
-static gboolean
-gst_hailo_gallery_start(GstBaseTransform *trans)
+static gboolean gst_hailo_gallery_start(GstBaseTransform *trans)
 {
     GstHailoGallery *hailogallery = GST_HAILO_GALLERY(trans);
     GST_DEBUG_OBJECT(hailogallery, "Starting gallery");
 
-    if (hailogallery->load_gallery && hailogallery->save_gallery){
-        GST_ELEMENT_ERROR (hailogallery, RESOURCE, SETTINGS, ("Both load and save gallery are set to true. This behavior is not supported"), (NULL));
+    if (hailogallery->load_gallery && hailogallery->save_gallery)
+    {
+        GST_ELEMENT_ERROR(hailogallery, RESOURCE, SETTINGS,
+                          ("Both load and save gallery are set to true. This behavior is not supported"), (NULL));
         return FALSE;
     }
 
@@ -144,7 +140,8 @@ gst_hailo_gallery_start(GstBaseTransform *trans)
     {
         GST_DEBUG_OBJECT(hailogallery, "Loading gallery from file");
         hailogallery->gallery.load_local_gallery_from_json(hailogallery->local_gallery_file_path);
-    } else if (hailogallery->save_gallery)
+    }
+    else if (hailogallery->save_gallery)
     {
         GST_DEBUG_OBJECT(hailogallery, "Saving gallery to file");
         hailogallery->gallery.init_local_gallery_file(hailogallery->local_gallery_file_path);
@@ -157,8 +154,7 @@ gst_hailo_gallery_start(GstBaseTransform *trans)
 // PROPERTY HANDLING
 //******************************************************************
 /* Handle setting properties */
-void gst_hailo_gallery_set_property(GObject *object, guint property_id,
-                                    const GValue *value, GParamSpec *pspec)
+void gst_hailo_gallery_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
 {
     GstHailoGallery *hailogallery = GST_HAILO_GALLERY(object);
 
@@ -191,8 +187,7 @@ void gst_hailo_gallery_set_property(GObject *object, guint property_id,
 }
 
 /* Handle getting properties */
-void gst_hailo_gallery_get_property(GObject *object, guint property_id,
-                                    GValue *value, GParamSpec *pspec)
+void gst_hailo_gallery_get_property(GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
 {
     GstHailoGallery *hailogallery = GST_HAILO_GALLERY(object);
 
@@ -242,8 +237,7 @@ void gst_hailo_gallery_dispose(GObject *object)
 // BUFFER TRANSFORMATION
 //******************************************************************
 /* Transform a buffer in place. This is where the actual gallery filter is applied. */
-static GstFlowReturn
-gst_hailo_gallery_transform_ip(GstBaseTransform *trans, GstBuffer *buffer)
+static GstFlowReturn gst_hailo_gallery_transform_ip(GstBaseTransform *trans, GstBuffer *buffer)
 {
     GstHailoGallery *hailogallery = GST_HAILO_GALLERY(trans);
     HailoROIPtr hailo_roi = get_hailo_main_roi(buffer, true);

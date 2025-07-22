@@ -36,24 +36,26 @@ using UdpModulePtr = std::shared_ptr<UdpModule>;
 
 class UdpModule : public OutputModule
 {
-private:
+  private:
     std::string m_host;
     std::string m_port;
 
-public:
-    static tl::expected<UdpModulePtr, AppStatus> create(std::string name, std::string host, std::string port, EncodingType type);
+  public:
+    static tl::expected<UdpModulePtr, AppStatus> create(std::string name, std::string host, std::string port,
+                                                        EncodingType type, bool print_fps);
     ~UdpModule() override = default;
-    UdpModule(std::string name, std::string host, std::string port, EncodingType type, AppStatus &status);
+    UdpModule(std::string name, std::string host, std::string port, EncodingType type, AppStatus &status,
+              bool print_fps);
 
-private:
+  private:
     std::string create_pipeline_string();
 };
 
-inline tl::expected<UdpModulePtr, AppStatus>
-UdpModule::create(std::string name, std::string host, std::string port, EncodingType type)
+inline tl::expected<UdpModulePtr, AppStatus> UdpModule::create(std::string name, std::string host, std::string port,
+                                                               EncodingType type, bool print_fps)
 {
     AppStatus status = AppStatus::UNINITIALIZED;
-    UdpModulePtr udp_module = std::make_shared<UdpModule>(name, host, port, type, status);
+    UdpModulePtr udp_module = std::make_shared<UdpModule>(name, host, port, type, status, print_fps);
     if (status != AppStatus::SUCCESS)
     {
         return tl::make_unexpected(status);
@@ -61,8 +63,9 @@ UdpModule::create(std::string name, std::string host, std::string port, Encoding
     return udp_module;
 }
 
-inline UdpModule::UdpModule(std::string name, std::string host, std::string port, EncodingType type, AppStatus &status)
-    : OutputModule(name, type), m_host(host), m_port(port)
+inline UdpModule::UdpModule(std::string name, std::string host, std::string port, EncodingType type, AppStatus &status,
+                            bool print_fps)
+    : OutputModule(name, type, print_fps), m_host(host), m_port(port)
 {
     // Initialize gstreamer
     gst_init(nullptr, nullptr);
@@ -111,21 +114,23 @@ inline std::string UdpModule::create_pipeline_string()
     std::ostringstream udp_sink;
     udp_sink << "udpsink host=" << m_host << " port=" << m_port;
 
-    pipeline =
-        "appsrc do-timestamp=true format=time block=true is-live=true max-bytes=0 "
-        "max-buffers=1 name="+ std::string(UDP_SOURCE) + " ! "
-        "queue name=" +
-        std::string(SRC_QUEUE_NAME) + " leaky=no max-size-buffers=1 max-size-bytes=0 max-size-time=0 ! " +
-        caps2.str() + " ! " +
-        "tee name=udp_tee "
-        "udp_tee. ! "
-            "queue leaky=no max-size-buffers=2 max-size-bytes=0 max-size-time=0 ! " +
-            rtp_payloader + " ! application/x-rtp, media=video, encoding-name=" + encoding_name + " ! " +
-            udp_sink.str() + " name=udp_sink sync=true "
-        "udp_tee. ! "
-            "queue leaky=no max-size-buffers=2 max-size-bytes=0 max-size-time=0 ! "
-            "fpsdisplaysink fps-update-interval=2000 signal-fps-measurements=true name=fpsdisplaysink "
-            "text-overlay=false sync=true video-sink=fakesink ";
+    pipeline = "appsrc do-timestamp=true format=time block=true is-live=true max-bytes=0 "
+               "max-buffers=1 name=" +
+               std::string(UDP_SOURCE) +
+               " ! "
+               "queue name=" +
+               std::string(SRC_QUEUE_NAME) + " leaky=no max-size-buffers=1 max-size-bytes=0 max-size-time=0 ! " +
+               caps2.str() + " ! " +
+               "tee name=udp_tee "
+               "udp_tee. ! "
+               "queue leaky=no max-size-buffers=2 max-size-bytes=0 max-size-time=0 ! " +
+               rtp_payloader + " ! application/x-rtp, media=video, encoding-name=" + encoding_name + " ! " +
+               udp_sink.str() +
+               " name=udp_sink sync=true "
+               "udp_tee. ! "
+               "queue leaky=no max-size-buffers=2 max-size-bytes=0 max-size-time=0 ! "
+               "fpsdisplaysink fps-update-interval=2000 signal-fps-measurements=true name=fpsdisplaysink "
+               "text-overlay=false sync=true video-sink=fakesink ";
 
     REFERENCE_CAMERA_LOG_INFO("Pipeline: {}", pipeline);
 

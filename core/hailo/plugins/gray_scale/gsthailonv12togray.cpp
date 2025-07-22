@@ -16,8 +16,10 @@ GST_DEBUG_CATEGORY_STATIC(gst_hailonv12togray_debug_category);
 #define GST_CAT_DEFAULT gst_hailonv12togray_debug_category
 
 static GstFlowReturn gst_hailonv12togray_transform(GstBaseTransform *trans, GstBuffer *inbuf, GstBuffer *outbuf);
-static GstFlowReturn gst_hailonv12togray_prepare_output_buffer(GstBaseTransform *trans, GstBuffer *inbuf, GstBuffer **outbuf);
-GstCaps *gst_hailonv12togray_transform_caps(GstBaseTransform *trans, GstPadDirection direction, GstCaps *caps, GstCaps *filter);
+static GstFlowReturn gst_hailonv12togray_prepare_output_buffer(GstBaseTransform *trans, GstBuffer *inbuf,
+                                                               GstBuffer **outbuf);
+GstCaps *gst_hailonv12togray_transform_caps(GstBaseTransform *trans, GstPadDirection direction, GstCaps *caps,
+                                            GstCaps *filter);
 
 G_DEFINE_TYPE_WITH_CODE(GstHailonv12togray, gst_hailonv12togray, GST_TYPE_BASE_TRANSFORM,
                         GST_DEBUG_CATEGORY_INIT(gst_hailonv12togray_debug_category, "hailonv12togray", 0,
@@ -34,18 +36,21 @@ static void gst_hailonv12togray_class_init(GstHailonv12tograyClass *klass)
                                        gst_pad_template_new("sink", GST_PAD_SINK, GST_PAD_ALWAYS,
                                                             gst_caps_from_string(GST_VIDEO_CAPS_MAKE("{ NV12 }"))));
 
-    gst_element_class_set_static_metadata(GST_ELEMENT_CLASS(klass),
-                                          "hailonv12togray - postprocessing element", "Hailo/Tools", "Converts NV12 to GRAY8 and keeps the original NV12 buffer as metadata",
-                                          "hailo.ai <contact@hailo.ai>");
+    gst_element_class_set_static_metadata(
+        GST_ELEMENT_CLASS(klass), "hailonv12togray - postprocessing element", "Hailo/Tools",
+        "Converts NV12 to GRAY8 and keeps the original NV12 buffer as metadata", "hailo.ai <contact@hailo.ai>");
 
     base_transform_class->prepare_output_buffer = GST_DEBUG_FUNCPTR(gst_hailonv12togray_prepare_output_buffer);
     base_transform_class->transform = GST_DEBUG_FUNCPTR(gst_hailonv12togray_transform);
     base_transform_class->transform_caps = GST_DEBUG_FUNCPTR(gst_hailonv12togray_transform_caps);
 }
 
-static void gst_hailonv12togray_init(GstHailonv12togray *hailonv12togray){}
+static void gst_hailonv12togray_init(GstHailonv12togray *hailonv12togray)
+{
+}
 
-static GstFlowReturn gst_hailonv12togray_prepare_output_buffer(GstBaseTransform *trans, GstBuffer *inbuf, GstBuffer **outbuf)
+static GstFlowReturn gst_hailonv12togray_prepare_output_buffer(GstBaseTransform *trans, GstBuffer *inbuf,
+                                                               GstBuffer **outbuf)
 {
     GstVideoFrame frame;
     GstPad *sinkpad = trans->sinkpad;
@@ -83,11 +88,13 @@ static GstFlowReturn gst_hailonv12togray_transform(GstBaseTransform *trans, GstB
     return GST_FLOW_OK;
 }
 
-GstCaps *gst_hailonv12togray_transform_caps(GstBaseTransform *trans, GstPadDirection direction, GstCaps *caps, GstCaps *filter)
+GstCaps *gst_hailonv12togray_transform_caps(GstBaseTransform *trans, GstPadDirection direction, GstCaps *caps,
+                                            GstCaps *filter)
 {
     /*
     Removing the format field so that the caps can be intersected with the filter caps.
-    The same logic was implemented in gstbayer2rgb element and is useful for the case the input and output caps of an element don't share a common format.
+    The same logic was implemented in gstbayer2rgb element and is useful for the case the input and output caps of an
+    element don't share a common format.
     */
     GstCaps *res_caps, *tmp_caps;
     GstStructure *structure;

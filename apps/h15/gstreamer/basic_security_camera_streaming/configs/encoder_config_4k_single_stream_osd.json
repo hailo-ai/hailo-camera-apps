@@ -1,4 +1,9 @@
 {
+    "privacy_mask": {
+        "mask_type": "COLOR",
+        "pixelization_size": 60,
+        "color_value": [0, 0, 0]
+    },
     "osd": {
         "image": [
             {
@@ -20,11 +25,7 @@
                 "label": "4k stream",
                 "font_size": 70,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 0.01,
                 "y": 0.99,
                 "z-index": 1,
@@ -37,11 +38,7 @@
                 "label": "stream 0",
                 "font_size": 70,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 0.0,
                 "y": 0.0,
                 "z-index": 2,
@@ -53,11 +50,7 @@
                 "label": "camera 0",
                 "font_size": 45,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 1,
                 "y": 1,
                 "z-index": 1,
@@ -71,11 +64,7 @@
                 "label": "regular white text",
                 "font_size": 90,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 0.1,
                 "y": 0.01,
                 "z-index": 1,
@@ -87,11 +76,7 @@
                 "label": "bold white text",
                 "font_size": 90,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 0.1,
                 "y": 0.1,
                 "z-index": 1,
@@ -104,16 +89,8 @@
                 "label": "outline white text",
                 "font_size": 90,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
-                "outline_color": [
-                    0,
-                    0,
-                    0
-                ],
+                "text_color": [255, 255, 255],
+                "outline_color": [0, 0, 0],
                 "outline_size": 6,
                 "x": 0.1,
                 "y": 0.2,
@@ -126,11 +103,7 @@
                 "label": "different font file",
                 "font_size": 90,
                 "font_path": "/usr/share/fonts/ttf/LiberationSerif-BoldItalic.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
+                "text_color": [255, 255, 255],
                 "x": 0.1,
                 "y": 0.3,
                 "z-index": 1,
@@ -142,12 +115,7 @@
                 "label": "bold white text with 0.5 opacity",
                 "font_size": 90,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255,
-                    128
-                ],
+                "text_color": [255, 255, 255, 128],
                 "x": 0.1,
                 "y": 0.4,
                 "z-index": 1,
@@ -160,16 +128,8 @@
                 "label": "bold white text with black shadow",
                 "font_size": 90,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
-                "shadow_color": [
-                    0,
-                    0,
-                    0
-                ],
+                "text_color": [255, 255, 255],
+                "shadow_color": [0, 0, 0],
                 "shadow_offset_x": -0.0023,
                 "shadow_offset_y": 0.0024,
                 "x": 0.1,
@@ -184,16 +144,8 @@
                 "label": "white text with black background",
                 "font_size": 90,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
-                "background_color": [
-                    0,
-                    0,
-                    0
-                ],
+                "text_color": [255, 255, 255],
+                "background_color": [0, 0, 0],
                 "x": 0.1,
                 "y": 0.6,
                 "z-index": 1,
@@ -205,17 +157,8 @@
                 "label": "white text with 0.5 opacity black background",
                 "font_size": 90,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
-                "background_color": [
-                    0,
-                    0,
-                    0,
-                    127
-                ],
+                "text_color": [255, 255, 255],
+                "background_color": [0, 0, 0, 127],
                 "x": 0.1,
                 "y": 0.7,
                 "z-index": 1,
@@ -227,17 +170,8 @@
                 "label": "yellow text with blue 0.5 opacity background",
                 "font_size": 90,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    0
-                ],
-                "background_color": [
-                    0,
-                    0,
-                    255,
-                    128
-                ],
+                "text_color": [255, 255, 0],
+                "background_color": [0, 0, 255, 128],
                 "x": 0.1,
                 "y": 0.8,
                 "z-index": 1,
@@ -250,17 +184,8 @@
                 "id": "example_datetime1",
                 "font_size": 90,
                 "font_path": "/usr/share/fonts/ttf/LiberationMono-Regular.ttf",
-                "text_color": [
-                    255,
-                    255,
-                    255
-                ],
-                "background_color": [
-                    0,
-                    0,
-                    0,
-                    127
-                ],
+                "text_color": [255, 255, 255],
+                "background_color": [0, 0, 0, 127],
                 "x": 0.1,
                 "y": 0.9,
                 "z-index": 1,
@@ -350,7 +275,7 @@
                     "enable": true,
                     "period": 1,
                     "result_output_path": "bitrate.txt",
-                    "output_result_to_file": true
+                    "output_result_to_file": false
                 },
                 "cycle_monitor": {
                     "enable": true,

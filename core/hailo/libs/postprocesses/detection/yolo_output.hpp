@@ -12,28 +12,17 @@
  */
 class YoloOutputLayer
 {
-public:
+  public:
     static const uint NUM_ANCHORS = 3;
     static const uint NUM_CENTERS = 2;
     static const uint NUM_SCALES = 2;
     static const uint NUM_CONF = 1;
     static const uint CONF_CHANNEL_OFFSET = NUM_CENTERS + NUM_SCALES;
     static const uint CLASS_CHANNEL_OFFSET = CONF_CHANNEL_OFFSET + NUM_CONF;
-    YoloOutputLayer(uint width,
-                    uint height,
-                    uint num_of_classes,
-                    std::vector<int> anchors,
-                    bool perform_sigmoid,
-                    int label_offset,
-                    bool is_uint16,
-                    HailoTensorPtr tensor = nullptr) : _width(width),
-                                                       _height(height),
-                                                       _num_classes(num_of_classes),
-                                                       _anchors(anchors),
-                                                       label_offset(label_offset),
-                                                       _perform_sigmoid(perform_sigmoid),
-                                                       _is_uint16(is_uint16),
-                                                       _tensor(tensor){};
+    YoloOutputLayer(uint width, uint height, uint num_of_classes, std::vector<int> anchors, bool perform_sigmoid,
+                    int label_offset, bool is_uint16, HailoTensorPtr tensor = nullptr)
+        : _width(width), _height(height), _num_classes(num_of_classes), _anchors(anchors), label_offset(label_offset),
+          _perform_sigmoid(perform_sigmoid), _is_uint16(is_uint16), _tensor(tensor) {};
     virtual ~YoloOutputLayer() = default;
 
     uint _width;
@@ -81,7 +70,7 @@ public:
      */
     virtual std::pair<float, float> get_shape(uint row, uint col, uint anchor, uint image_width, uint image_height) = 0;
 
-protected:
+  protected:
     bool _perform_sigmoid;
     bool _is_uint16;
     HailoTensorPtr _tensor;
@@ -109,19 +98,10 @@ protected:
 
 class Yolov3OL : public YoloOutputLayer
 {
-public:
-    Yolov3OL(HailoTensorPtr tensor,
-             std::vector<int> anchors,
-             bool perform_sigmoid,
-             int label_offset,
-             bool is_uint16) : YoloOutputLayer(tensor->width(),
-                                               tensor->height(),
-                                               num_classes(tensor->features()),
-                                               anchors,
-                                               perform_sigmoid,
-                                               label_offset,
-                                               is_uint16,
-                                               tensor){};
+  public:
+    Yolov3OL(HailoTensorPtr tensor, std::vector<int> anchors, bool perform_sigmoid, int label_offset, bool is_uint16)
+        : YoloOutputLayer(tensor->width(), tensor->height(), num_classes(tensor->features()), anchors, perform_sigmoid,
+                          label_offset, is_uint16, tensor) {};
 
     virtual std::pair<float, float> get_center(uint row, uint col, uint anchor);
     virtual float get_class_conf(uint prob_max);
@@ -130,20 +110,12 @@ public:
 
 class TinyYolov4OL : public YoloOutputLayer
 {
-public:
+  public:
     const float SCALE_XY = 1.05f;
-    TinyYolov4OL(HailoTensorPtr tensor,
-                 std::vector<int> anchors,
-                 bool perform_sigmoid,
-                 int label_offset,
-                 bool is_uint16) : YoloOutputLayer(tensor->width(),
-                                                   tensor->height(),
-                                                   num_classes(tensor->features()),
-                                                   anchors,
-                                                   perform_sigmoid,
-                                                   label_offset,
-                                                   is_uint16,
-                                                   tensor){};
+    TinyYolov4OL(HailoTensorPtr tensor, std::vector<int> anchors, bool perform_sigmoid, int label_offset,
+                 bool is_uint16)
+        : YoloOutputLayer(tensor->width(), tensor->height(), num_classes(tensor->features()), anchors, perform_sigmoid,
+                          label_offset, is_uint16, tensor) {};
     virtual std::pair<float, float> get_center(uint row, uint col, uint anchor);
     virtual float get_class_conf(uint prob_max);
     virtual std::pair<float, float> get_shape(uint row, uint col, uint anchor, uint image_width, uint image_height);
@@ -151,33 +123,20 @@ public:
 
 class Yolov4OL : public YoloOutputLayer
 {
-public:
+  public:
     const float SCALE_XY = 1.05f;
-    Yolov4OL(HailoTensorPtr center,
-             HailoTensorPtr scale,
-             HailoTensorPtr obj,
-             HailoTensorPtr cls,
-             std::vector<int> anchors,
-             int label_offset,
-             bool perform_sigmoid,
-             bool is_uint16) : YoloOutputLayer(cls->width(),
-                                                     cls->height(),
-                                                     (uint)(cls->features() / NUM_ANCHORS),
-                                                     anchors,
-                                                     perform_sigmoid,
-                                                     label_offset,
-                                                     is_uint16),
-                                     _center(center),
-                                     _scale(scale),
-                                     _obj(obj),
-                                     _cls(cls){};
+    Yolov4OL(HailoTensorPtr center, HailoTensorPtr scale, HailoTensorPtr obj, HailoTensorPtr cls,
+             std::vector<int> anchors, int label_offset, bool perform_sigmoid, bool is_uint16)
+        : YoloOutputLayer(cls->width(), cls->height(), (uint)(cls->features() / NUM_ANCHORS), anchors, perform_sigmoid,
+                          label_offset, is_uint16),
+          _center(center), _scale(scale), _obj(obj), _cls(cls) {};
     virtual std::pair<float, float> get_center(uint row, uint col, uint anchor);
     virtual float get_confidence(uint row, uint col, uint anchor);
     virtual uint get_class_prob(uint row, uint col, uint anchor, uint channel);
     virtual float get_class_conf(uint prob_max);
     virtual std::pair<float, float> get_shape(uint row, uint col, uint anchor, uint image_width, uint image_height);
 
-protected:
+  protected:
     HailoTensorPtr _center;
     HailoTensorPtr _scale;
     HailoTensorPtr _obj;
@@ -186,19 +145,10 @@ protected:
 
 class Yolov5OL : public YoloOutputLayer
 {
-public:
-    Yolov5OL(HailoTensorPtr tensor,
-             std::vector<int> anchors,
-             bool perform_sigmoid,
-             int label_offset,
-             bool is_uint16) : YoloOutputLayer(tensor->width(),
-                                               tensor->height(),
-                                               num_classes(tensor->features()),
-                                               anchors,
-                                               false,
-                                               label_offset,
-                                               is_uint16,
-                                               tensor){};
+  public:
+    Yolov5OL(HailoTensorPtr tensor, std::vector<int> anchors, bool perform_sigmoid, int label_offset, bool is_uint16)
+        : YoloOutputLayer(tensor->width(), tensor->height(), num_classes(tensor->features()), anchors, false,
+                          label_offset, is_uint16, tensor) {};
     virtual float get_class_conf(uint prob_max);
     virtual std::pair<float, float> get_center(uint row, uint col, uint anchor);
     virtual std::pair<float, float> get_shape(uint row, uint col, uint anchor, uint image_width, uint image_height);
@@ -206,29 +156,18 @@ public:
 
 class YoloXOL : public YoloOutputLayer
 {
-public:
+  public:
     static const uint NUM_ANCHORS = 1;
-    YoloXOL(HailoTensorPtr bbox,
-            HailoTensorPtr obj,
-            HailoTensorPtr cls,
-            int label_offset,
-            bool is_uint16) : YoloOutputLayer(cls->width(),
-                                                cls->height(),
-                                                (uint)(cls->features()),
-                                                {},
-                                                false,
-                                                label_offset,
-                                                is_uint16),
-                                _bbox(bbox),
-                                _obj(obj),
-                                _cls(cls){};
+    YoloXOL(HailoTensorPtr bbox, HailoTensorPtr obj, HailoTensorPtr cls, int label_offset, bool is_uint16)
+        : YoloOutputLayer(cls->width(), cls->height(), (uint)(cls->features()), {}, false, label_offset, is_uint16),
+          _bbox(bbox), _obj(obj), _cls(cls) {};
     virtual float get_confidence(uint row, uint col, uint anchor);
     virtual uint get_class_prob(uint row, uint col, uint anchor, uint channel);
     virtual float get_class_conf(uint prob_max);
     virtual std::pair<float, float> get_center(uint row, uint col, uint anchor);
     virtual std::pair<float, float> get_shape(uint row, uint col, uint anchor, uint image_width, uint image_height);
 
-protected:
+  protected:
     HailoTensorPtr _bbox;
     HailoTensorPtr _obj;
     HailoTensorPtr _cls;

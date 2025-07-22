@@ -53,3 +53,12 @@ nlohmann::json webserver::resources::ConfigResourceBase::get_denoise_default_con
     }
     return m_frontend_default_config["denoise"];
 }
+
+nlohmann::json webserver::resources::ConfigResourceBase::get_isp_default_config()
+{
+    if (m_frontend_default_config["isp_config_files"].empty())
+    {
+        throw std::runtime_error("Failed to get default isp config");
+    }
+    return m_frontend_default_config["isp_config_files"];
+}

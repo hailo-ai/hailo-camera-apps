@@ -43,76 +43,67 @@
 #include "gstbuffer.hpp"
 #include "gstctf.hpp"
 
-static gboolean
-plugin_init(GstPlugin *plugin)
+static gboolean plugin_init(GstPlugin *plugin)
 {
-  if (!gst_tracer_register(plugin, "cpuusage",
-                           gst_cpu_usage_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "threadmonitor",
-                           gst_thread_monitor_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "graphic", gst_graphic_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "proctime",
-                           gst_proc_time_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "interlatency",
-                           gst_interlatency_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "scheduletime",
-                           gst_scheduletime_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "framerate",
-                           gst_framerate_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "queuelevel",
-                           gst_queue_level_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "bitrate", gst_bitrate_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "buffer", gst_buffer_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "numerator", gst_numerator_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "detections", gst_detections_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_tracer_register(plugin, "bufferdrop", gst_buffer_drop_tracer_get_type()))
-  {
-    return FALSE;
-  }
-  if (!gst_ctf_init())
-  {
-    return FALSE;
-  }
+    if (!gst_tracer_register(plugin, "cpuusage", gst_cpu_usage_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "threadmonitor", gst_thread_monitor_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "graphic", gst_graphic_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "proctime", gst_proc_time_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "interlatency", gst_interlatency_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "scheduletime", gst_scheduletime_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "framerate", gst_framerate_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "queuelevel", gst_queue_level_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "bitrate", gst_bitrate_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "buffer", gst_buffer_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "numerator", gst_numerator_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "detections", gst_detections_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_tracer_register(plugin, "bufferdrop", gst_buffer_drop_tracer_get_type()))
+    {
+        return FALSE;
+    }
+    if (!gst_ctf_init())
+    {
+        return FALSE;
+    }
 
-  return TRUE;
+    return TRUE;
 }
 
-GST_PLUGIN_DEFINE(GST_VERSION_MAJOR, GST_VERSION_MINOR,
-                  hailotracers, "GstShark tracers", plugin_init, VERSION,
+GST_PLUGIN_DEFINE(GST_VERSION_MAJOR, GST_VERSION_MINOR, hailotracers, "GstShark tracers", plugin_init, VERSION,
                   GST_SHARK_LICENSE, PACKAGE_NAME, PACKAGE_URL);

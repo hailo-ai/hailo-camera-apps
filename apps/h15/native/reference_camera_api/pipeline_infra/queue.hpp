@@ -7,13 +7,19 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <string>
+#include <memory>
+#include <iostream>
 
 // Infra includes
 #include "buffer.hpp"
 
+// Forward declaration of internal QueueTracing class
+class QueueTracing;
+
 class Queue
 {
-private:
+  private:
     std::queue<BufferPtr> m_queue;
     size_t m_max_buffers;
     bool m_leaky;
@@ -23,118 +29,18 @@ private:
     std::unique_ptr<std::condition_variable> m_condvar;
     std::shared_ptr<std::mutex> m_mutex;
     uint64_t m_drop_count = 0, m_push_count = 0;
+    std::unique_ptr<QueueTracing> m_tracing;
 
-public:
-    Queue(std::string name, size_t max_buffers, bool leaky=false, bool print_level=false)
-        : m_max_buffers(max_buffers), m_leaky(leaky), m_print_level(print_level), m_name(name), m_flushing(false)
-    {
-        m_mutex = std::make_shared<std::mutex>();
-        m_condvar = std::make_unique<std::condition_variable>();
-        m_queue = std::queue<BufferPtr>();
-    }
+  public:
+    Queue(std::string name, size_t max_buffers, bool leaky = false, bool print_level = false);
+    ~Queue();
 
-    ~Queue()
-    {
-        m_flushing = true;
-        m_condvar->notify_all();
-        flush();
-    }
-
-    std::string name()
-    {
-        return m_name;
-    }
-
-    int size()
-    {
-        std::unique_lock<std::mutex> lock(*(m_mutex));
-        return m_queue.size();
-    }
-
-    void push(BufferPtr buffer)
-    {
-        std::unique_lock<std::mutex> lock(*(m_mutex));
-        if (m_flushing)
-        {
-            return;
-        }
-        if (!m_leaky)
-        {
-            // if not leaky, then wait until there is space in the queue
-            m_condvar->wait(lock, [this]
-                            { return m_queue.size() < m_max_buffers; });
-        } 
-        else 
-        {
-            // if leaky, pop the front for a full queue
-            if(m_queue.size() >= m_max_buffers)
-            {
-                m_queue.pop();
-                m_drop_count++;
-            }
-        }
-        m_queue.push(buffer);
-        m_push_count++;
-        if (m_print_level)
-        {
-            std::cout << "Queue: " << m_name << " level: " << m_queue.size() << std::endl;
-        }
-        m_condvar->notify_one();
-    }
-
-    BufferPtr pop()
-    {
-        std::unique_lock<std::mutex> lock(*(m_mutex));
-        // wait for there to be something in the queue to pull
-        m_condvar->wait(lock, [this]
-                            { return !m_queue.empty() || m_flushing == true; });
-        if (m_queue.empty())
-        {
-            // if we reached here, then the queue is empty and we are flushing
-            return nullptr;
-        }
-        BufferPtr buffer = m_queue.front();
-        m_queue.pop();
-        m_condvar->notify_one();
-        return buffer;
-    }
-
-    // Get the timestamp of the first (oldest) buffer in the queue, or 0 if the queue is flushing
-    // Note this call is blocking
-    uint64_t check_timestamp(std::optional<std::chrono::milliseconds> timeout=std::nullopt)
-    {
-        std::unique_lock<std::mutex> lock(*(m_mutex));
-        // wait for there to be something in the queue to check
-        if (timeout.has_value())
-        {
-            if (m_condvar->wait_for(lock, timeout.value(), [this]
-                                { return !m_queue.empty() || m_flushing == true; }) == false)
-            {
-                // if we reached here, then we timed out
-                return 0;
-            }
-        } else {
-            m_condvar->wait(lock, [this]
-                                { return !m_queue.empty() || m_flushing == true; });
-        }
-        if (m_queue.empty())
-        {
-            // if we reached here, then the queue is empty and we are flushing
-            return 0;
-        }
-        return m_queue.front()->get_buffer()->isp_timestamp_ns;
-    }
-
-    void flush()
-    {
-        std::unique_lock<std::mutex> lock(*(m_mutex));
-        m_flushing = true;
-        while (!m_queue.empty())
-        {
-            m_queue.pop();
-        }
-        m_condvar->notify_all();
-    }
-
+    std::string name();
+    int size();
+    void push(BufferPtr buffer);
+    BufferPtr pop();
+    uint64_t check_timestamp(std::optional<std::chrono::milliseconds> timeout = std::nullopt);
+    void flush();
 };
+
 using QueuePtr = std::shared_ptr<Queue>;
