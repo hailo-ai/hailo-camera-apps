@@ -3,7 +3,8 @@
 // resolution maps
 const std::unordered_map<Resolution, std::pair<uint32_t, uint32_t>> resolution_map = {
     {Resolution::_HD, {1280, 720}},   {Resolution::_FHD, {1920, 1080}}, {Resolution::_QHD, {2560, 1440}},
-    {Resolution::_5MP, {2592, 1944}}, {Resolution::_4K, {3840, 2160}},  {Resolution::_SD, {640, 480}}};
+    {Resolution::_5MP, {2592, 1944}}, {Resolution::_4K, {3840, 2160}},  {Resolution::_SD, {640, 480}},
+    {Resolution::_4MP, {2688, 1520}}};
 
 Resolution string_to_resolution(const std::string &resolution_str)
 {

@@ -206,6 +206,7 @@ enum class SensorModel
     SENSOR_IMX675,
     SENSOR_IMX715,
     SENSOR_IMX334,
+    SENSOR_IMX664,
     SENSOR_UNKNOWN
 };
 
@@ -214,6 +215,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(SensorModel, {
                                               {SensorModel::SENSOR_IMX675, "IMX675"},
                                               {SensorModel::SENSOR_IMX715, "IMX715"},
                                               {SensorModel::SENSOR_IMX334, "IMX334"},
+                                              {SensorModel::SENSOR_IMX664, "IMX664"},
                                               {SensorModel::SENSOR_UNKNOWN, "Unknown"},
                                           })
 

@@ -14,7 +14,8 @@ enum class Resolution
     _QHD,
     _5MP,
     _4K,
-    _SD
+    _SD,
+    _4MP
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(Resolution, {
@@ -24,6 +25,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Resolution, {
                                              {Resolution::_5MP, "5MP"},
                                              {Resolution::_4K, "4K"},
                                              {Resolution::_SD, "SD"},
+                                             {Resolution::_4MP, "4MP"},
                                          })
 
 extern const std::unordered_map<Resolution, std::pair<uint32_t, uint32_t>> resolution_map;

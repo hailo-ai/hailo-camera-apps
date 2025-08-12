@@ -13,6 +13,10 @@
         {
             "name": "Infrared",
             "config_file": "/etc/imaging/cfg/hailo15h/imx715/theia_sl410m/4k/profiles/IR/IR_profile.json"
+        },
+        {
+            "name": "Lowlight",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx715/theia_sl410m/4k/profiles/lowlight/lowlight_profile.json"
         }
     ]
 }
