@@ -40,22 +40,22 @@ using OutputModulePtr = std::shared_ptr<OutputModule>;
 class OutputModule
 {
   private:
-    GstAppSrc *m_appsrc;
     GMainLoop *m_main_loop;
     std::shared_ptr<std::thread> m_main_loop_thread;
     std::string m_name;
     bool m_print_fps;
 
   protected:
+    GstAppSrc *m_appsrc;
     EncodingType m_type;
     GstElement *m_pipeline;
 
   public:
     virtual ~OutputModule();
     OutputModule(std::string name, EncodingType type, bool print_fps);
-    AppStatus start();
-    AppStatus stop();
-    AppStatus add_buffer(HailoMediaLibraryBufferPtr ptr, size_t size);
+    virtual AppStatus start();
+    virtual AppStatus stop();
+    virtual AppStatus add_buffer(HailoMediaLibraryBufferPtr ptr, size_t size);
     void on_fps_measurement(GstElement *fpssink, gdouble fps, gdouble droprate, gdouble avgfps);
     gboolean on_bus_call(GstBus *bus, GstMessage *msg);
     static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data)
@@ -65,13 +65,14 @@ class OutputModule
     }
     void set_gst_callbacks(std::string source);
 
+  protected:
+    GstFlowReturn add_buffer_internal(GstBuffer *buffer);
   private:
     static void fps_measurement(GstElement *fpssink, gdouble fps, gdouble droprate, gdouble avgfps, gpointer user_data)
     {
         OutputModule *output_module = static_cast<OutputModule *>(user_data);
         output_module->on_fps_measurement(fpssink, fps, droprate, avgfps);
     }
-    GstFlowReturn add_buffer_internal(GstBuffer *buffer);
 };
 
 inline OutputModule::OutputModule(std::string name, EncodingType type, bool print_fps)
