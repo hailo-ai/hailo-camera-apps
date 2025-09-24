@@ -47,7 +47,6 @@ private:
                                 gpointer user_data);
 
     void loop();
-
     std::string create_launch_pipeline();
 };
 
@@ -85,11 +84,13 @@ inline RtspModule::~RtspModule()
 inline std::string RtspModule::create_launch_pipeline()
 {
     std::ostringstream pipeline;
-    pipeline << "appsrc name=rtsp_src is-live=true block=true format=time "
+    pipeline << "appsrc name=rtsp_src is-live=true block=false format=time "
              << "caps=video/x-" << (m_type == EncodingType::H264 ? "h264" : "h265")
-             << ",stream-format=byte-stream,alignment=au "
-             << " ! "
-             << (m_type == EncodingType::H264 ? "rtph264pay name=pay0 pt=96" : "rtph265pay name=pay0 pt=96");
+             << ",stream-format=byte-stream,alignment=au ! "
+             << "queue max-size-buffers=20 leaky=downstream ! "
+             << (m_type == EncodingType::H264
+                 ? "h264parse ! rtph264pay name=pay0 pt=96 config-interval=1"
+                 : "h265parse ! rtph265pay name=pay0 pt=96 config-interval=1");
     return pipeline.str();
 }
 
@@ -103,6 +104,9 @@ inline void RtspModule::media_configure(GstRTSPMediaFactory *factory,
     gst_object_unref(element);
 }
 
+/**
+ * 单独 loop 线程，负责 RTSP server loop
+ */
 inline void RtspModule::loop()
 {
     m_loop = g_main_loop_new(nullptr, FALSE);
@@ -131,6 +135,7 @@ inline AppStatus RtspModule::start()
 
     if (!gst_rtsp_server_attach(m_server, nullptr)) return AppStatus::CONFIGURATION_ERROR;
 
+    // 启动独立 loop 线程
     m_loop_thread = std::thread([this]() { loop(); });
     return AppStatus::SUCCESS;
 }
@@ -148,22 +153,34 @@ inline AppStatus RtspModule::stop()
     return AppStatus::SUCCESS;
 }
 
+/**
+ * 优化点：
+ * 1. 使用 block=false，避免 appsrc push buffer 阻塞；
+ * 2. GstBuffer 内存管理使用 wrapper + GDestroyNotify；
+ * 3. buffer push 错误返回详细化。
+ */
 inline AppStatus RtspModule::add_buffer(HailoMediaLibraryBufferPtr ptr, size_t size)
 {
     if (!m_appsrc) return AppStatus::UNINITIALIZED;
+
+    struct BufferWrapper { HailoMediaLibraryBufferPtr ptr; };
+    auto wrapper = new BufferWrapper{ptr};
 
     GstBuffer* gst_buffer = gst_buffer_new_wrapped_full(
         GST_MEMORY_FLAG_PHYSICALLY_CONTIGUOUS,
         ptr->get_plane_ptr(0),
         ptr->get_plane_size(0),
         0, size,
-        new HailoMediaLibraryBufferPtr(ptr),
-        GDestroyNotify([](gpointer data) {
-            delete static_cast<HailoMediaLibraryBufferPtr*>(data);
-        })
+        wrapper,
+        [](gpointer data){
+            delete static_cast<BufferWrapper*>(data);
+        }
     );
 
     GstFlowReturn ret = gst_app_src_push_buffer(m_appsrc, gst_buffer);
-    if (ret != GST_FLOW_OK) return AppStatus::PIPELINE_ERROR;
+    if (ret != GST_FLOW_OK) {
+        std::cerr << "Failed to push buffer: " << ret << std::endl;
+        return AppStatus::PIPELINE_ERROR;
+    }
     return AppStatus::SUCCESS;
 }
