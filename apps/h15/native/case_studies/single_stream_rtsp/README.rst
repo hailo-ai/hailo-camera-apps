@@ -19,25 +19,19 @@ The applicaton will come pre-compiled and ready to run on the Hailo15 platform a
 
 To run the single_stream application, follow these steps:
 
-1. On the host machine, run a gstreamer streaming pipeline to capture video feed from the ethernet cable.
+1. On the host machine, run a gstreamer streaming pipeline or vlc to capture video feed from the ethernet cable.
         Enter the following command in the terminal of the host machine:
     
         .. code-block:: bash
     
-            $ gst-launch-1.0 udpsrc port=5000 address=10.0.0.2 ! application/x-rtp,encoding-name=H264 ! 
-            queue max-size-buffers=30 max-size-bytes=0 max-size-time=0 leaky=no ! rtpjitterbuffer mode=0 ! 
-            queue max-size-buffers=30 max-size-bytes=0 max-size-time=0 leaky=no ! rtph264depay ! 
-            queue max-size-buffers=30 max-size-bytes=0 max-size-time=0 leaky=no ! h264parse ! avdec_h264 ! 
-            queue max-size-buffers=30 max-size-bytes=0 max-size-time=0 leaky=downstream ! videoconvert n-threads=8 ! 
-            queue max-size-buffers=30 max-size-bytes=0 max-size-time=0 leaky=no ! fpsdisplaysink text-overlay=false sync=false
-    
+            $ rtsp://10.0.0.1:8554/live
         This will start the streaming pipeline and you will be able to see the video feed on the screen after starting the application in the next step.
 
 2. On the Hailo15 platform, run the executable located at the following path:
 
     .. code-block:: bash
 
-        $ ./apps/case_studies/single_stream/single_stream_case_study
+        $ ./apps/case_studies/single_stream_rtsp/single_stream_rtsp_case_study
 
 You should now be able to see the video feed with the inference overlay on the screen.
 
@@ -86,11 +80,7 @@ Lets look at the different stages used in this pipeline in the order they operat
    The Hailo Media Library provides a C++ interface to access the hardware encoder. The Reference Camera API further 
    provides the **EncoderStage** class, which wraps this interface so that it may be easily used in a pipeline.
 
-3. **UDP Stage**: The last stage in this pipeline is the UDP stage. This stage is responsible for sending the encoded video stream over the network using the UDP protocol.
-   The UDP stage takes the encoded video frames from the encoder stage and sends them to a specified IP address and port.
+3. **RTSP Stage**: The last stage in this pipeline is the RTSP stage. This stage is responsible for sending the encoded video stream over the network using the RTSP protocol.
+   The RTSP stage takes the encoded video frames from the encoder stage and sends as one RTSP server.
 
-    .. image:: ../readme_resources/udp_stage.png
-        :alt: udp stage
-        :align: center
-
-Putting it all together, we now have what is commonly referred to as a **"Vision Pipeline"**: it facilitates streaming from the camera to the host machine. 
+Putting it all together, we now have what is commonly referred to as a **"Vision Pipeline"**: it facilitates streaming from the camera from the H15. 

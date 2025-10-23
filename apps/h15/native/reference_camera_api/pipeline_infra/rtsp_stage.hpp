@@ -129,37 +129,31 @@ public:
         m_name = name;
         return *this;
     }
-
     RtspStageBuilder &encoding(EncodingType type)
     {
         m_type = type;
         return *this;
     }
-
     RtspStageBuilder &print_fps(bool enable)
     {
         m_print_fps = enable;
         return *this;
     }
-
     RtspStageBuilder &mount_point(const std::string &mp)
     {
         m_mount_point = mp;
         return *this;
     }
-    
     RtspStageBuilder &width(const uint32_t &mp)
     {
         m_width = mp;
         return *this;
     }
-    
     RtspStageBuilder &height(const uint32_t &mp)
     {
         m_height = mp;
         return *this;
     }
-    
     RtspStageBuilder &fps(const uint32_t &mp)
     {
         m_fps = mp;

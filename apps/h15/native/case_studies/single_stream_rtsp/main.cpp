@@ -22,7 +22,6 @@
 
 // Stage Params
 #define FRONTEND_STAGE "frontend_stage"
-#define HOST_IP "10.0.0.2"
 #define NO_PROFILE_SELECTED ""
 #define MEDIALIB_CONFIG_PATH "/etc/imaging/cfg/medialib_configs/case_studies/single_stream_medialib_config.json"
 
@@ -52,18 +51,16 @@ cxxopts::Options build_arg_parser()
     cxxopts::Options options("AI pipeline app");
     options.add_options()
     ("h,help", "Show this help")
-    ("t,timeout", "Time to run", 
+    ("t,timeout", "Time to run",
         cxxopts::value<int>()->default_value("60"))
-    ("p,print-fps", "Print FPS", 
+    ("p,print-fps", "Print FPS",
         cxxopts::value<bool>()->default_value("false"))
-    ("l,print-latency", "Print Latency", 
+    ("l,print-latency", "Print Latency",
         cxxopts::value<bool>()->default_value("false"))
-    ("c,config-file-path", "Media library configuration path", 
+    ("c,config-file-path", "Media library configuration path",
         cxxopts::value<std::string>()->default_value(MEDIALIB_CONFIG_PATH))
-    ("a,profile", "Profile name", 
-        cxxopts::value<std::string>()->default_value(NO_PROFILE_SELECTED))
-    ("o,host-ip", "Host IP address for UDP output", 
-        cxxopts::value<std::string>()->default_value(HOST_IP));
+    ("a,profile", "Profile name",
+        cxxopts::value<std::string>()->default_value(NO_PROFILE_SELECTED));
     // clang-format on
 
     return options;
@@ -122,7 +119,7 @@ std::vector<ArgumentType> handle_arguments(const cxxopts::ParseResult &result, c
  * @brief Holds the resources required for the application.
  *
  * This structure contains pointers to various components and modules
- * used by the application, including the frontend, encoders, UDP outputs,
+ * used by the application, including the frontend, encoders, RTSP outputs,
  * and the pipeline. It also includes a flag to control whether FPS (frames per second)
  * information should be printed.
  */
@@ -137,7 +134,6 @@ struct AppResources
     bool print_latency;
     std::string medialib_config_path;
     std::string profile_name;
-    std::string host_ip = HOST_IP;
 
     void clear()
     {
@@ -150,7 +146,6 @@ struct AppResources
         medialib_config_path = "";
         media_library = nullptr;
         profile_name = NO_PROFILE_SELECTED;
-        host_ip = HOST_IP;
     }
 
     ~AppResources()
@@ -177,7 +172,7 @@ std::string read_string_from_file(const char *file_path)
  * This function subscribes the output streams from the frontend to appropriate
  * pipeline stages and encoders, ensuring that the data flows correctly through
  * the pipeline. It sets up callbacks for handling the data and integrates encoders
- * with UDP outputs.
+ * with RTSP outputs.
  *
  * @param app_resources Shared pointer to the application's resources.
  */
@@ -201,10 +196,10 @@ void subscribe_to_frontend(std::shared_ptr<AppResources> app_resources)
 }
 
 /**
- * @brief Create and configure an encoder and its corresponding UDP output file.
+ * @brief Create and configure an encoder and its corresponding RTSP output file.
  *
- * This function sets up an encoder and a UDP output module for a given stream ID.
- * It reads configuration files and initializes the encoder and UDP module accordingly.
+ * This function sets up an encoder and a RTSP output module for a given stream ID.
+ * It reads configuration files and initializes the encoder and RTSP module accordingly.
  *
  * @param id The ID of the output stream.
  * @param app_resources Shared pointer to the application's resources.
@@ -223,7 +218,7 @@ void create_encoder_and_rtsp(const std::string &id, std::shared_ptr<AppResources
         throw std::runtime_error("Failed to configure encoder");
     }
 
-    //get the encoder info, only get the first for testing.
+    //Get the encoder information from the configuration to init the rtsp_module.
     std::map<output_stream_id_t, encoder_config_t> encoder_configs = app_resources->media_library->m_media_lib_config_manager.get_encoder_configs();
     hailo_encoder_config_t h264_encoder_config = std::get<hailo_encoder_config_t>(encoder_configs[id]);
     std::cout << h264_encoder_config.input_stream.width << std::endl;
@@ -355,9 +350,6 @@ int main(int argc, char *argv[])
                 break;
             case ArgumentType::Profile:
                 app_resources->profile_name = result["profile"].as<std::string>();
-                break;
-            case ArgumentType::HostIP:
-                app_resources->host_ip = result["host-ip"].as<std::string>();
                 break;
             case ArgumentType::Error:
                 return 1;
