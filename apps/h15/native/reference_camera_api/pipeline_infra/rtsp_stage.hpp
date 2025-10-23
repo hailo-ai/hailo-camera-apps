@@ -19,7 +19,7 @@
 #include <vector>
 #include <iostream>
 
-#define RTSP_QUEUE_SIZE_DEFAULT (1)
+#define RTSP_QUEUE_SIZE_DEFAULT (3)
 
 class RtspStage : public ConnectedStage
 {
@@ -27,12 +27,23 @@ private:
     EncodingType m_type;
     std::shared_ptr<RtspModule> m_rtsp;
     std::string m_mount_point;
+    uint32_t m_width;
+    uint32_t m_height;
+    uint32_t m_fps;
 
 public:
-    RtspStage(std::string name, EncodingType type = EncodingType::H264,
+    RtspStage(std::string name,
+              EncodingType type = EncodingType::H264,
               size_t queue_size = RTSP_QUEUE_SIZE_DEFAULT,
-              bool leaky = false, bool print_fps = false)
-        : ConnectedStage(name, queue_size, leaky, print_fps), m_type(type) {}
+              bool print_fps = false,
+              uint32_t width = 3840,
+              uint32_t height = 2160,
+              uint32_t fps = 30)
+        : ConnectedStage(name, queue_size, false, print_fps),
+          m_type(type),
+          m_width(width),
+          m_height(height),
+          m_fps(fps) {}
 
     ~RtspStage() override = default;
 
@@ -40,7 +51,7 @@ public:
     {
         if (!m_rtsp)
         {
-            auto rtsp_exp = RtspModule::create(m_stage_name, mount_point, m_type, m_print_fps);
+            auto rtsp_exp = RtspModule::create(m_stage_name, mount_point, m_type, m_print_fps, m_width, m_height, m_fps);
             if (!rtsp_exp.has_value())
             {
                 std::cerr << "Failed to create RTSP module" << std::endl;
@@ -168,6 +179,23 @@ void process_video_buffer(const uint8_t* buffer, size_t size) {
     }
 }
 
+// Function to process the buffer and find the first IDR (I-frame)
+void process_video_buffer_for_rtsp(const uint8_t* buf, size_t size) {
+    std::vector<std::vector<uint8_t>> nalus = split_into_nalus(buf, size);
+
+    // Loop through all NALUs to find the first IDR (I-frame)
+    for (size_t i = 0; i < nalus.size(); ++i) {
+        uint8_t nal_header = nalus[i][0]; // Get the NALU header
+        NaluType type = get_nalu_type(nal_header);
+
+        // Check if this NALU is an IDR (I-frame)
+        if (type == NALU_TYPE_IDR) {
+            std::cout << "First I-frame (IDR frame) found at NALU index: " << i << std::endl;
+            std::cout << "I-frame NALU type: " << type << std::endl;
+            break;  // Stop after finding the first I-frame
+        }
+    }
+}
 
     AppStatus process(BufferPtr buffer) override
     {
@@ -189,9 +217,10 @@ void process_video_buffer(const uint8_t* buffer, size_t size) {
         size_t size = size_metadata->get_size();
         m_rtsp->add_buffer(buffer->get_buffer(), size);
 
-        std::cerr << "RTSP stage, buffer size: " << size << " size2: " << buffer->get_buffer()->get_plane_size(0) << std::endl;
-        const uint8_t* tmp = reinterpret_cast<const uint8_t*>(buffer->get_buffer()->get_plane_ptr(0));
-        process_video_buffer(tmp, size);
+        //std::cerr << "RTSP stage, buffer size: " << size << " size2: " << buffer->get_buffer()->get_plane_size(0) << std::endl;
+        //const uint8_t* tmp = reinterpret_cast<const uint8_t*>(buffer->get_buffer()->get_plane_ptr(0));
+        //process_video_buffer(tmp, size);
+        //process_video_buffer_for_rtsp(tmp, size);
         return AppStatus::SUCCESS;
     }
 };
@@ -205,6 +234,9 @@ private:
     EncodingType m_type = EncodingType::H264;
     bool m_print_fps = false;
     std::string m_mount_point = "/live";
+    uint32_t m_width = 3840;
+    uint32_t m_height = 2160;
+    uint32_t m_fps = 30;
 
 public:
     RtspStageBuilder &name(const std::string &name)
@@ -230,10 +262,28 @@ public:
         m_mount_point = mp;
         return *this;
     }
+    
+    RtspStageBuilder &width(const uint32_t &mp)
+    {
+        m_width = mp;
+        return *this;
+    }
+    
+    RtspStageBuilder &height(const uint32_t &mp)
+    {
+        m_height = mp;
+        return *this;
+    }
+    
+    RtspStageBuilder &fps(const uint32_t &mp)
+    {
+        m_fps = mp;
+        return *this;
+    }
 
     std::shared_ptr<RtspStage> build()
     {
-        auto stage = std::make_shared<RtspStage>(m_name, m_type, RTSP_QUEUE_SIZE_DEFAULT, false, m_print_fps);
+        auto stage = std::make_shared<RtspStage>(m_name, m_type, RTSP_QUEUE_SIZE_DEFAULT, m_print_fps, m_width, m_height, m_fps);
         stage->configure(m_mount_point);
         return stage;
     }

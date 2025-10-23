@@ -18,15 +18,22 @@ class RtspModule {
 public:
     RtspModule(const std::string &name,
                const std::string &mount_point,
-               EncodingType type,
-               bool print_fps = false);
+               EncodingType encoding,
+               bool print_fps,
+               uint32_t width,
+               uint32_t height,
+               uint32_t fps);
+
     ~RtspModule();
 
     static tl::expected<std::shared_ptr<RtspModule>, AppStatus> create(
         const std::string &name,
         const std::string &mount_point,
-        EncodingType type,
-        bool print_fps = false);
+        EncodingType encoding,
+        bool print_fps,
+        uint32_t width,
+        uint32_t height,
+        uint32_t fps);
 
     AppStatus add_buffer(HailoMediaLibraryBufferPtr ptr, size_t size);
     AppStatus start();
@@ -37,6 +44,9 @@ private:
     std::string m_mount_point;
     EncodingType m_type;
     bool m_print_fps;
+    uint32_t m_width;
+    uint32_t m_height;
+    uint32_t m_fps;
 
     GstRTSPServer *m_server = nullptr;
     GstRTSPMediaFactory *m_factory = nullptr;
@@ -62,17 +72,23 @@ inline tl::expected<std::shared_ptr<RtspModule>, AppStatus> RtspModule::create(
     const std::string &name,
     const std::string &mount_point,
     EncodingType type,
-    bool print_fps)
+    bool print_fps,
+    uint32_t width,
+    uint32_t height,
+    uint32_t fps)
 {
-    auto module = std::make_shared<RtspModule>(name, mount_point, type, print_fps);
+    auto module = std::make_shared<RtspModule>(name, mount_point, type, print_fps, width, height, fps);
     return module;
 }
 
 inline RtspModule::RtspModule(const std::string &name,
                               const std::string &mount_point,
                               EncodingType type,
-                              bool print_fps)
-    : m_name(name), m_mount_point(mount_point), m_type(type), m_print_fps(print_fps)
+                              bool print_fps,
+                              uint32_t width,
+                              uint32_t height,
+                              uint32_t fps)
+    : m_name(name), m_mount_point(mount_point), m_type(type), m_print_fps(print_fps), m_width(width), m_height(height), m_fps(fps)
 {
     gst_init(nullptr, nullptr);
 }
@@ -87,14 +103,18 @@ inline RtspModule::~RtspModule()
 
 inline std::string RtspModule::create_launch_pipeline()
 {
-    // pipeline: appsrc -> queue -> parser -> rtph26xpay
+    // pipeline: appsrc -> queue -> parser -> rtph26xpay (pay0)
     std::ostringstream pipeline;
-    pipeline << "appsrc name=rtsp_src is-live=true block=false format=time "
-             << "caps=video/x-" << (m_type == EncodingType::H264 ? "h264" : "h265")
-             << ",stream-format=byte-stream,alignment=au ! "
-             << "queue max-size-buffers=20 leaky=downstream ! "
-             << (m_type == EncodingType::H264 ? "h264parse ! rtph264pay name=pay0 pt=96"
-                                              : "h265parse ! rtph265pay name=pay0 pt=96");
+    // Note: we'll set caps and do-timestamp on appsrc in media_configure
+    pipeline << "appsrc name=rtsp_src is-live=true format=time ";
+    // Use parser + payloader (payloader will set config-interval)
+    if (m_type == EncodingType::H264) {
+        pipeline << "caps=video/x-h264,stream-format=avc,alignment=au ! "
+                 << "queue max-size-buffers=20 leaky=downstream ! h264parse ! rtph264pay name=pay0 pt=96 config-interval=1";
+    } else {
+        pipeline << "caps=video/x-h265,stream-format=hev1,alignment=au ! "
+                 << "queue max-size-buffers=20 leaky=downstream ! h265parse ! rtph265pay name=pay0 pt=96 config-interval=1";
+    }
     return pipeline.str();
 }
 
@@ -104,7 +124,50 @@ inline void RtspModule::media_configure(GstRTSPMediaFactory *factory,
 {
     RtspModule* self = static_cast<RtspModule*>(user_data);
     GstElement* element = gst_rtsp_media_get_element(media);
-    self->m_appsrc = GST_APP_SRC(gst_bin_get_by_name_recurse_up(GST_BIN(element), "rtsp_src"));
+
+    // get appsrc by name
+    GstElement* src = gst_bin_get_by_name_recurse_up(GST_BIN(element), "rtsp_src");
+    if (!src) {
+        g_print("Failed to find appsrc 'rtsp_src'\n");
+        gst_object_unref(element);
+        return;
+    }
+
+    // store typed pointer
+    self->m_appsrc = GST_APP_SRC(src);
+
+    // Set appsrc properties: make it timestamp buffers automatically if needed
+    g_object_set(G_OBJECT(self->m_appsrc),
+                 "is-live", TRUE,
+                 "format", GST_FORMAT_TIME,
+                 "do-timestamp", TRUE,
+                 NULL);
+
+    // Build caps including resolution/framerate if available
+    GstCaps* caps = nullptr;
+    if (self->m_type == EncodingType::H264) {
+        // Use avc (container style) so that h264parse/rtph264pay can produce sprop-parameter-sets
+        caps = gst_caps_new_simple("video/x-h264",
+                                   "stream-format", G_TYPE_STRING, "avc",
+                                   "alignment", G_TYPE_STRING, "au",
+                                   "width", G_TYPE_INT, (gint)self->m_width,
+                                   "height", G_TYPE_INT, (gint)self->m_height,
+                                   "framerate", GST_TYPE_FRACTION, (gint)self->m_fps, 1,
+                                   NULL);
+    } else {
+        caps = gst_caps_new_simple("video/x-h265",
+                                   "stream-format", G_TYPE_STRING, "hev1",
+                                   "alignment", G_TYPE_STRING, "au",
+                                   "width", G_TYPE_INT, (gint)self->m_width,
+                                   "height", G_TYPE_INT, (gint)self->m_height,
+                                   "framerate", GST_TYPE_FRACTION, (gint)self->m_fps, 1,
+                                   NULL);
+    }
+
+    // Set the caps on appsrc
+    gst_app_src_set_caps(self->m_appsrc, caps);
+    gst_caps_unref(caps);
+
     gst_object_unref(element);
 }
 
@@ -144,14 +207,33 @@ inline AppStatus RtspModule::stop()
 {
     if (m_running && m_loop) {
         g_main_loop_quit(m_loop);
-        if (m_loop_thread.joinable()) m_loop_thread.join();
+        if (m_loop_thread.joinable())
+            m_loop_thread.join();
     }
+
     if (m_appsrc) {
         gst_object_unref(m_appsrc);
         m_appsrc = nullptr;
     }
+
+    if (m_factory) {
+        g_object_unref(m_factory);
+        m_factory = nullptr;
+    }
+
+    if (m_server) {
+        g_object_unref(m_server);
+        m_server = nullptr;
+    }
+
+    if (m_loop) {
+        g_main_loop_unref(m_loop);
+        m_loop = nullptr;
+    }
+
     return AppStatus::SUCCESS;
 }
+
 
 inline AppStatus RtspModule::add_buffer(HailoMediaLibraryBufferPtr ptr, size_t size)
 {
@@ -171,6 +253,15 @@ inline AppStatus RtspModule::add_buffer(HailoMediaLibraryBufferPtr ptr, size_t s
         }
     );
 
+    // Set timestamp/duration: maintain a monotonic pts counter
+    static GstClockTime pts = 0;
+    // duration = 1 / fps in GST time units
+    GstClockTime duration = gst_util_uint64_scale_int(1, GST_SECOND, (m_fps > 0 ? m_fps : 30));
+    GST_BUFFER_PTS(gst_buffer) = pts;
+    GST_BUFFER_DTS(gst_buffer) = pts;
+    GST_BUFFER_DURATION(gst_buffer) = duration;
+    pts += duration;
+
     GstFlowReturn ret = gst_app_src_push_buffer(m_appsrc, gst_buffer);
     if (ret != GST_FLOW_OK) {
         std::cerr << "Failed to push buffer: " << ret << std::endl;
@@ -178,3 +269,4 @@ inline AppStatus RtspModule::add_buffer(HailoMediaLibraryBufferPtr ptr, size_t s
     }
     return AppStatus::SUCCESS;
 }
+

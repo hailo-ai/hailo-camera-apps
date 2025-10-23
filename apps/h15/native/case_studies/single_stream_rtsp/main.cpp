@@ -223,22 +223,35 @@ void create_encoder_and_rtsp(const std::string &id, std::shared_ptr<AppResources
         throw std::runtime_error("Failed to configure encoder");
     }
 
-    // Create and conifgure udp
+    //get the encoder info, only get the first for testing.
+    std::map<output_stream_id_t, encoder_config_t> encoder_configs = app_resources->media_library->m_media_lib_config_manager.get_encoder_configs();
+    hailo_encoder_config_t h264_encoder_config = std::get<hailo_encoder_config_t>(encoder_configs[id]);
+    std::cout << h264_encoder_config.input_stream.width << std::endl;
+    std::cout << h264_encoder_config.input_stream.height << std::endl;
+    std::cout << h264_encoder_config.input_stream.framerate << std::endl;
+    std::cout << h264_encoder_config.output_stream.codec << std::endl;
+    // Create and conifgure rtsp
     std::string rtsp_name = "rtsp_" + id;
     std::cout << "Creating rtsp " << rtsp_name << std::endl;
     auto rtsp_stage = RtspStageBuilder()
     .name(rtsp_name)
-    .encoding(EncodingType::H264)
+    .encoding(static_cast<EncodingType>(
+        h264_encoder_config.output_stream.codec == CODEC_TYPE_HEVC
+            ? EncodingType::H265
+            : EncodingType::H264))
     .print_fps(true)
     .mount_point("/live")
+    .width(h264_encoder_config.input_stream.width)
+    .height(h264_encoder_config.input_stream.height)
+    .fps(h264_encoder_config.input_stream.framerate)
     .build();
     app_resources->rtsp_outputs[id] = rtsp_stage;
 
-    // Add encoder/udp to pipeline
+    // Add encoder/rtsp to pipeline
     app_resources->pipeline->add_stage(app_resources->encoders[id], StageType::SINK);
     app_resources->pipeline->add_stage(app_resources->rtsp_outputs[id], StageType::SINK);
 
-    // Subscribe udp to encoder
+    // Subscribe rtsp to encoder
     app_resources->encoders[id]->add_subscriber(app_resources->rtsp_outputs[id]);
 }
 
