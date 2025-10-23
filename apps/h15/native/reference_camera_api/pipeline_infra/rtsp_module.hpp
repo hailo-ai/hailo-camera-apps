@@ -224,6 +224,33 @@ inline AppStatus RtspModule::add_buffer(const uint8_t* data, size_t size)
     if (!m_appsrc) return AppStatus::UNINITIALIZED;
     if (m_client_count <= 0) return AppStatus::SUCCESS;
 
+#if 1
+    // --- Zero-copy version ---
+    // If the data pointer comes directly from an encoder GstBuffer, you can wrap it
+    // without copying. Make sure the memory stays valid until GStreamer releases it.
+    GstBuffer* buf = gst_buffer_new_wrapped_full(
+        GST_MEMORY_FLAG_READONLY,
+        const_cast<uint8_t*>(data),  // GStreamer API not const-correct
+        size,
+        0,
+        size,
+        nullptr,  // user_data
+        nullptr   // destroy_notify (optional: free callback if you own the memory)
+    );
+
+    if (!buf) {
+        std::cerr << "[RtspModule] Failed to create wrapped buffer." << std::endl;
+        return AppStatus::PIPELINE_ERROR;
+    }
+
+    set_gst_buffer_time(buf);
+
+    GstFlowReturn ret;
+    g_signal_emit_by_name(m_appsrc, "push-buffer", buf, &ret);
+    gst_buffer_unref(buf);
+
+#else
+    // --- Copy version (safe fallback) ---
     GstBuffer* buf = gst_buffer_new_and_alloc(size);
     GstMapInfo map;
     if (gst_buffer_map(buf, &map, GST_MAP_WRITE)) {
@@ -236,6 +263,7 @@ inline AppStatus RtspModule::add_buffer(const uint8_t* data, size_t size)
     GstFlowReturn ret;
     g_signal_emit_by_name(m_appsrc, "push-buffer", buf, &ret);
     gst_buffer_unref(buf);
+#endif
 
     if (ret != GST_FLOW_OK) {
         std::cerr << "[RtspModule] Failed to push buffer: " << ret << std::endl;

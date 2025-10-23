@@ -36,7 +36,6 @@ enum class ArgumentType
     Timeout,
     Config,
     Profile,
-    HostIP,
     Error
 };
 
@@ -99,11 +98,6 @@ std::vector<ArgumentType> handle_arguments(const cxxopts::ParseResult &result, c
     if (result.count("profile"))
     {
         arguments.push_back(ArgumentType::Profile);
-    }
-
-    if (result.count("host-ip"))
-    {
-        arguments.push_back(ArgumentType::HostIP);
     }
 
     // Handle unrecognized options
