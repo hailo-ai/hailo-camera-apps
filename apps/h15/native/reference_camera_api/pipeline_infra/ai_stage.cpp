@@ -3,10 +3,12 @@
 HailortAsyncStage::HailortAsyncStage(std::string name, std::string hef_path, size_t queue_size, int output_pool_size,
                                      std::string group_id, int batch_size, size_t job_limit, int scheduler_threshold,
                                      bool dynamic_threshold, std::chrono::milliseconds scheduler_timeout,
-                                     bool print_fps, StagePoolMode pool_mode, float32_t nms_score_threshold)
+                                     bool print_fps, StagePoolMode pool_mode, float32_t nms_score_threshold,
+                                     size_t nms_max_accumulated_mask_size_multiplier)
     : ConnectedStage(name, queue_size, false, print_fps), m_output_pool_size(output_pool_size), m_hef_path(hef_path),
       m_group_id(group_id), m_batch_size(batch_size), m_scheduler_threshold(scheduler_threshold),
       m_dynamic_threshold(dynamic_threshold), m_nms_score_threshold(nms_score_threshold),
+      m_nms_max_accumulated_mask_size_multiplier(nms_max_accumulated_mask_size_multiplier),
       m_scheduler_timeout(scheduler_timeout), m_jobs_limit(job_limit), m_pool_mode(pool_mode)
 {
     m_last_infer_job = nullptr;
@@ -47,6 +49,12 @@ AppStatus HailortAsyncStage::init()
         if (infer_stream.is_nms() && m_nms_score_threshold > 0.0f)
         {
             infer_stream.set_nms_score_threshold(m_nms_score_threshold);
+        }
+        // Set NMS max accumulated mask size if multiplier is specified
+        if (m_nms_max_accumulated_mask_size_multiplier > 0)
+        {
+            infer_stream.set_nms_max_accumulated_mask_size(output.get_frame_size() *
+                                                           m_nms_max_accumulated_mask_size_multiplier);
         }
     }
 
@@ -226,6 +234,7 @@ AppStatus HailortAsyncStage::infer(BufferPtr input_buffer,
         m_bindings,
         [tensor_buffers, input_buffer, begin, this](const hailort::AsyncInferCompletionInfo &completion_info) {
             // active job finished
+            std::unique_lock<std::mutex> lock(m_active_jobs_mutex);
             --this->m_active_jobs;
             m_active_jobs_cv.notify_one();
             inference_tracing_end(input_buffer);
@@ -301,7 +310,9 @@ AppStatus HailortAsyncStage::process(BufferPtr data)
             BatchMetadataPtr batch_metadata = std::dynamic_pointer_cast<BatchMetadata>(metadata[0]);
 
             // if this is the start of a new batch, wait for the last infer job to finish
-            if (batch_metadata->get_index() == 0)
+            // or if this is the start of a leftover batch (index > batch size)
+            if (batch_metadata->get_index() == 0 || ((int)batch_metadata->get_index() >= m_batch_size &&
+                                                     (int)batch_metadata->get_index() % m_batch_size == 0))
             {
                 REFERENCE_CAMERA_LOG_DEBUG("[{}] Waiting for active jobs to finish before new batch", m_stage_name);
                 std::unique_lock<std::mutex> lock(m_active_jobs_mutex);
@@ -317,9 +328,19 @@ AppStatus HailortAsyncStage::process(BufferPtr data)
                 // Dynamic scheduling threshold - set the scheduler threshold to the current size of batch
                 // (described by the batch metadata)
                 if (batch_metadata->get_total_size() <= (uint)m_batch_size)
+                {
                     m_configured_infer_model.set_scheduler_threshold(batch_metadata->get_total_size());
+                }
+                else if ((int)batch_metadata->get_index() >= m_batch_size)
+                {
+                    int remainder = batch_metadata->get_total_size() - batch_metadata->get_index();
+                    int new_threshold = std::min(remainder, m_batch_size);
+                    m_configured_infer_model.set_scheduler_threshold(new_threshold);
+                }
                 else
+                {
                     m_configured_infer_model.set_scheduler_threshold(m_batch_size);
+                }
             }
         }
     }
@@ -485,6 +506,13 @@ HailortAsyncStageBuild::Builder &HailortAsyncStageBuild::Builder::set_nms_score_
     return *this;
 }
 
+HailortAsyncStageBuild::Builder &HailortAsyncStageBuild::Builder::set_nms_max_accumulated_mask_size_multiplier(
+    size_t multiplier)
+{
+    m_nms_max_accumulated_mask_size_multiplier = multiplier;
+    return *this;
+}
+
 std::shared_ptr<HailortAsyncStage> HailortAsyncStageBuild::Builder::buildptr() const
 {
     THROW_IF_MISSING(m_stage_name.has_value(), "set_stage_name");
@@ -494,10 +522,10 @@ std::shared_ptr<HailortAsyncStage> HailortAsyncStageBuild::Builder::buildptr() c
     THROW_IF_MISSING((m_batch_size >= 1), "set_batch_size");
     THROW_IF_MISSING((m_job_limit != 0), "set_job_limit");
 
-    return std::make_shared<HailortAsyncStage>(m_stage_name.value(), m_hef_path.value(), m_queue_size,
-                                               m_output_pool_size, m_group_id.value(), m_batch_size, m_job_limit,
-                                               m_scheduler_threshold, m_dynamic_threshold, m_scheduler_timeout,
-                                               m_print_fps, m_pool_mode, m_nms_score_threshold);
+    return std::make_shared<HailortAsyncStage>(
+        m_stage_name.value(), m_hef_path.value(), m_queue_size, m_output_pool_size, m_group_id.value(), m_batch_size,
+        m_job_limit, m_scheduler_threshold, m_dynamic_threshold, m_scheduler_timeout, m_print_fps, m_pool_mode,
+        m_nms_score_threshold, m_nms_max_accumulated_mask_size_multiplier);
 }
 
 HailortAsyncStageBuild::Builder HailortAsyncStageBuild::create()

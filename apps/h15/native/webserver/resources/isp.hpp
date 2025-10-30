@@ -3,6 +3,7 @@
 #include "osd_res.hpp"
 #include "configs.hpp"
 #include "common/isp/common.hpp"
+#include "pipeline/isp_blender.hpp"
 #include <atomic>
 
 namespace webserver
@@ -25,9 +26,10 @@ class IspResource : public Resource
     common::backlight_filter_t m_baseline_backlight_params;
     FiltersManualState m_isp_filters_manual_state;
     std::atomic<bool> m_isp_converge;
-    std::string m_default_3a_path;
+    std::shared_ptr<webserver::pipeline::IspBlender> m_isp_blender_ptr;
     common::auto_exposure_t get_auto_exposure();
     common::ae_ranges_t get_auto_exposure_ranges();
+    common::backlight_filter_t get_blacklight();
     nlohmann::json set_auto_exposure(const nlohmann::json &req);
     bool set_auto_exposure(common::auto_exposure_t &ae);
     void set_tuning_profile(webserver::common::tuning_profile_t);

@@ -7,6 +7,9 @@
 #define V4L2_DEVICE_NAME "/dev/video0"
 #define MEDIALIB_DEWARP_DSP_OPTIMIZATION_ENV_VAR ("MEDIALIB_DEWARP_DSP_OPTIMIZATION")
 
+namespace webserver::common
+{
+
 enum class Resolution
 {
     _HD,
@@ -29,7 +32,9 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Resolution, {
                                          })
 
 extern const std::unordered_map<Resolution, std::pair<uint32_t, uint32_t>> resolution_map;
-Resolution string_to_resolution(const std::string &resolution_str);
+} // namespace webserver::common
+
+webserver::common::Resolution string_to_resolution(const std::string &resolution_str);
 
 std::string get_resolution_string(uint32_t width, uint32_t height);
 

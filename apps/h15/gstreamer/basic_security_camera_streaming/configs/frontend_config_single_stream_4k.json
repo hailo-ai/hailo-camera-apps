@@ -4,8 +4,7 @@
             "width": 3840,
             "height": 2160,
             "framerate": 30
-        },
-        "source": "/dev/video0"
+        }
     },
     "application_input_streams": {
         "method": "INTERPOLATION_TYPE_BILINEAR",
@@ -20,7 +19,6 @@
             }
         ]
     },
-    "application_analytics": {},
     "dewarp": {
         "enabled": true,
         "color_interpolation": "INTERPOLATION_TYPE_BILINEAR",
@@ -64,7 +62,9 @@
         "iir_hpf_coefficient": 0.997,
         "camera_fov_factor": 0.85,
         "line_readout_time": 7410,
-        "hdr_exposure_ratio": 0.2
+        "hdr_exposure_ratio": 0.2,
+        "min_angle_deg": 0.05,
+        "max_angle_deg": 6.0
     },
     "gyro": {
         "enabled": false,
@@ -119,7 +119,6 @@
         "device-id": "device0"
     },
     "isp": {
-        "auto-configuration": false,
         "isp_config_files_path": "/usr/bin"
     },
     "hdr": {

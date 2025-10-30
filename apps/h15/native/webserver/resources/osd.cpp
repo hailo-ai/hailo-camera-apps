@@ -13,16 +13,19 @@ using namespace webserver::resources;
 OsdResource::OsdResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<ConfigResourceBase> configs)
     : Resource(event_bus)
 {
-    auto default_config = configs->get_osd_and_encoder_default_config();
-    m_default_config = default_config.dump(4);
-
-    reset_config();
+    subscribe_callback(EventType::PIPELINE_READY, EventPriority::EVENT_PRIORITY_HIGH,
+                       [this, configs](ResourceStateChangeNotification notification) {
+                           WEBSERVER_LOG_INFO("Received PIPELINE_READY notification");
+                           auto default_config = configs->get_osd_and_encoder_default_config();
+                           this->m_default_config = default_config.dump();
+                           reset_config();
+                       });
 
     subscribe_callback(EventType::CHANGE_RESOLUTION, [this](ResourceStateChangeNotification notification) {
         WEBSERVER_LOG_INFO("Received CHANGE_RESOLUTION notification");
         auto state = notification.getDirectResourceState<ProfileResolutionState>();
-        uint32_t new_width = resolution_map.at(string_to_resolution(state->value)).first;
-        uint32_t new_height = resolution_map.at(string_to_resolution(state->value)).second;
+        uint32_t new_width = webserver::common::resolution_map.at(string_to_resolution(state->value)).first;
+        uint32_t new_height = webserver::common::resolution_map.at(string_to_resolution(state->value)).second;
 
         // Log new resolution
         WEBSERVER_LOG_INFO("New resolution: {}x{}", new_width, new_height);
@@ -70,9 +73,9 @@ void OsdResource::update_osds(uint32_t new_width, uint32_t new_height)
 
 void OsdResource::reset_config()
 {
-    auto overlays_to_delete = get_all_overlays_ids();
+    std::vector<std::string> overlays_to_delete = get_all_overlays_ids();
     auto config = nlohmann::json::parse(m_default_config);
-    m_config = from_medialib_config_to_osd_config(config["osd"]);
+    m_config = from_medialib_config_to_osd_config(config.at("osd"));
     m_resolution_conf.width = config["encoding"]["input_stream"]["width"];
     m_resolution_conf.height = config["encoding"]["input_stream"]["height"];
     on_resource_change(EventType::CHANGED_RESOURCE_OSD,

@@ -21,14 +21,17 @@ class H15NativeInstaller(MesonInstaller):
     LIBARGS_TEMPLATE = "{}-std=c++17"
 
     def __init__(self, arch, target, build_type, toolchain_dir_path, build_lib='all',
-                 install_to_rootfs=False, remote_machine_ip=None, clean_build_dir=False):
+                 install_to_rootfs=False, remote_machine_ip=None, clean_build_dir=False, platform='auto', install_profiles=False):
         super().__init__(arch=arch, build_type=build_type, src_build_dir=TAPPAS_WORKSPACE / "apps/h15/native",
                          toolchain_dir_path=toolchain_dir_path, remote_machine_ip=remote_machine_ip,
-                         clean_build_dir=clean_build_dir, install_to_toolchain_rootfs=install_to_rootfs)
+                         clean_build_dir=clean_build_dir, install_to_toolchain_rootfs=install_to_rootfs, platform=platform)
         self._target_platform = target
         self._build_lib = build_lib
         self._open_source_root = f'{TAPPAS_WORKSPACE}/core/open_source'
-        self._hailort_cross_compiled_output_dir = FOLDER_NAME / f"build.linux.{self._arch.value}.{self._build_type}"
+        self._platform = platform
+        self._install_profiles = install_profiles
+        # Now that we have the platform (either specified or auto-detected), set the output build directory
+        self._hailort_cross_compiled_output_dir = FOLDER_NAME / f'{self._arch.value}-{self._platform}-media-library-build-{self._build_type}'
 
     def get_meson_build_folder(self):
         return 'native-apps'
@@ -55,9 +58,39 @@ class H15NativeInstaller(MesonInstaller):
         build_cmd = ['meson', str(self._output_build_dir), '--buildtype', self._build_type,
                      '-Dlibargs={}'.format(self.get_libargs_line(self._toolchain_rootfs_base_path)),
                      '-Dprefix={}'.format(usr_path),
-                     '-Dapps_install_dir=/home/root/apps']
+                     '-Dapps_install_dir=/home/root/apps',
+                     '-Dplatform={}'.format(self._platform),
+                     '-Dinstall_profiles={}'.format(self._install_profiles)]
+
+        # Add the --reconfigure flag if build dir exists
+        if self._output_build_dir.exists():
+            build_cmd.append('--reconfigure')
 
         return build_cmd
+
+    def detect_platform_from_toolchain(self):
+        """Detect platform (15h or 15l) from hostname file in toolchain"""
+        hostname_file = self._toolchain_rootfs_base_path / "etc" / "hostname"
+        
+        if not hostname_file.exists():
+            raise FileNotFoundError(f"Hostname file {hostname_file} not found. Cannot detect platform.")
+            
+        try:
+            with open(hostname_file, 'r') as f:
+                hostname_content = f.read().strip()
+                
+            if "hailo15l" in hostname_content:
+                self._logger.info("Detected platform: 15l")
+                return "15l"
+            elif "hailo15" in hostname_content:
+                self._logger.info("Detected platform: 15h")
+                return "15h"
+            else:
+                self._logger.warning(f"Unknown hostname content: {hostname_content}, defaulting to 15h")
+                return "15h"
+        except Exception as e:
+            self._logger.warning(f"Error reading hostname file: {e}, defaulting to 15h")
+            raise FileNotFoundError(f"Cannot determine platform from hostname file {hostname_file}.")
 
 
 def parse_args():
@@ -70,6 +103,8 @@ def parse_args():
     parser.add_argument('--install-to-rootfs', action='store_true', help='Install to rootfs (default false)', default=False)
     parser.add_argument('--check-req-packages', action='store_true', help='Install compiler packages (default false)', default=False)
     parser.add_argument('--limit-jobs', type=int, help='Limit the number of jobs for the build process', default=max(1, multiprocessing.cpu_count() - 2))
+    parser.add_argument('--platform', help='Platform to compile for (15h or 15l)', default='15h')
+    parser.add_argument('--install-profiles', action='store_true', help='Install all imaging profiles and config files, still requires --remote-machine-ip', default=False)
 
     return parser.parse_args()
 
@@ -86,5 +121,7 @@ if __name__ == '__main__':
                                         build_lib='all',
                                         remote_machine_ip=args.remote_machine_ip,
                                         clean_build_dir=args.clean_build_dir,
-                                        install_to_rootfs=args.install_to_rootfs)
+                                        install_to_rootfs=args.install_to_rootfs,
+                                        platform=args.platform,
+                                        install_profiles=args.install_profiles)
     gst_installer.build(args.limit_jobs)

@@ -22,16 +22,18 @@
 
 class FrontendStage : public ConnectedStage
 {
-  private:
+  protected:
     MediaLibraryFrontendPtr m_frontend;
     std::map<output_stream_id_t, std::vector<ConnectedStagePtr>> m_stream_subscribers;
+
+  private:
     std::mutex m_running_mutex;
     std::condition_variable m_running_cv;
 
   public:
     FrontendStage(std::string name, size_t queue_size = FRONEND_QUEUE_SIZE_DEFAULT, bool leaky = false,
-                  bool print_fps = false)
-        : ConnectedStage(name, queue_size, leaky, print_fps)
+                  bool print_fps = false, bool trace_processing_operations = true)
+        : ConnectedStage(name, queue_size, leaky, print_fps, trace_processing_operations)
     {
         m_frontend = nullptr;
         m_stream_subscribers.clear();

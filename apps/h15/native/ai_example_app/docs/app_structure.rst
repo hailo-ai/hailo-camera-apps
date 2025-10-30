@@ -606,12 +606,11 @@ The main.cpp file is where the pipeline is built and run. It is the entry point 
                         app_resources->frontend_config = FRONTEND_CONFIG_FILE;
 
                         // register signal SIGINT and signal handler
-                        signal_utils::register_signal_handler([app_resources](int signal)
-                        { 
+                        signal_utils::SignalHandler signal_handler(false);
+                        signal_handler.register_signal_handler([app_resources](int signal) {
                             std::cout << "Stopping Pipeline..." << std::endl;
                             // Stop pipeline
                             app_resources->pipeline->stop_pipeline();
-                            app_resources->clear();
                             // terminate program  
                             exit(0); 
                         });

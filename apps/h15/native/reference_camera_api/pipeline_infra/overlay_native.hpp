@@ -16,10 +16,14 @@
 
 #include <map>
 #include <vector>
-#include "hailo_objects.hpp"
-#include "tappas/plugins/common/hailomat.hpp"
+#include <unordered_set>
+#include <string>
+#include <functional>
+#include <cstddef>
 #include <opencv2/opencv.hpp>
 #include <algorithm>
+#include "hailo_objects.hpp"
+#include "tappas/plugins/common/hailomat.hpp"
 #include "hailo_common.hpp"
 typedef enum
 {
@@ -29,8 +33,9 @@ typedef enum
 } overlay_status_t;
 overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, std::shared_ptr<StageDebugCounters> debug_counters,
                           float landmark_point_radius, bool show_confidence = true, bool local_gallery = false,
-                          uint mask_overlay_n_threads = 0, bool partial_landmarks = false, size_t min_landmark = 0,
-                          size_t max_landmark = 0, std::unordered_set<int> class_ids_to_draw = {},
+                          uint mask_overlay_n_threads = 0, bool partial_landmarks = false,
+                          std::unordered_set<size_t> landmark_indices_to_draw = {},
+                          std::unordered_set<int> class_ids_to_draw = {},
                           std::function<cv::Scalar(const HailoDetectionPtr &)> color_selector = nullptr);
 void face_blur(HailoMat &mat, HailoROIPtr roi);
 
@@ -141,18 +146,15 @@ static std::string get_classification_text(HailoClassificationPtr result, bool s
 }
 
 static overlay_status_t draw_landmarks(HailoMat &hmat, HailoLandmarksPtr landmarks, HailoROIPtr roi,
-                                       float landmark_point_radius, bool partial_landmarks = false,
-                                       size_t min_landmark = 0, size_t max_landmark = 0)
+                                       float landmark_point_radius,
+                                       const std::unordered_set<size_t> &landmark_indices_to_draw = {},
+                                       bool partial_landmarks = false)
 {
     HailoBBox bbox = roi->get_bbox();
     int thickness;
     std::vector<std::pair<int, int>> pairs = landmarks->get_pairs();
-    int R = 0;
+    int R = roi->get_bbox().height() * hmat.native_height() / 60;
     std::vector<HailoPoint> points = landmarks->get_points();
-    if (landmarks->get_landmarks_type() == "centerpose")
-    {
-        R = roi->get_bbox().height() * hmat.native_height() / 60;
-    }
 
     for (auto &pair : pairs)
     {
@@ -172,26 +174,30 @@ static overlay_status_t draw_landmarks(HailoMat &hmat, HailoLandmarksPtr landmar
         }
     }
 
-    auto range_begin = points.begin();
-    auto range_end = points.end();
-
-    if (partial_landmarks)
-    {
-        size_t start = std::clamp(min_landmark, static_cast<size_t>(0), points.size());
-        size_t end = std::clamp(max_landmark + 1, start, points.size());
-        range_begin = points.begin() + start;
-        range_end = points.begin() + end;
-    }
-
-    for (auto it = range_begin; it != range_end; ++it)
-    {
-        const auto &point = *it;
+    auto draw_point = [&](size_t idx) {
+        if (idx >= points.size())
+            return;
+        const auto &point = points[idx];
         if (point.confidence() >= landmarks->get_threshold())
         {
             uint x = ((point.x() * bbox.width()) + bbox.xmin()) * hmat.native_width();
             uint y = ((point.y() * bbox.height()) + bbox.ymin()) * hmat.native_height();
-            hmat.draw_ellipse({static_cast<int>(x), static_cast<int>(y)}, {R, R}, 0, 0, 360, get_color(7),
-                              landmark_point_radius);
+            hmat.draw_ellipse({static_cast<int>(x), static_cast<int>(y)}, {R, R}, 0, 0, 360, get_color(7), 8);
+        }
+    };
+
+    if (partial_landmarks && !landmark_indices_to_draw.empty())
+    {
+        for (size_t idx : landmark_indices_to_draw)
+        {
+            draw_point(idx);
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < points.size(); ++i)
+        {
+            draw_point(i);
         }
     }
 
@@ -409,8 +415,9 @@ static overlay_status_t draw_conf_class_mask(cv::Mat &image_planes, HailoConfCla
 
 inline overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, std::shared_ptr<StageDebugCounters> debug_counters,
                                  float landmark_point_radius, bool show_confidence, bool local_gallery,
-                                 const uint mask_overlay_n_threads, bool partial_landmarks, size_t min_landmark,
-                                 size_t max_landmark, std::unordered_set<int> class_ids_to_draw,
+                                 const uint mask_overlay_n_threads, bool partial_landmarks,
+                                 std::unordered_set<size_t> landmark_indices_to_draw,
+                                 std::unordered_set<int> class_ids_to_draw,
                                  std::function<cv::Scalar(const HailoDetectionPtr &)> color_selector)
 {
     overlay_status_t ret = OVERLAY_STATUS_UNINITIALIZED;
@@ -461,7 +468,7 @@ inline overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, std::shared_pt
             debug_counters->increment_extra_counter(static_cast<int>(OverlayExtraCounters::DETECTIONS));
 
             ret = draw_all(hmat, detection, debug_counters, landmark_point_radius, show_confidence, local_gallery,
-                           mask_overlay_n_threads, partial_landmarks, min_landmark, max_landmark, class_ids_to_draw,
+                           mask_overlay_n_threads, partial_landmarks, landmark_indices_to_draw, class_ids_to_draw,
                            color_selector);
             break;
         }
@@ -489,14 +496,14 @@ inline overlay_status_t draw_all(HailoMat &hmat, HailoROIPtr roi, std::shared_pt
         case HAILO_LANDMARKS: {
             debug_counters->increment_extra_counter(static_cast<int>(OverlayExtraCounters::LANDMARKS));
             HailoLandmarksPtr landmarks = std::dynamic_pointer_cast<HailoLandmarks>(obj);
-            draw_landmarks(hmat, landmarks, roi, landmark_point_radius, partial_landmarks, min_landmark, max_landmark);
+            draw_landmarks(hmat, landmarks, roi, landmark_point_radius, landmark_indices_to_draw, partial_landmarks);
             break;
         }
         case HAILO_TILE: {
             HailoTileROIPtr tile = std::dynamic_pointer_cast<HailoTileROI>(obj);
             draw_tile(hmat, tile);
             draw_all(hmat, tile, debug_counters, landmark_point_radius, show_confidence, local_gallery,
-                     mask_overlay_n_threads, partial_landmarks, min_landmark, max_landmark);
+                     mask_overlay_n_threads, partial_landmarks, landmark_indices_to_draw);
             break;
         }
         case HAILO_UNIQUE_ID: {

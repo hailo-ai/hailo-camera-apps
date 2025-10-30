@@ -4,8 +4,13 @@ using namespace webserver::resources;
 WebRtcResource::WebRtcResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<ConfigResourceBase> configs)
     : Resource(event_bus)
 {
-    WEBSERVER_LOG_INFO("Initializing WebRtcResource");
-    m_stream_codec = configs->get_encoder_default_config()["hailo_encoder"]["config"]["output_stream"]["codec"];
+    subscribe_callback(
+        EventType::PIPELINE_READY, EventPriority::EVENT_PRIORITY_HIGH,
+        [this, configs](ResourceStateChangeNotification notification) {
+            WEBSERVER_LOG_INFO("Initializing WebRtcResource");
+            this->m_stream_codec =
+                configs->get_encoder_default_config()["hailo_encoder"]["config"]["output_stream"]["codec"];
+        });
     subscribe_callback(EventType::CODEC_CHANGE, [this](ResourceStateChangeNotification notification) {
         WEBSERVER_LOG_INFO("Received CODEC_CHANGE event");
         auto state = notification.getResourceStateFromBase<EncoderResource::EncoderResourceState>();

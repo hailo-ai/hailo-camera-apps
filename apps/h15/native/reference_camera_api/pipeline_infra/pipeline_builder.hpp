@@ -18,12 +18,12 @@ class PipelineBuilder
     template <typename T>
     PipelineBuilder &add_stage(const std::string &name, std::shared_ptr<T> stage, StageType type = StageType::GENERAL)
     {
-        static_assert(std::is_base_of_v<ConnectedStage, T>, "T must derive from Stage");
         if (!stage)
         {
             throw std::invalid_argument("Stage is null for name: " + name);
         }
 
+        static_assert(std::is_base_of_v<ConnectedStage, T>, "T must derive from Stage");
         validate_and_add_stage(name, stage, type);
 
         return *this;
@@ -31,6 +31,11 @@ class PipelineBuilder
 
     PipelineBuilder &add_stage(StagePtr stage, StageType type = StageType::GENERAL)
     {
+        if (!stage)
+        {
+            throw std::invalid_argument("Stage pointer is null.");
+        }
+
         if (std::dynamic_pointer_cast<ConnectedStage>(stage) == nullptr)
         {
             throw std::runtime_error("Pointer is not derived from ConnectedStage.");

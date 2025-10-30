@@ -1,0 +1,15 @@
+{
+    "version": "1.0.0",
+    "sensor_config": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/single_stream_lowlight/sensor_config.json",
+    "application_settings": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/single_stream_lowlight/application_settings.json",
+    "stabilizer_settings": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/single_stream_lowlight/stabilizer_settings.json",
+    "iq_settings": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/single_stream_lowlight/iq_settings.json",
+    "encoded_output_streams": [
+        {
+            "stream_id": "sink0",
+            "encoding": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/single_stream_lowlight/encoder_sink0.json",
+            "osd": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/single_stream_lowlight/osd_sink0.json",
+            "masking": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/single_stream_lowlight/masking_sink0.json"
+        }
+    ]
+}

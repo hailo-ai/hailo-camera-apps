@@ -9,13 +9,18 @@
 #include "common/common.hpp"
 #include "media_library/signal_utils.hpp"
 
+#define DEFAULT_CONFIGS_PATH "/etc/imaging/cfg/medialib_configs/"
+#define APPEND_CONFIG_PATH(path) DEFAULT_CONFIGS_PATH path
+#define DEFAULT_MEDIALIB_CONFIG_PATH APPEND_CONFIG_PATH("webserver_medialib_config.json")
+
 void flags_init(int argc, char *argv[], std::string &medialib_config_path)
 {
     try
     {
         cxxopts::Options options(argv[0], "Webserver application");
         options.add_options()("config", "Media library configuration path",
-                              cxxopts::value<std::string>())("h,help", "Print usage");
+                              cxxopts::value<std::string>()->default_value(DEFAULT_MEDIALIB_CONFIG_PATH))(
+            "h,help", "Print usage");
 
         auto result = options.parse(argc, argv);
 
@@ -25,12 +30,9 @@ void flags_init(int argc, char *argv[], std::string &medialib_config_path)
             exit(0);
         }
 
-        if (result.count("config"))
-        {
-            std::string config_path = result["config"].as<std::string>();
-            WEBSERVER_LOG_INFO("Using medialib config path: {}", config_path);
-            medialib_config_path = config_path;
-        }
+        std::string config_path = result["config"].as<std::string>();
+        WEBSERVER_LOG_INFO("Using medialib config path: {}", config_path);
+        medialib_config_path = config_path;
     }
     catch (const cxxopts::OptionException &e)
     {
@@ -75,7 +77,8 @@ int main(int argc, char *argv[])
     WebServerPipeline pipeline;
     pipeline = webserver::pipeline::CppPipeline::create(svr, medialib_config_path, arch);
 
-    signal_utils::register_signal_handler([pipeline](int signal) {
+    signal_utils::SignalHandler signal_handler;
+    signal_handler.register_signal_handler([pipeline](int signal) {
         WEBSERVER_LOG_INFO("Received signal {} exiting", signal);
         pipeline->stop();
         exit(0);

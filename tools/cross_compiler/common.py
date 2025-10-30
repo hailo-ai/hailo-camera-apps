@@ -157,7 +157,7 @@ def install_compilers_apt_packages(arch):
 
 class MesonInstaller(ABC):
     def __init__(self, arch, build_type, toolchain_dir_path, src_build_dir, remote_machine_ip=None, clean_build_dir=False,
-                 install_to_toolchain_rootfs=False):
+                 install_to_toolchain_rootfs=False, platform=None):
         self._arch = arch
         self._build_type = build_type
         self._clean_build_dir = clean_build_dir
@@ -171,7 +171,10 @@ class MesonInstaller(ABC):
 
         self._build_folder = self.get_meson_build_folder()
 
-        self._output_build_dir = FOLDER_NAME / f'{self._arch.value}-{self._build_folder}-build-{self._build_type}'
+        if platform is None:
+            self._output_build_dir = FOLDER_NAME / f'{self._arch.value}-{self._build_folder}-build-{self._build_type}'
+        else:
+            self._output_build_dir = FOLDER_NAME / f'{self._arch.value}-{platform}-{self._build_folder}-build-{self._build_type}'
         self._toolchain_dir_path = Path(toolchain_dir_path).absolute().resolve()
         self._toolchain_rootfs_base_path = self._toolchain_dir_path / "sysroots" / f"{self._arch.value}-poky-linux"
 

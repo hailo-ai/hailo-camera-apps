@@ -1,14 +1,17 @@
 #include "common.hpp"
 
 // resolution maps
+namespace webserver::common
+{
 const std::unordered_map<Resolution, std::pair<uint32_t, uint32_t>> resolution_map = {
     {Resolution::_HD, {1280, 720}},   {Resolution::_FHD, {1920, 1080}}, {Resolution::_QHD, {2560, 1440}},
     {Resolution::_5MP, {2592, 1944}}, {Resolution::_4K, {3840, 2160}},  {Resolution::_SD, {640, 480}},
     {Resolution::_4MP, {2688, 1520}}};
+}
 
-Resolution string_to_resolution(const std::string &resolution_str)
+webserver::common::Resolution string_to_resolution(const std::string &resolution_str)
 {
-    for (const auto &[res, dims] : resolution_map)
+    for (const auto &[res, dims] : webserver::common::resolution_map)
     {
         if (nlohmann::json(res).get<std::string>() == resolution_str)
         {
@@ -22,7 +25,7 @@ std::string get_resolution_string(uint32_t width, uint32_t height)
 {
     auto target = std::make_pair(width, height);
     auto rotated_target = std::make_pair(height, width);
-    for (auto const &[res, dims] : resolution_map)
+    for (auto const &[res, dims] : webserver::common::resolution_map)
     {
         if (dims == target || dims == rotated_target)
         {

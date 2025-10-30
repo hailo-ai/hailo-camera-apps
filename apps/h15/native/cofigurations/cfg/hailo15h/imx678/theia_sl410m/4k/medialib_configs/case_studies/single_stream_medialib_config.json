@@ -1,0 +1,22 @@
+{
+    "version": "1.0.0",
+    "default_profile": "Daylight",
+    "profiles": [
+        {
+            "name": "Daylight",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/single_stream_daylight/single_stream_daylight_profile.json"
+        },
+        {
+            "name": "Lowlight_Bayer",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/single_stream_lowlight_bayer/single_stream_lowlight_bayer_profile.json"
+        },
+        {
+            "name": "High_Dynamic_Range",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/HDR/single_stream_HDR/single_stream_HDR_profile.json"
+        },
+        {
+            "name": "Lowlight",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/single_stream_lowlight/single_stream_lowlight_profile.json"
+        }
+    ]
+}

@@ -101,7 +101,7 @@ ConnectedStage::ConnectedStage(std::string name, size_t queue_size, bool leaky, 
 
 void ConnectedStage::add_queue(std::string name)
 {
-    m_queues.push_back(std::make_shared<Queue>(name, m_queue_size, m_leaky));
+    m_queues.push_back(std::make_shared<Queue>(m_stage_name, name, m_queue_size, m_leaky));
 }
 
 void ConnectedStage::add_subscriber(ConnectedStagePtr subscriber)

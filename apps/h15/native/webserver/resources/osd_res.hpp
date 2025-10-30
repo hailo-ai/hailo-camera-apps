@@ -67,6 +67,7 @@ class OsdResource : public Resource
     nlohmann::json map_overlays(nlohmann::json config, std::function<nlohmann::json(nlohmann::json)> transform_osd);
     std::vector<std::string> get_all_overlays_ids();
     void update_osds(uint32_t new_width, uint32_t new_height);
+    bool m_initialize;
 
     struct resolution_conf_t
     {

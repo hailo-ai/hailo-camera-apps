@@ -1,0 +1,18 @@
+{
+    "version": "1.0.0",
+    "default_profile": "Daylight",
+    "profiles": [
+        {
+            "name": "Daylight",
+            "config_file": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/daylight/ai_example_daylight/ai_example_daylight_profile.json"
+        },
+        {
+            "name": "High_Dynamic_Range",
+            "config_file": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/HDR/ai_example_HDR/ai_example_HDR_profile.json"
+        },
+        {
+            "name": "Infrared",
+            "config_file": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/IR/ai_example_IR/ai_example_IR_profile.json"
+        }
+    ]
+}

@@ -43,6 +43,7 @@ enum class EventType
     SWITCH_PROFILE,
     PROFILE_UPDATE,
     PROFILE_UPDATE_REQUEST,
+    PIPELINE_READY,
     CHANGE_FRAMERATE,
     CHANGE_RESOLUTION,
     CHANGE_FLIP,
@@ -57,6 +58,7 @@ enum class EventType
     CHANGE_GRAYSCALE,
     CHANGE_DETECTION,
     RESET_ISP,
+    UPDATE_BLENDER,
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(EventType, {{EventType::CHANGED_RESOURCE_WEBPAGE, "webpage"},
@@ -87,12 +89,21 @@ NLOHMANN_JSON_SERIALIZE_ENUM(EventType, {{EventType::CHANGED_RESOURCE_WEBPAGE, "
                                          {EventType::CHANGE_DETECTION, "change_detection"},
                                          {EventType::PROFILE_UPDATE, "profile_update"},
                                          {EventType::PROFILE_UPDATE_REQUEST, "profile_update_request"},
-                                         {EventType::RESET_ISP, "reset_isp"}});
+                                         {EventType::RESET_ISP, "reset_isp"},
+                                         {EventType::UPDATE_BLENDER, "update_blender"}});
 
 class ResourceState
 {
   public:
     virtual ~ResourceState() = default;
+};
+template <typename T> class ShareValueState : public ResourceState
+{
+  public:
+    T value;
+    ShareValueState(T value) : value(value)
+    {
+    }
 };
 template <typename T> class ValueState : public ResourceState
 {
@@ -193,10 +204,10 @@ class DetectionState : public ValueState<bool>
     using ValueState<bool>::ValueState;
 };
 
-class ProfileState : public ValueState<ProfileConfig>
+class ProfileState : public ValueState<config_profile_t>
 {
   public:
-    using ValueState<ProfileConfig>::ValueState;
+    using ValueState<config_profile_t>::ValueState;
 };
 class EmptyState : public ResourceState
 {

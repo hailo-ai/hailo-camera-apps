@@ -1,0 +1,10 @@
+{
+    "version": "1.0.0",
+    "default_profile": "Daylight",
+    "profiles": [
+        {
+            "name": "Daylight",
+            "config_file": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/daylight/detection_daylight/detection_daylight_profile.json"
+        }
+    ]
+}

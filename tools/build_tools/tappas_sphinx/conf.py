@@ -209,14 +209,36 @@ latex_elements = {
         \usepackage{xstring}
         \usepackage{etoolbox}
         \usepackage{geometry}
-        \setsansfont[Ligatures=TeX,Scale=MatchLowercase]{Exo 2}
+        \usepackage[normalem]{ulem} % For underlining
+        \usepackage{hyperref}
+        \definecolor{BlueForUrls}{rgb}{0.2588, 0.4588, 0.9137} % Example: light blue
+        \definecolor{DeepCyan}{rgb}{0, 0.373, 0.557}
+        \hypersetup{
+            colorlinks=true,       % Enable colored links
+            linkcolor=DeepCyan,        % Color for internal links
+            citecolor=DeepCyan,        % Color for citations
+            urlcolor=BlueForUrls,        % Color for URLs
+            pdfborder={0 0 0}      % Disable borders around links
+        }
+
+        % Redefine URL font to include underline and color
+        \renewcommand{\UrlFont}{\color{BlueForUrls}\uline} % Underline and color raw URLs
+
+        % Redefine \href to ensure text links are underlined and colored
+        \let\oldhref\href
+        \renewcommand{\href}[2]{\textcolor{BlueForUrls}{\uline{\oldhref{#1}{#2}}}}
+
+        % Redefine \url to ensure raw URLs are underlined and colored
+        \let\oldurl\url
+        \renewcommand{\url}[1]{\textcolor{BlueForUrls}{\uline{\oldurl{#1}}}}
+
+        \setsansfont[Ligatures=TeX,Scale=MatchLowercase]{Open Sans}
         \setmonofont[Ligatures=TeX,Scale=MatchLowercase]{Courier}
         \setmainfont[Ligatures=TeX,Scale=MatchLowercase]{Open Sans}
         \usepackage{truncate}
         \definecolor{DarkAqua}{rgb}{0.000,0.596,0.769}
         \definecolor{NiceBlue}{rgb}{0.267,0.447,0.769}
         \definecolor{NiceDarkBlue}{rgb}{0.086,0.118,0.431}
-        \definecolor{NiceVeryDarkBlue}{rgb}{0.059,0.086,0.298}
         \makeatletter
         \ChNumVar{\LARGE\sffamily\bfseries} % sets the style for digit
         \ChTitleVar{\LARGE\sffamily\bfseries} % sets the style for title
@@ -224,9 +246,9 @@ latex_elements = {
         \patchcmd{\ttl@save@mkchap}{\vspace*{50\p@}}{}{}{}
         \patchcmd{\ttl@save@mkschap}{\vspace*{50\p@}}{\vspace*{10pt}}{}{}
         \patchcmd{\part}{plain}{mypart}{}{}
-        \renewcommand{\DOCH}{\CNoV\textcolor{NiceVeryDarkBlue}{\thechapter .}\hspace{0.5em}}
-        \renewcommand{\DOTI}[1]{\CTV\textcolor{NiceVeryDarkBlue}{#1}\\ \vspace{1em}}
-        \renewcommand{\DOTIS}[1]{\CTV\textcolor{NiceVeryDarkBlue}{#1}}
+        \renewcommand{\DOCH}{\CNoV\textcolor{DeepCyan}{\thechapter .}\hspace{0.5em}}
+        \renewcommand{\DOTI}[1]{\CTV\textcolor{DeepCyan}{#1}\\ \vspace{1em}}
+        \renewcommand{\DOTIS}[1]{\CTV\textcolor{DeepCyan}{#1}}
         \titleformat{\section}{\Large\py@HeaderFamily}%
             {\py@TitleColor\thesection .}{0.5em}{\py@TitleColor}{\py@NormalColor}
         \titleformat{\subsection}{\large\py@HeaderFamily}%
@@ -243,13 +265,13 @@ latex_elements = {
             \titlespacing*{\subsubsection}{0em}{0em}{0em}
         }
         \newcommand{\titletext}[1]{\sffamily\textcolor{TitleColor}{#1}}
-        \newcommand{\headerfootertext}[1]{\sffamily\textcolor{NiceDarkBlue}{#1}}
+        \newcommand{\headerfootertext}[1]{\sffamily\textcolor{black}{#1}}
         \renewcommand{\py@sigparams}[2]{%
             \parbox[t]{\py@argswidth}{\truncate[ ...\sphinxcode{)}]{\py@argswidth}{#1\sphinxcode{)}#2}}}
         \renewcommand{\headrule}{\vspace{-0.7em}\vbox to 0pt{\hbox to\headwidth{%
-            \color{NiceBlue}\leaders\hrule height \headrulewidth\hfill}}}
+            \color{black}\leaders\hrule height \headrulewidth\hfill}}}
         \renewcommand{\footrule}{\hbox to\headwidth{%
-            \color{NiceBlue}\leaders\hrule height \footrulewidth\hfill}}
+            \color{black}\leaders\hrule height \footrulewidth\hfill}}
         \fancypagestyle{mytitle}{
             \renewcommand{\headrulewidth}{0pt}
             \renewcommand{\footrulewidth}{0pt}
@@ -263,7 +285,7 @@ latex_elements = {
             % FIXME: this presupposes "twoside".
             % If "oneside" class option, there are warnings in LaTeX log.
             \fancyfoot[CE,CO]{{\headerfootertext{Page \thepage\qquad\py@release\qquad Confidential and Proprietary | Copyright \textcopyright \ 2024 -- Hailo Technologies Ltd.}}}
-            \fancyhead[LE,LO]{{\includegraphics[width=3.5cm]{logo_small.pdf}\qquad\headerfootertext{\@title}}}
+            \fancyhead[LE,LO]{{\includegraphics[width=3.5cm]{logo_small.pdf}\hspace{9.6cm}\headerfootertext{\@title}}}
             \renewcommand{\headrulewidth}{0.4pt}
             \renewcommand{\footrulewidth}{0.4pt}
             % define chaptermark with \@chappos when \@chappos is available for Japanese
@@ -273,7 +295,7 @@ latex_elements = {
         \fancypagestyle{plain}{
             \fancyhf{}
             \fancyfoot[CE,CO]{{\headerfootertext{Page \thepage\qquad\py@release\qquad Confidential and Proprietary | Copyright \textcopyright \ 2024 -- Hailo Technologies Ltd.}}}
-            \fancyhead[LE,LO]{{\includegraphics[width=3.5cm]{logo_small.pdf}\qquad\headerfootertext{\@title}}}
+            \fancyhead[LE,LO]{{\includegraphics[width=3.5cm]{logo_small.pdf}\hspace{9.6cm}\headerfootertext{\@title}}}
             \renewcommand{\headrulewidth}{0.4pt}
             \renewcommand{\footrulewidth}{0.4pt}
         }
@@ -340,13 +362,14 @@ latex_elements = {
 
     'fncychap': '\\usepackage{fncychap}',
 
-    'sphinxsetup': """InnerLinkColor={rgb}{0.000,0.294,0.400},
-                      TitleColor={rgb}{0.059,0.086,0.298},
+    'sphinxsetup': """InnerLinkColor={rgb}{0, 0.373, 0.557},
+                      TitleColor={rgb}{0, 0.373, 0.557},
                       VerbatimColor={rgb}{0.866,0.933,0.933},
                       noteBorderColor={rgb}{0.415,0.690,0.870},
                       warningBorderColor={rgb}{0.941,0.701,0.494},
                       warningBgColor={rgb}{1,0.929,0.8},
-                      VerbatimBorderColor={rgb}{0.882,0.894,0.898}""",
+                      VerbatimBorderColor={rgb}{0.882,0.894,0.898},
+                      OuterLinkColor={rgb}{0.2588, 0.4588, 0.9137}""",
 
     'extraclassoptions': 'openany',
 

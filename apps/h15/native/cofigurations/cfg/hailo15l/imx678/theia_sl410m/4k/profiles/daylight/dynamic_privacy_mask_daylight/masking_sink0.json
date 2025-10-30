@@ -1,0 +1,13 @@
+{
+    "masking": {
+        "mask_type": "PIXELIZATION",
+        "pixelization_size": 60,
+        "color_value": [0, 0, 0],
+        "dynamic_privacy_mask": {
+            "enabled": true,
+            "analytics_data_id": "yolo_segmentation",
+            "masked_labels": ["person"],
+            "dilation_size": 11
+        }
+    }
+}

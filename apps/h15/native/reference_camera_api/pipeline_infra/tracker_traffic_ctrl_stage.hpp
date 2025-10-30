@@ -9,11 +9,15 @@
 #define TRACKER_CLASSIFIED_FPS_BLOCK_COUNT_BEFORE_PASS (1)
 #define TRACKER_TRAFFIC_QUEUE_SIZE_DEFAULT (5)
 
+#define CLEAN_UP_INTERVAL_SEC (60) // Clean up every 60 seconds
+
 class TrackerTrafficCtrlStage : public ConnectedStage
 {
   private:
-    size_t m_tracked_unclassified_frame_block_cnt;
-    size_t m_tracked_classified_frame_block_cnt;
+    bool    m_initialized = false;
+    bool    m_block_all_untracked;
+    size_t  m_tracked_unclassified_frame_block_cnt;
+    size_t  m_tracked_classified_frame_block_cnt;
     std::unordered_map<int, size_t> m_trackingcounts;
 
     int get_tracking_id(HailoDetectionPtr detection)
@@ -48,10 +52,12 @@ class TrackerTrafficCtrlStage : public ConnectedStage
   public:
     TrackerTrafficCtrlStage(
         std::string name,
+        bool block_all_untracked = false,
         size_t tracked_unclassified_frame_block_cnt = TRACKER_UNCLASSIFIED_FPS_BLOCK_COUNT_BEFORE_PASS,
         size_t tracked_classified_frame_block_cnt = TRACKER_CLASSIFIED_FPS_BLOCK_COUNT_BEFORE_PASS,
         size_t queue_size = TRACKER_TRAFFIC_QUEUE_SIZE_DEFAULT, bool leaky = false, bool print_fps = false)
         : ConnectedStage(name, queue_size, leaky, print_fps),
+          m_block_all_untracked(block_all_untracked),
           m_tracked_unclassified_frame_block_cnt(tracked_unclassified_frame_block_cnt),
           m_tracked_classified_frame_block_cnt(tracked_classified_frame_block_cnt)
     {
@@ -59,18 +65,21 @@ class TrackerTrafficCtrlStage : public ConnectedStage
 
     AppStatus init() override
     {
+        m_initialized = true;
         m_trackingcounts.clear();
         return AppStatus::SUCCESS;
     }
 
     AppStatus deinit() override
     {
+        m_initialized = false;
         return AppStatus::SUCCESS;
     }
 
     AppStatus process(BufferPtr data)
     {
-        // TODO: Cleann up m_trackingcounts once a while
+        //Clean up m_trackingcounts once a while
+        clean_up_tracking_counts();
 
         HailoROIPtr hailo_roi = data->get_roi();
 
@@ -101,6 +110,11 @@ class TrackerTrafficCtrlStage : public ConnectedStage
                     m_trackingcounts.erase(track_id);
                 }
             }
+            else if (m_block_all_untracked)
+            {
+                // If we block all untracked objects, we will remove it
+                remove_detection = true;
+            }
 
             // We record for the detection object that we don't want to let it pass to next subscriber
             if (remove_detection)
@@ -120,6 +134,47 @@ class TrackerTrafficCtrlStage : public ConnectedStage
 
         return AppStatus::SUCCESS;
     }
+
+    AppStatus set_unclassified_fps_to_block(size_t count)
+    {
+        if (!m_initialized)
+        {
+            std::cerr << "TrackerTrafficCtrlStage not initialized" << std::endl;
+            return AppStatus::UNINITIALIZED;
+        }
+        
+        m_tracked_unclassified_frame_block_cnt = count;
+        return AppStatus::SUCCESS;
+    }
+  
+    size_t get_unclassified_fps_to_block()
+    {
+        return m_tracked_unclassified_frame_block_cnt;
+    }
+
+  private:
+    std::unordered_map<int, size_t> m_trackingcounts_monitor;
+
+    void clean_up_tracking_counts()
+    {
+        static auto executed_time = std::chrono::steady_clock::now();
+        auto current_time = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - executed_time).count() >= CLEAN_UP_INTERVAL_SEC)
+        {         
+            // After clean up time (default to each 60s), we remove the tracking count that
+            // has not been updated (meaning the tracking id is not used anymore)
+            for (const auto& [key, monitorValue] : m_trackingcounts_monitor) {
+                auto it = m_trackingcounts.find(key);
+                if (it != m_trackingcounts.end() && it->second == monitorValue) {
+                    m_trackingcounts.erase(it); // remove matching key
+                }
+            }            
+            
+            m_trackingcounts_monitor = m_trackingcounts; // Update the monitor map
+            executed_time = current_time;
+        }    
+    }
+
 };
 
 class TrackerTrafficCtrlStageBuild : public TrackerTrafficCtrlStage
@@ -132,6 +187,7 @@ class TrackerTrafficCtrlStageBuild : public TrackerTrafficCtrlStage
         std::optional<std::string> m_stage_name;
         size_t m_queue_size = TRACKER_TRAFFIC_QUEUE_SIZE_DEFAULT;
         bool m_leaky = false;
+        bool m_block_all_untracked = false;
         size_t m_tracked_unclassified_frame_block_cnt = TRACKER_UNCLASSIFIED_FPS_BLOCK_COUNT_BEFORE_PASS;
         size_t m_tracked_classified_frame_block_cnt = TRACKER_CLASSIFIED_FPS_BLOCK_COUNT_BEFORE_PASS;
         bool m_print_fps = false;
@@ -150,6 +206,11 @@ class TrackerTrafficCtrlStageBuild : public TrackerTrafficCtrlStage
         Builder &set_leaky_opt(bool activate)
         {
             m_leaky = activate;
+            return *this;
+        }
+        Builder &set_block_untracked_obj(bool activate)
+        {
+            m_block_all_untracked = activate;
             return *this;
         }
         Builder &set_classified_fps_to_block(size_t count)
@@ -173,7 +234,7 @@ class TrackerTrafficCtrlStageBuild : public TrackerTrafficCtrlStage
             THROW_IF_MISSING(m_stage_name.has_value(), "set_stage_name");
 
             return std::make_shared<TrackerTrafficCtrlStage>(
-                m_stage_name.value(), m_tracked_unclassified_frame_block_cnt, m_tracked_classified_frame_block_cnt,
+                m_stage_name.value(), m_block_all_untracked, m_tracked_unclassified_frame_block_cnt, m_tracked_classified_frame_block_cnt,
                 m_queue_size, m_leaky, m_print_fps);
         }
     };

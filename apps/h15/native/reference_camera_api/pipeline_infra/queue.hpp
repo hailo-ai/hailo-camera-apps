@@ -32,7 +32,8 @@ class Queue
     std::unique_ptr<QueueTracing> m_tracing;
 
   public:
-    Queue(std::string name, size_t max_buffers, bool leaky = false, bool print_level = false);
+    Queue(std::string parent_name, std::string queue_name, size_t max_buffers, bool leaky = false,
+          bool print_level = false);
     ~Queue();
 
     std::string name();

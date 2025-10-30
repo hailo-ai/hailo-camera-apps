@@ -40,25 +40,26 @@ class HailortAsyncStage : public ConnectedStage
         m_tensor_buffer_pools; ///< Buffer pools for each output tensor.
 
     // hailort members
-    std::unique_ptr<hailort::VDevice> m_vdevice;            ///< HailoRT virtual device.
-    std::shared_ptr<hailort::InferModel> m_infer_model;     ///< HailoRT inference model.
+    std::unique_ptr<hailort::VDevice> m_vdevice; ///< HailoRT virtual device.
+    std::shared_ptr<hailort::InferModel> m_infer_model; ///< HailoRT inference model.
     hailort::ConfiguredInferModel m_configured_infer_model; ///< Configured HailoRT inference model.
-    hailort::ConfiguredInferModel::Bindings m_bindings;     ///< Bindings for connecting buffers to the inference model.
+    hailort::ConfiguredInferModel::Bindings m_bindings; ///< Bindings for connecting buffers to the inference model.
     std::unordered_map<std::string, hailo_vstream_info_t> m_vstream_infos; ///< Information about each virtual stream.
     std::shared_ptr<hailort::AsyncInferJob> m_last_infer_job; ///< Pointer to the last asynchronous inference job.
 
     // network members
-    std::string m_hef_path;                        ///< Path to the Hailo Execution File (HEF).
-    std::string m_group_id;                        ///< Group ID for the HailoRT device.
-    int m_batch_size;                              ///< Batch size for inference.
-    int m_scheduler_threshold;                     ///< Threshold for the scheduler.
-    bool m_dynamic_threshold;                      ///< Whether to use dynamic thresholding.
-    float32_t m_nms_score_threshold;               ///< NMS score threshold for filtering detections.
+    std::string m_hef_path; ///< Path to the Hailo Execution File (HEF).
+    std::string m_group_id; ///< Group ID for the HailoRT device.
+    int m_batch_size; ///< Batch size for inference.
+    int m_scheduler_threshold; ///< Threshold for the scheduler.
+    bool m_dynamic_threshold; ///< Whether to use dynamic thresholding.
+    float32_t m_nms_score_threshold; ///< NMS score threshold for filtering detections.
+    size_t m_nms_max_accumulated_mask_size_multiplier; ///< NMS max accumulated mask size multiplier (0 = no change).
     std::chrono::milliseconds m_scheduler_timeout; ///< Timeout for the scheduler.
 
-    std::atomic<size_t> m_active_jobs;        ///< Number of active inference jobs.
-    size_t m_jobs_limit;                      ///< Limit on the number of active inference jobs.
-    std::mutex m_active_jobs_mutex;           ///< Mutex for the active jobs counter.
+    std::atomic<size_t> m_active_jobs; ///< Number of active inference jobs.
+    size_t m_jobs_limit; ///< Limit on the number of active inference jobs.
+    std::mutex m_active_jobs_mutex; ///< Mutex for the active jobs counter.
     std::condition_variable m_active_jobs_cv; ///< Condition variable for the active jobs counter.
     std::condition_variable m_available_buffers_cv;
     std::mutex m_buff_pool_mutex;
@@ -88,7 +89,7 @@ class HailortAsyncStage : public ConnectedStage
                       bool dynamic_threshold = false,
                       std::chrono::milliseconds scheduler_timeout = std::chrono::milliseconds(100),
                       bool print_fps = false, StagePoolMode pool_mode = StagePoolMode::FAIL_ON_EMPTY_POOL,
-                      float32_t nms_score_threshold = 0.0f);
+                      float32_t nms_score_threshold = 0.0f, size_t nms_max_accumulated_mask_size_multiplier = 0);
 
     /**
      * @brief Initialize the HailoRT stage.
@@ -159,6 +160,7 @@ class HailortAsyncStageBuild : public HailortAsyncStage
         bool m_print_fps = false;
         StagePoolMode m_pool_mode = StagePoolMode::FAIL_ON_EMPTY_POOL;
         float32_t m_nms_score_threshold = 0.0f;
+        size_t m_nms_max_accumulated_mask_size_multiplier = 0;
 
       public:
         Builder &set_stage_name(std::string name);
@@ -174,6 +176,7 @@ class HailortAsyncStageBuild : public HailortAsyncStage
         Builder &set_printfps_opt(bool activate);
         Builder &set_pool_mode_opt(StagePoolMode mode);
         Builder &set_nms_score_threshold(float32_t score_threshold);
+        Builder &set_nms_max_accumulated_mask_size_multiplier(size_t multiplier);
         std::shared_ptr<HailortAsyncStage> buildptr() const;
     };
 

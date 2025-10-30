@@ -9,6 +9,11 @@ endif
 thread_deps = [dependency('threads')]
 
 ################################################
+# General Include Directory
+################################################
+hailo_general_inc = include_directories('../general')
+
+################################################
 # GST Image Handling
 ################################################
 image_dep = dependency('tappas_image_utils', method : 'pkg-config')
@@ -48,6 +53,4 @@ if target_platform == 'x86' or target_platform == 'rpi' or target_platform == 'r
     subdir('x86')
 elif target_platform == 'imx8'
     subdir('imx')
-elif target_platform == 'hailo15'
-    subdir('hailo15')
 endif

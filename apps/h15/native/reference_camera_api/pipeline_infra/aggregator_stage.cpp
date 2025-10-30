@@ -1,4 +1,5 @@
 #include "aggregator_stage.hpp"
+#include "reference_camera_logger.hpp"
 #include "stage_debug.hpp"
 #include <algorithm>
 #include <optional>
@@ -8,34 +9,86 @@
 #include <string>
 #include <tl/expected.hpp>
 #include "hailo_objects.hpp"
+#include "reference_camera_perfetto.hpp"
+
+// Internal class for Perfetto tracing to maintain ABI compatibility
+class AggTracing
+{
+  private:
+#ifdef HAVE_PERFETTO
+    std::string m_counter_name_drop_rate;
+    perfetto::CounterTrack m_counter_track_drop_rate;
+    std::string m_counter_name_timeout;
+    perfetto::CounterTrack m_counter_track_timeout;
+#endif
+
+  public:
+    AggTracing(const std::string &name)
+#ifdef HAVE_PERFETTO
+        : m_counter_name_drop_rate("aggregator_" + name + "_drop_rate"),
+          m_counter_track_drop_rate(perfetto::DynamicString(m_counter_name_drop_rate), "drop rate"),
+          m_counter_name_timeout("aggregator_" + name + "_timeout"),
+          m_counter_track_timeout(perfetto::DynamicString(m_counter_name_timeout), "timeout")
+#endif
+    {
+    }
+
+    void track_drop_rate(float drop_rate)
+    {
+        REFERENCE_CAMERA_TRACE_COUNTER(m_counter_track_drop_rate, drop_rate);
+    }
+
+    void track_timeout(std::chrono::milliseconds timeout)
+    {
+        REFERENCE_CAMERA_TRACE_COUNTER(m_counter_track_timeout, timeout.count());
+    }
+};
 
 AggregatorStage::AggregatorStage(std::string name, bool blocking, std::string main_inlet_name, size_t main_queue_size,
                                  bool main_queue_leaky, std::string sub_inlet_name, size_t sub_queue_size,
                                  bool sub_queue_leaky, bool multi_scale, bool sync, float iou_threshold,
-                                 float m_border_threshold, bool print_fps,
-                                 std::optional<std::chrono::milliseconds> timeout)
+                                 float m_border_threshold, bool skip_migration, bool print_fps,
+                                 std::optional<std::chrono::milliseconds> timeout,
+                                 std::optional<std::chrono::milliseconds> min_timeout,
+                                 std::optional<std::chrono::milliseconds> max_timeout,
+                                 std::chrono::milliseconds timeout_adjustment_period, float drop_rate_threshold,
+                                 std::chrono::milliseconds timeout_step_size, bool drop_rate_block)
     : ConnectedStage(name, main_queue_size, main_queue_leaky, print_fps, false), m_blocking(blocking),
       m_main_inlet_name(main_inlet_name), m_main_queue_size(main_queue_size), m_sub_inlet_name(sub_inlet_name),
       m_sub_queue_size(sub_queue_size), m_static_sub_frames(-1), m_multi_scale(multi_scale), m_sync(sync),
-      m_iou_threshold(iou_threshold), m_border_threshold(m_border_threshold), m_timeout(timeout)
+      m_iou_threshold(iou_threshold), m_border_threshold(m_border_threshold), m_skip_migration(skip_migration),
+      m_timeout(timeout), m_min_timeout(min_timeout), m_max_timeout(max_timeout),
+      m_timeout_adjustment_period(timeout_adjustment_period), m_drop_rate_threshold(drop_rate_threshold),
+      m_timeout_step_size(timeout_step_size), m_drop_rate_block(drop_rate_block)
 {
-    m_queues.push_back(std::make_shared<Queue>(m_main_inlet_name, m_main_queue_size, main_queue_leaky));
-    m_queues.push_back(std::make_shared<Queue>(m_sub_inlet_name, m_sub_queue_size, sub_queue_leaky));
+    m_queues.push_back(std::make_shared<Queue>(name, m_main_inlet_name, m_main_queue_size, main_queue_leaky));
+    m_queues.push_back(std::make_shared<Queue>(name, m_sub_inlet_name, m_sub_queue_size, sub_queue_leaky));
+    m_agg_tracing = std::make_unique<AggTracing>(name);
 }
 
 AggregatorStage::AggregatorStage(std::string name, bool blocking, int static_sub_frames, std::string main_inlet_name,
                                  size_t main_queue_size, bool main_queue_leaky, std::string sub_inlet_name,
                                  size_t sub_queue_size, bool sub_queue_leaky, bool multi_scale, bool sync,
-                                 float iou_threshold, float m_border_threshold, bool print_fps,
-                                 std::optional<std::chrono::milliseconds> timeout)
+                                 float iou_threshold, float m_border_threshold, bool skip_migration, bool print_fps,
+                                 std::optional<std::chrono::milliseconds> timeout,
+                                 std::optional<std::chrono::milliseconds> min_timeout,
+                                 std::optional<std::chrono::milliseconds> max_timeout,
+                                 std::chrono::milliseconds timeout_adjustment_period, float drop_rate_threshold,
+                                 std::chrono::milliseconds timeout_step_size, bool drop_rate_block)
     : ConnectedStage(name, main_queue_size, main_queue_leaky, print_fps, false), m_blocking(blocking),
       m_main_inlet_name(main_inlet_name), m_main_queue_size(main_queue_size), m_sub_inlet_name(sub_inlet_name),
       m_sub_queue_size(sub_queue_size), m_static_sub_frames(static_sub_frames), m_multi_scale(multi_scale),
-      m_sync(sync), m_iou_threshold(iou_threshold), m_border_threshold(m_border_threshold), m_timeout(timeout)
+      m_sync(sync), m_iou_threshold(iou_threshold), m_border_threshold(m_border_threshold),
+      m_skip_migration(skip_migration), m_timeout(timeout), m_min_timeout(min_timeout), m_max_timeout(max_timeout),
+      m_timeout_adjustment_period(timeout_adjustment_period), m_drop_rate_threshold(drop_rate_threshold),
+      m_timeout_step_size(timeout_step_size), m_drop_rate_block(drop_rate_block)
 {
-    m_queues.push_back(std::make_shared<Queue>(m_main_inlet_name, m_main_queue_size, main_queue_leaky));
-    m_queues.push_back(std::make_shared<Queue>(m_sub_inlet_name, m_sub_queue_size, sub_queue_leaky));
+    m_queues.push_back(std::make_shared<Queue>(name, m_main_inlet_name, m_main_queue_size, main_queue_leaky));
+    m_queues.push_back(std::make_shared<Queue>(name, m_sub_inlet_name, m_sub_queue_size, sub_queue_leaky));
+    m_agg_tracing = std::make_unique<AggTracing>(name);
 }
+
+AggregatorStage::~AggregatorStage() = default;
 
 void AggregatorStage::add_queue(std::string name)
 {
@@ -137,12 +190,12 @@ void AggregatorStage::nms(HailoROIPtr hailo_roi, const float iou_thr)
 
 int AggregatorStage::count_subframes(BufferPtr main_buffer)
 {
-    int num_subframes = 0; 
+    int num_subframes = 0;
     bool count_static_sub_frames = (m_static_sub_frames >= 0);
 
     if (count_static_sub_frames)
     {
-        num_subframes = m_static_sub_frames; 
+        num_subframes = m_static_sub_frames;
     }
 
     std::vector<MetadataPtr> metadata = main_buffer->get_metadata_of_type(MetadataType::EXPECTED_CROPS);
@@ -172,8 +225,49 @@ void AggregatorStage::stamp_and_send(BufferPtr buffer)
     m_tracing->trace_processing_end();
 }
 
+void AggregatorStage::timeout_adjustment()
+{
+    const auto time_now =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+    if (time_now - m_last_timeout_adjustment < m_timeout_adjustment_period)
+    {
+        return;
+    }
+
+    const float drop_rate = static_cast<float>(m_dropped_frames) / static_cast<float>(m_processed_frames);
+    m_agg_tracing->track_drop_rate(drop_rate);
+    if (m_timeout)
+    {
+        if (m_min_timeout && m_max_timeout)
+        {
+            auto t = m_timeout.value();
+            const auto &low = m_min_timeout.value();
+            const auto &high = m_max_timeout.value();
+            if (drop_rate > m_drop_rate_threshold)
+            {
+                t += m_timeout_step_size;
+            }
+            else if (drop_rate < m_drop_rate_threshold)
+            {
+                t -= m_timeout_step_size;
+            }
+            m_timeout = std::clamp(t, low, high);
+        }
+        m_agg_tracing->track_timeout(m_timeout.value());
+    }
+    m_drop_rate = drop_rate;
+    m_dropped_frames = 0;
+    m_processed_frames = 0;
+    m_last_timeout_adjustment = time_now;
+}
+
 void AggregatorStage::migrate_metadata(BufferPtr main_buffer, std::vector<BufferPtr> &subframes)
 {
+    if (m_skip_migration)
+    {
+        // If skip migration is set, we don't want to migrate metadata from subframes to main_buffer
+        return;
+    }
     // copy metadata from subframes to main frame
     // for (auto BufferPtr subframe : subframes)
     for (BufferPtr subframe : subframes)
@@ -232,6 +326,12 @@ void AggregatorStage::loop()
                     m_first_sync = false;
                     timeout = std::nullopt;
                 }
+                if (m_drop_rate_block && m_drop_rate >= 0.99f)
+                {
+                    REFERENCE_CAMERA_LOG_WARN("[{}] drop rate 100%, allowing indefinite timeout until recovered.",
+                                              m_stage_name);
+                    timeout = std::nullopt;
+                }
 
                 uint64_t mainframe_timestamp = main_buffer->get_buffer()->isp_timestamp_ns;
                 auto samples_start = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -242,7 +342,7 @@ void AggregatorStage::loop()
                                      samples_start;
                 if (subframe_timestamp == 0)
                 {
-                    // if we reached here, then the queue is empty and we are flushing
+                    // if we reached here, then the queue is empty and we are flushing (or timed out)
                     stamp_and_send(main_buffer);
                     continue;
                 }
@@ -252,12 +352,14 @@ void AggregatorStage::loop()
                 {
                     // drop the oldest subframe
                     m_queues[1]->pop();
+                    m_processed_frames++;
+                    m_dropped_frames++;
                     // check the next subframe
                     if (timeout.has_value())
                     {
                         timeout = m_timeout.value() - sampling_time;
                     }
-                    if (timeout <= std::chrono::milliseconds(0))
+                    if (timeout.has_value() && timeout <= std::chrono::milliseconds(0))
                     {
                         subframe_timestamp = 0; // skip if acumulated time is more than originally requested
                     }
@@ -274,6 +376,7 @@ void AggregatorStage::loop()
                 if (mainframe_timestamp == subframe_timestamp)
                 {
                     subframes.push_back(m_queues[1]->pop());
+                    m_processed_frames++;
                     m_debug_counters->increment_extra_counter(static_cast<int>(AggregatorExtraCounters::SUB_FRAMES));
                     if (subframes[0] == nullptr && m_end_of_stream)
                     {
@@ -287,6 +390,8 @@ void AggregatorStage::loop()
                     // timestamps don't match, main frame is older
                     num_subframes = 0; // pass the main frame as is
                 }
+
+                timeout_adjustment();
             }
             else
             {
@@ -418,6 +523,12 @@ AggregatorStageBuild::Builder &AggregatorStageBuild::Builder::set_sync_opt(bool 
     return *this;
 }
 
+AggregatorStageBuild::Builder &AggregatorStageBuild::Builder::set_skip_migration_opt(bool skip)
+{
+    m_skip_migration = skip;
+    return *this;
+}
+
 AggregatorStageBuild::Builder &AggregatorStageBuild::Builder::set_printfps_opt(bool print)
 {
     m_print_fps = print;
@@ -443,6 +554,45 @@ AggregatorStageBuild::Builder &AggregatorStageBuild::Builder::set_timeout_opt(
     return *this;
 }
 
+AggregatorStageBuild::Builder &AggregatorStageBuild::Builder::set_min_timeout_opt(
+    std::optional<std::chrono::milliseconds> min_timeout)
+{
+    m_min_timeout = min_timeout;
+    return *this;
+}
+
+AggregatorStageBuild::Builder &AggregatorStageBuild::Builder::set_max_timeout_opt(
+    std::optional<std::chrono::milliseconds> max_timeout)
+{
+    m_max_timeout = max_timeout;
+    return *this;
+}
+
+AggregatorStageBuild::Builder &AggregatorStageBuild::Builder::set_timeout_adjustment_period(
+    std::chrono::milliseconds period)
+{
+    m_timeout_adjustment_period = period;
+    return *this;
+}
+
+AggregatorStageBuild::Builder &AggregatorStageBuild::Builder::set_drop_rate_threshold(float threshold)
+{
+    m_drop_rate_threshold = threshold;
+    return *this;
+}
+
+AggregatorStageBuild::Builder &AggregatorStageBuild::Builder::set_timeout_step_size(std::chrono::milliseconds step_size)
+{
+    m_timeout_step_size = step_size;
+    return *this;
+}
+
+AggregatorStageBuild::Builder &AggregatorStageBuild::Builder::set_drop_rate_block(bool block)
+{
+    m_drop_rate_block = block;
+    return *this;
+}
+
 std::shared_ptr<AggregatorStage> AggregatorStageBuild::Builder::buildptr() const
 {
     THROW_IF_MISSING(m_stage_name.has_value(), "set_stage_name");
@@ -452,7 +602,8 @@ std::shared_ptr<AggregatorStage> AggregatorStageBuild::Builder::buildptr() const
     return std::make_shared<AggregatorStage>(
         m_stage_name.value(), m_blocking, m_static_sub_frames, m_main_inlet_name.value(), m_main_queue_size,
         m_main_queue_leaky, m_sub_inlet_name.value(), m_sub_queue_size, m_sub_queue_leaky, m_multi_scale, m_sync,
-        m_iou_threshold, m_border_threshold, m_print_fps, m_timeout);
+        m_iou_threshold, m_border_threshold, m_skip_migration, m_print_fps, m_timeout, m_min_timeout, m_max_timeout,
+        m_timeout_adjustment_period, m_drop_rate_threshold, m_timeout_step_size, m_drop_rate_block);
 }
 
 AggregatorStageBuild::Builder AggregatorStageBuild::create()

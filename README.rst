@@ -136,10 +136,6 @@ To run the detection pipeline, follow the steps below:
 The application will now start and you should see a display window open with the detection results. You can repeat this process
 for the other applications in the **apps/** folder.
 
-.. note::
-    If your host is struggling to decode and display high resolutions in real-time, you can try using VA-API for hardware accelerated decoding.
-    To see if your host machine is VA-API capable and then use it, `refer to this guide <./apps/h8/gstreamer/x86_hw_accelerated/README.rst>`_.
-
 ----
 
 Further Reading

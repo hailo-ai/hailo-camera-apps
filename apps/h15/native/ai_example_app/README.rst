@@ -118,8 +118,8 @@ This is a simplified view of the full pipeline, but we will break it down into s
 - The pipeline outputs 2 vision streams: one of just video (HD), and a second (4K) with the inference overlay.
 - The AI pipeline is comprised of two stages:
     - The first stage performs yolo object detection (person and face classes) on a tiled FHD stream
-        - Netwrork: yolov5s_personface_nv12
-        - Input: 640x640 NV12
+        - Netwrork: yolov8n_personface
+        - Input: 640x384 NV12
         - Classes: Person, Face
         - Output: FLOAT32, HAILO NMS(number of classes: 2, maximum bounding boxes per class: 80, maximum frame size: 3208)
     - The second stage performs facial landmarking on faces detected in the first stage

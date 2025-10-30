@@ -15,12 +15,12 @@
 // For Hailo15
 #define HAILO15_YOLO_HEF_FILE "/home/root/apps/webserver/resources/yolov5m_wo_spp_60p_nv12_640.hef"
 #define HAILO15_YOLO_FUNC_NAME "yolov5"
-#define HAILO15_YOLO_POST_CONF "/home/root/apps/detection/resources/configs/yolov5.json"
+#define HAILO15_YOLO_POST_CONF "/home/root/apps/webserver/resources/configs/yolov5.json"
 
 // For Hailo15L
-#define HAILO15L_YOLO_HEF_FILE "/home/root/apps/webserver/resources/yolov5s_personface_nv12.hef"
+#define HAILO15L_YOLO_HEF_FILE "/home/root/apps/webserver/resources/yolov5s_personface.hef"
 #define HAILO15L_YOLO_FUNC_NAME "yolov5s_personface"
-#define HAILO15L_YOLO_POST_CONF "/home/root/apps/detection/resources/configs/yolov5_personface.json"
+#define HAILO15L_YOLO_POST_CONF "/home/root/apps/webserver/resources/configs/yolov5_personface.json"
 
 // Detection Postprocess Params
 #define POST_STAGE "yolo_post"
@@ -48,12 +48,18 @@ void CppPipeline::build_pipeline()
     WEBSERVER_LOG_INFO("Building pipeline");
     auto config = std::static_pointer_cast<ConfigResourceMedialib>(m_resources->get(RESOURCE_CONFIG_MANAGER));
     std::string medialib_config_string = config->get_current_medialib_config().dump();
-    m_app_resources->media_library = std::make_shared<MediaLibrary>();
+    auto media_lib_expected = MediaLibrary::create();
+    if (!media_lib_expected.has_value())
+    {
+        std::cout << "Failed to create media library" << std::endl;
+        throw std::runtime_error("Failed to create media library");
+    }
+    m_app_resources->media_library = media_lib_expected.value();
     if (m_app_resources->media_library->initialize(medialib_config_string) !=
         media_library_return::MEDIA_LIBRARY_SUCCESS)
     {
         std::cout << "Failed to initialize media library" << std::endl;
-        return;
+        throw std::runtime_error("Failed to initialize media library");
     }
 
     // Select the right HEF file and function name based on the platform
@@ -119,6 +125,9 @@ void CppPipeline::subscribe_callbacks()
 {
     WEBSERVER_LOG_INFO("Subscribing callbacks");
     m_resources->m_event_bus->subscribe(
+        EventType::CHANGED_RESOURCE_PRIVACY_MASK, EventPriority::EVENT_PRIORITY_MEDIUM,
+        std::bind(&CppPipeline::callback_handle_privacy_mask, this, std::placeholders::_1));
+    m_resources->m_event_bus->subscribe(
         EventType::SWITCH_PROFILE, EventPriority::EVENT_PRIORITY_MEDIUM,
         std::bind(&CppPipeline::callback_handle_profile_switch, this, std::placeholders::_1));
     m_resources->m_event_bus->subscribe(
@@ -155,10 +164,14 @@ void CppPipeline::subscribe_callbacks()
                 WEBSERVER_LOG_ERROR("Failed to get current profile");
                 throw std::runtime_error("Failed to get current profile");
             }
-            ProfileConfig current_profile = expected_profile.value();
+            config_profile_t current_profile = expected_profile.value();
             m_resources->m_event_bus->notify(EventType::PROFILE_UPDATE,
                                              std::make_shared<ProfileState>(ProfileState(current_profile)));
         });
+    m_app_resources->m_isp_blender = std::make_shared<IspBlender>();
+    m_resources->m_event_bus->notify(
+        EventType::UPDATE_BLENDER,
+        std::make_shared<ShareValueState<std::shared_ptr<IspBlender>>>(m_app_resources->m_isp_blender));
 }
 
 std::shared_ptr<CppPipeline> CppPipeline::create(std::shared_ptr<HTTPServer> svr, std::string config_path,
@@ -177,11 +190,24 @@ void CppPipeline::start()
     m_app_resources->pipeline->start_pipeline();
     // Create pipeline
     sleep(1);
+
+    WEBSERVER_LOG_INFO("Received PROFILE_UPDATE_REQUEST notification");
+    auto expected_profile = m_app_resources->media_library->get_current_profile();
+    if (!expected_profile.has_value())
+    {
+        WEBSERVER_LOG_ERROR("Failed to get current profile");
+        throw std::runtime_error("Failed to get current profile");
+    }
+    config_profile_t current_profile = expected_profile.value();
+    m_resources->m_event_bus->notify(EventType::PIPELINE_READY,
+                                     std::make_shared<ProfileState>(ProfileState(current_profile)));
+
     auto encoder_resource = std::static_pointer_cast<EncoderResource>(m_resources->get(RESOURCE_ENCODER));
     encoder_resource->set_encoder_query([this]() { return this->get_encoder_config(); });
 
     WEBSERVER_LOG_INFO("CppPipeline started successfully");
 
+    m_app_resources->m_isp_blender->set_media_library(m_app_resources->media_library);
     m_resources->m_event_bus->notify(EventType::RESET_ISP, std::make_shared<EmptyState>(EmptyState()));
 }
 
@@ -192,6 +218,7 @@ void CppPipeline::stop()
     m_app_resources->pipeline->stop_pipeline();
     m_app_resources->media_library->stop_pipeline();
     m_app_resources->clear();
+    m_app_resources->m_isp_blender->unset_media_library();
     WEBSERVER_LOG_INFO("CppPipeline stopped successfully");
 }
 

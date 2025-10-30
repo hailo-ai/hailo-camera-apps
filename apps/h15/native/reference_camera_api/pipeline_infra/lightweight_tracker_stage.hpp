@@ -13,13 +13,14 @@ class LightweightTrackerStage : public ConnectedStage
 {
   private:
     std::vector<int> m_classification_ids;
+    bool m_block_non_tracked_class_id;
     std::map<int, std::unique_ptr<HailoLightweightTracker>> m_trackers;
 
   public:
     LightweightTrackerStage(std::string name, std::map<int, TrackerParams> tracker_params,
                             size_t queue_size = TRACKER_QUEUE_SIZE_DEFAULT, bool leaky = false,
-                            std::vector<int> classification_ids = {}, bool print_fps = false)
-        : ConnectedStage(name, queue_size, leaky, print_fps), m_classification_ids(classification_ids)
+                            std::vector<int> classification_ids = {}, bool block_non_tracked_class = false, bool print_fps = false)
+        : ConnectedStage(name, queue_size, leaky, print_fps), m_classification_ids(classification_ids), m_block_non_tracked_class_id(block_non_tracked_class)
     {
         for (int class_id : m_classification_ids)
         {
@@ -41,7 +42,13 @@ class LightweightTrackerStage : public ConnectedStage
             HailoDetectionPtr detection = std::dynamic_pointer_cast<HailoDetection>(obj);
             if (m_classification_ids.empty() || std::find(m_classification_ids.begin(), m_classification_ids.end(),
                                                           detection->get_class_id()) == m_classification_ids.end())
+            {
+                if (m_block_non_tracked_class_id)
+                    hailo_roi->remove_object(detection);
+
                 continue;
+            }
+
             detections[detection->get_class_id()].push_back(detection);
             hailo_roi->remove_object(detection);
         }
@@ -79,6 +86,7 @@ class LightweightTrackerStageBuild : public LightweightTrackerStage
         size_t m_queue_size = TRACKER_QUEUE_SIZE_DEFAULT;
         bool m_leaky = false;
         std::vector<int> m_classification_ids = {};
+        bool m_block_non_tracked_class_id = false;
         bool m_print_fps = false;
         std::map<int, TrackerParams> m_tracker_params = {};
 
@@ -236,6 +244,11 @@ class LightweightTrackerStageBuild : public LightweightTrackerStage
             }
             return *this;
         }
+        Builder &set_block_non_tracked_classification_id(bool block)
+        {
+            m_block_non_tracked_class_id = block;
+            return *this;
+        }
 
         std::shared_ptr<LightweightTrackerStage> buildptr() const
         {
@@ -243,7 +256,7 @@ class LightweightTrackerStageBuild : public LightweightTrackerStage
             THROW_IF_MISSING(!m_classification_ids.empty(), "set_classification_ids");
 
             return std::make_shared<LightweightTrackerStage>(m_stage_name.value(), m_tracker_params, m_queue_size,
-                                                             m_leaky, m_classification_ids, m_print_fps);
+                                                             m_leaky, m_classification_ids, m_block_non_tracked_class_id, m_print_fps);
         }
     };
 

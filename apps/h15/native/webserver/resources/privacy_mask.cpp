@@ -9,7 +9,11 @@ PrivacyMaskResource::PrivacyMaskResource(std::shared_ptr<EventBus> event_bus,
 {
     m_default_config = "{}";
     m_config = nlohmann::json::parse(m_default_config);
-    initialize_from_config(configs);
+    subscribe_callback(EventType::PIPELINE_READY, EventPriority::EVENT_PRIORITY_HIGH,
+                       [this, configs](ResourceStateChangeNotification notification) {
+                           WEBSERVER_LOG_INFO("Received PIPELINE_READY notification");
+                           this->initialize_from_config(configs);
+                       });
 
     WEBSERVER_LOG_INFO("PrivacyMaskResource initialized with default values");
 
@@ -38,8 +42,8 @@ PrivacyMaskResource::PrivacyMaskResource(std::shared_ptr<EventBus> event_bus,
     subscribe_callback(EventType::CHANGE_RESOLUTION, [this](ResourceStateChangeNotification notification) {
         WEBSERVER_LOG_INFO("Received CHANGE_RESOLUTION notification");
         auto state = notification.getDirectResourceState<ProfileResolutionState>();
-        m_frame.width = resolution_map.at(string_to_resolution(state->value)).first;
-        m_frame.height = resolution_map.at(string_to_resolution(state->value)).second;
+        m_frame.width = webserver::common::resolution_map.at(string_to_resolution(state->value)).first;
+        m_frame.height = webserver::common::resolution_map.at(string_to_resolution(state->value)).second;
         WEBSERVER_LOG_INFO("New resolution: {}x{}", m_frame.width, m_frame.height);
         adjust_privacy_masks();
     });

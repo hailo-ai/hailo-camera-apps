@@ -119,7 +119,35 @@
                     "qp_hdr": -1
                 },
                 "bitrate": {
-                    "target_bitrate": 16000000
+                    "target_bitrate": 4000000,
+                    "bit_var_range_i": 1000,
+                    "bit_var_range_p": 1000,
+                    "bit_var_range_b": 1000,
+                    "tolerance_moving_bitrate": 0
+                },
+                "zoom_bitrate_adjuster": {
+                    "mode": "BOTH",
+                    "zooming_process_bitrate_factor": 1.4,
+                    "zooming_process_timeout_ms": 1000,
+                    "zooming_process_max_bitrate": 16000000,
+                    "zooming_process_force_keyframe": true,
+                    "zoom_level_threshold": 2.5,
+                    "zoom_level_bitrate_factor": 1.2
+                },
+                "qp_smooth_settings": {
+                    "qp_delta": 128,
+                    "qp_delta_limit": 1536,
+                    "qp_delta_step": 128,
+                    "qp_delta_limit_step": 384,
+                    "q_step_divisor": 2,
+                    "alpha": 0
+                },
+                "gop_anomaly_bitrate_adjuster": {
+                    "enable": false,
+                    "threshold_high": 0.3,
+                    "threshold_low": 0.125,
+                    "max_target_bitrate_factor": 1.3,
+                    "adjustment_factor": 0.2
                 }
             },
             "monitors_control": {

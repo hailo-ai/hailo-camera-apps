@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "sensor_config": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/daylight/dynamic_privacy_mask_daylight/sensor_config.json",
+    "application_settings": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/daylight/dynamic_privacy_mask_daylight/application_settings.json",
+    "stabilizer_settings": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/daylight/dynamic_privacy_mask_daylight/stabilizer_settings.json",
+    "iq_settings": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/daylight/dynamic_privacy_mask_daylight/iq_settings.json",
+    "encoded_output_streams": [
+        {
+            "stream_id": "sink0",
+            "encoding": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/daylight/dynamic_privacy_mask_daylight/encoder_sink0.json",
+            "osd": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/daylight/dynamic_privacy_mask_daylight/osd_sink0.json",
+            "masking": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/daylight/dynamic_privacy_mask_daylight/masking_sink0.json"
+        }
+    ]
+}

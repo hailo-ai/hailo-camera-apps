@@ -70,7 +70,7 @@ float get_face_presence_score(HailoTensorPtr tensor)
 }
 
 // Parse and add landmark annotations to the ROI
-void mediapipe_landmark(HailoROIPtr roi, const LandmarkDrawOptions &options)
+void mediapipe_landmark(HailoROIPtr roi)
 {
     if (!roi->has_tensors())
         return;
@@ -84,61 +84,19 @@ void mediapipe_landmark(HailoROIPtr roi, const LandmarkDrawOptions &options)
     xt::xarray<float> landmarks = get_normalized_landmarks(tensor);
 
     // Add all landmarks as "landmarks" object
-    if (options.show_all_landmarks)
+    std::vector<HailoPoint> all_points;
+    all_points.reserve(MEDIAPIPE_LANDMARK_COUNT);
+    for (size_t i = 0; i < MEDIAPIPE_LANDMARK_COUNT; ++i)
     {
-        std::vector<HailoPoint> all_points;
-        all_points.reserve(MEDIAPIPE_LANDMARK_COUNT);
-        for (size_t i = 0; i < MEDIAPIPE_LANDMARK_COUNT; ++i)
-        {
-            all_points.emplace_back(landmarks(i, 0), landmarks(i, 1));
-        }
-        roi->add_object(std::make_shared<HailoLandmarks>("landmarks", all_points));
+        all_points.emplace_back(landmarks(i, 0), landmarks(i, 1));
     }
-    // Optional groups (eyes, nose, mouth)
-    if (options.show_eye)
-    {
-        std::vector<HailoPoint> eye_points;
-        eye_points.reserve(EYE_INDICES.size());
-        for (int i : EYE_INDICES)
-        {
-            eye_points.emplace_back(landmarks(i, 0), landmarks(i, 1));
-        }
-        roi->add_object(std::make_shared<HailoLandmarks>("landmarks", eye_points));
-    }
-
-    if (options.show_nose)
-    {
-        std::vector<HailoPoint> nose_points;
-        nose_points.reserve(NOSE_INDICES.size());
-        for (int i : NOSE_INDICES)
-        {
-            nose_points.emplace_back(landmarks(i, 0), landmarks(i, 1));
-        }
-        roi->add_object(std::make_shared<HailoLandmarks>("landmarks", nose_points));
-    }
-
-    if (options.show_mouth)
-    {
-        std::vector<HailoPoint> mouth_points;
-        mouth_points.reserve(MOUTH_INDICES.size());
-        for (int i : MOUTH_INDICES)
-        {
-            mouth_points.emplace_back(landmarks(i, 0), landmarks(i, 1));
-        }
-        roi->add_object(std::make_shared<HailoLandmarks>("landmarks", mouth_points));
-    }
+    roi->add_object(std::make_shared<HailoLandmarks>("face", all_points));
 }
 
 // Main entry point used by Hailo runtime to call post-process
 void facial_landmarks_nv12(HailoROIPtr roi)
 {
-    LandmarkDrawOptions options;
-    options.show_all_landmarks = true;
-    options.show_eye = true;
-    options.show_nose = true;
-    options.show_mouth = true;
-
-    mediapipe_landmark(roi, options);
+    mediapipe_landmark(roi);
 }
 
 // Placeholder filter function (no-op)

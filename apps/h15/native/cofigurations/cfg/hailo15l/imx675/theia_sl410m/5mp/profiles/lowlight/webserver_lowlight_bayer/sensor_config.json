@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "input_video": {
+        "resolution": {
+            "width": 2592,
+            "height": 1944,
+            "framerate": 30
+        }
+    },
+    "sensor_configuration": {
+        "name": "imx675",
+        "drv": "HAILO_IMX675.drv",
+        "mode": 0,
+        "pixel_mode": 0,
+        "sensor_only": 0,
+        "af_i2c_bus": -1,
+        "af_i2c_addr": "0x0"
+    },
+    "sensor_calibration_file": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/lowlight/webserver_lowlight_bayer/calib.json"
+}

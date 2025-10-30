@@ -1,4 +1,8 @@
 #include "configs.hpp"
+#include "media_library/config_manager.hpp"
+#include "media_library/encoder_config_types.hpp"
+#include "media_library/media_library_types.hpp"
+#include "pipeline/pipeline.hpp"
 
 #define DEFAULT_CONFIGS_PATH "/etc/imaging/cfg/medialib_configs/"
 #define APPEND_CONFIG_PATH(path) DEFAULT_CONFIGS_PATH path
@@ -18,22 +22,26 @@ ConfigResourceMedialib::ConfigResourceMedialib(std::shared_ptr<EventBus> event_b
     auto medialib_config = load_config_from_file(medialib_config_path);
     if (!medialib_config.has_value())
     {
+        WEBSERVER_LOG_ERROR("Failed to load default medialib config: {}", medialib_config.error());
         throw std::runtime_error("Failed to load default medialib config: " + medialib_config.error());
     }
     m_medialib_config = medialib_config.value();
 
     // Load default profile config
     m_default_profile_name = m_medialib_config["default_profile"];
-    auto conf_succsess = extract_profile_data(m_default_profile_name);
-    if (!conf_succsess.has_value())
-    {
-        throw std::runtime_error("Failed to extract profile data: " + conf_succsess.error());
-    }
-    subscribe_callback(EventType::PROFILE_UPDATE, [this](ResourceStateChangeNotification notification) {
-        WEBSERVER_LOG_INFO("Received PROFILE_UPDATE notification");
-        auto state = notification.getResourceStateFromBase<ProfileState>();
-        m_current_profile = state->value;
-    });
+
+    subscribe_callback({EventType::PROFILE_UPDATE, EventType::PIPELINE_READY}, EventPriority::EVENT_PRIORITY_VERY_HIGH,
+                       [this](ResourceStateChangeNotification notification) {
+                           WEBSERVER_LOG_INFO("Received PROFILE_UPDATE notification");
+                           auto state = notification.getResourceStateFromBase<ProfileState>();
+                           m_current_profile = state->value;
+                           auto conf_succsess = extract_profile_data(m_default_profile_name);
+                           if (!conf_succsess.has_value())
+                           {
+                               WEBSERVER_LOG_ERROR("Failed to extract profile data: {}", conf_succsess.error());
+                               throw std::runtime_error("Failed to extract profile data: " + conf_succsess.error());
+                           }
+                       });
 }
 
 void ConfigResourceMedialib::reset_config()
@@ -49,6 +57,7 @@ void ConfigResourceMedialib::reset_config()
     auto conf_succsess = extract_profile_data(m_default_profile_name);
     if (!conf_succsess.has_value())
     {
+        WEBSERVER_LOG_ERROR("Failed to extract profile data: {}", conf_succsess.error());
         throw std::runtime_error("Failed to extract profile data: " + conf_succsess.error());
     }
 }
@@ -92,12 +101,14 @@ tl::expected<nlohmann::json, std::string> ConfigResourceMedialib::extract_encode
     nlohmann::json encoder_config;
     try
     {
-        if (m_profile["encoded_output_streams"].size() != 1)
-        {
-            return tl::make_unexpected("Profile should have only one encoder in webserver");
-        }
-        std::string encoder_config_path = m_profile["encoded_output_streams"][0]["config_path"];
-        return load_config_from_file(encoder_config_path);
+        // NOTE: waiting for encoder api from mosko
+        //  encoder_config_t encoder_config = m_current_profile.m_encoders[STREAM_4K];
+        auto encoder_config_struct = m_current_profile.to_encoded_output_stream_config_map()[STREAM_4K];
+        // updated from the real struct)
+        ConfigManager config_manager = ConfigManager(CONFIG_SCHEMA_ENCODER_AND_BLENDING);
+        std::string encoder_config_str =
+            config_manager.config_struct_to_string<config_encoded_output_stream_t>(encoder_config_struct);
+        encoder_config = nlohmann::json::parse(encoder_config_str);
     }
     catch (const std::exception &e)
     {
@@ -112,32 +123,11 @@ tl::expected<nlohmann::json, std::string> ConfigResourceMedialib::extract_fronte
     nlohmann::json frontend_config;
     try
     {
-        std::vector<std::string> config_fields = {"input_video",
-                                                  "application_input_streams",
-                                                  "application_analytics",
-                                                  "dewarp",
-                                                  "dis",
-                                                  "eis",
-                                                  "gyro",
-                                                  "gmv",
-                                                  "optical_zoom",
-                                                  "isp",
-                                                  "hdr",
-                                                  "digital_zoom",
-                                                  "flip",
-                                                  "motion_detection",
-                                                  "hailort",
-                                                  "denoise",
-                                                  "rotation",
-                                                  "isp_config_files"};
-
-        for (const auto &field : config_fields)
-        {
-            if (m_profile.contains(field))
-            {
-                frontend_config[field] = m_profile[field];
-            }
-        }
+        auto frontend_config_struct = m_current_profile.to_frontend_config();
+        ConfigManager config_manager = ConfigManager(CONFIG_SCHEMA_FRONTEND);
+        std::string frontend_config_str =
+            config_manager.config_struct_to_string<frontend_config_t>(frontend_config_struct);
+        frontend_config = nlohmann::json::parse(frontend_config_str);
     }
     catch (const std::exception &e)
     {
@@ -147,7 +137,7 @@ tl::expected<nlohmann::json, std::string> ConfigResourceMedialib::extract_fronte
     return frontend_config;
 }
 
-tl::expected<nlohmann::json, std::string> ConfigResourceMedialib::get_profile(nlohmann::json profile_name)
+tl::expected<nlohmann::json, std::string> ConfigResourceMedialib::get_profile(const nlohmann::json &profile_name)
 {
     for (auto profile : m_medialib_config["profiles"])
     {
@@ -163,14 +153,63 @@ tl::expected<nlohmann::json, std::string> ConfigResourceMedialib::enable_gyro_if
 {
     try
     {
-        auto sensor_name = profile["gyro"]["sensor_name"];
-        auto sensor_frequency = profile["gyro"]["sensor_frequency"];
-        auto gyro_scale = profile["gyro"]["scale"];
+
+        // Check if stabilizer_settings exists in the profile
+        if (!profile.contains("stabilizer_settings"))
+        {
+            WEBSERVER_LOG_INFO("Stabilizer settings not found in profile, skipping gyro initialization");
+            return profile;
+        }
+
+        nlohmann::json stabilizer_settings;
+
+        // Check if stabilizer_settings is a file path (new format) or inline object (old format)
+        if (profile["stabilizer_settings"].is_string())
+        {
+            // New format: stabilizer_settings contains a file path
+            std::string stabilizer_config_path = profile["stabilizer_settings"];
+            auto loaded_config = load_config_from_file(stabilizer_config_path);
+            if (!loaded_config.has_value())
+            {
+                WEBSERVER_LOG_ERROR("Failed to load stabilizer settings from file: {}", loaded_config.error());
+                return tl::make_unexpected("Failed to load stabilizer settings: " + loaded_config.error());
+            }
+            stabilizer_settings = loaded_config.value();
+        }
+        else
+        {
+            // Old format: stabilizer_settings contains inline config
+            stabilizer_settings = profile["stabilizer_settings"];
+        }
+
+        // Check if gyro configuration exists in the loaded stabilizer settings
+        if (!stabilizer_settings.contains("gyro") || !stabilizer_settings["gyro"].contains("sensor_name") ||
+            !stabilizer_settings["gyro"].contains("sensor_frequency") || !stabilizer_settings["gyro"].contains("scale"))
+        {
+            WEBSERVER_LOG_INFO("Gyro settings not found in stabilizer settings, skipping gyro initialization");
+            return profile;
+        }
+
+        auto sensor_name = stabilizer_settings["gyro"]["sensor_name"];
+        auto sensor_frequency = stabilizer_settings["gyro"]["sensor_frequency"];
+        auto gyro_scale = stabilizer_settings["gyro"]["scale"];
         auto gyro_dev = std::make_unique<GyroDevice>(sensor_name, sensor_frequency, gyro_scale);
         if (gyro_dev->exists() == GYRO_STATUS_SUCCESS)
         {
-            profile["gyro"]["enabled"] = true;
-            gyro_exist = true;
+            // For new format, we need to update the file and reload it
+            if (profile["stabilizer_settings"].is_string())
+            {
+                stabilizer_settings["gyro"]["enabled"] = true;
+                // Note: In a production system, you might want to save this back to the file
+                // For now, we'll update the in-memory copy
+                gyro_exist = true;
+            }
+            else
+            {
+                // Old format: update inline
+                profile["stabilizer_settings"]["gyro"]["enabled"] = true;
+                gyro_exist = true;
+            }
         }
         gyro_dev = nullptr;
         return profile;
@@ -250,7 +289,9 @@ void ConfigResourceMedialib::http_register(std::shared_ptr<HTTPServer> srv)
 
     srv->Get("/medialib_config", std::function<nlohmann::json()>([this]() {
                  WEBSERVER_LOG_INFO("GET /medialib_config called");
-                 return m_medialib_config;
+                 nlohmann::json j;
+                 j["medialib_config"] = m_medialib_config;
+                 return j;
                  WEBSERVER_LOG_INFO("GET /medialib_config completed");
              }));
 
@@ -470,7 +511,7 @@ void ConfigResourceMedialib::http_register(std::shared_ptr<HTTPServer> srv)
                  WEBSERVER_LOG_INFO("GET /image_stabilization called");
                  update_profile();
                  nlohmann::json j;
-                 j["digital_image_stabilization"]["active"] = m_current_profile.ldc_config.dis_config.enabled;
+                 j["digital_image_stabilization"]["active"] = m_current_profile.stabilizer_settings.dis.enabled;
                  WEBSERVER_LOG_INFO("GET /digital_image_stabilization completed");
                  return j;
              }));
@@ -481,7 +522,7 @@ void ConfigResourceMedialib::http_register(std::shared_ptr<HTTPServer> srv)
                  nlohmann::json j;
                  j["electronic_image_stabilization"]["gyro_exist"] = gyro_exist;
                  j["electronic_image_stabilization"]["active"] =
-                     gyro_exist && m_current_profile.ldc_config.eis_config.enabled;
+                     gyro_exist && m_current_profile.stabilizer_settings.eis.enabled;
                  WEBSERVER_LOG_INFO("GET /electronic_image_stabilization completed");
                  return j;
              }));

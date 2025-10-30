@@ -1,0 +1,21 @@
+{
+    "version": "1.0.0",
+    "sensor_config": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/daylight/clip_example_daylight/sensor_config.json",
+    "application_settings": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/daylight/clip_example_daylight/application_settings.json",
+    "stabilizer_settings": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/daylight/clip_example_daylight/stabilizer_settings.json",
+    "iq_settings": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/daylight/clip_example_daylight/iq_settings.json",
+    "encoded_output_streams": [
+        {
+            "stream_id": "HighRes",
+            "encoding": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/daylight/clip_example_daylight/encoder_highres.json",
+            "osd": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/daylight/clip_example_daylight/osd_highres.json",
+            "masking": ""
+        },
+        {
+            "stream_id": "VGA",
+            "encoding": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/daylight/clip_example_daylight/encoder_vga.json",
+            "osd": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/daylight/clip_example_daylight/osd_vga.json",
+            "masking": ""
+        }
+    ]
+}

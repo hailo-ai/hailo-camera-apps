@@ -28,9 +28,10 @@
 
 #define REFERENCE_CAMERA_CATEGORY "reference_camera"
 
-PERFETTO_DEFINE_CATEGORIES(perfetto::Category(REFERENCE_CAMERA_CATEGORY)
-                               .SetTags("hailo")
-                               .SetDescription("Events from reference camera infrastructure"));
+HAILO_PERFETTO_DEFINE_CATEGORIES(reference_camera_perfetto,
+                                 perfetto::Category(REFERENCE_CAMERA_CATEGORY)
+                                     .SetTags("hailo")
+                                     .SetDescription("Events from reference camera infrastructure"));
 
 #define REFERENCE_CAMERA_TRACE_EVENT(...) TRACE_EVENT(REFERENCE_CAMERA_CATEGORY, ##__VA_ARGS__)
 #define REFERENCE_CAMERA_TRACE_COUNTER(...) TRACE_COUNTER(REFERENCE_CAMERA_CATEGORY, ##__VA_ARGS__)

@@ -45,7 +45,7 @@
 
 // AI Pipeline Params
 #define AI_VISION_SINK "sink0" // The streamid from frontend to 4K stream that shows vision results
-#define AI_SINK "sink1"        // The streamid from frontend to AI
+#define AI_SINK "sink1" // The streamid from frontend to AI
 // Detection AI Params
 #define YOLO_HEF_FILE "/home/root/apps/ai_example_app/resources/yolov8n_personface_nv12.hef"
 #define DETECTION_AI_STAGE "yolo_detection"
@@ -331,11 +331,17 @@ void configure_frontend_and_encoders(std::shared_ptr<AppResources> app_resources
     // Create and configure frontend
     // configure by media library ptr
     std::string frontend_config_string = read_string_from_file(app_resources->frontend_config.c_str());
-    app_resources->media_library = std::make_shared<MediaLibrary>();
+    auto media_lib_expected = MediaLibrary::create();
+    if (!media_lib_expected.has_value())
+    {
+        std::cout << "Failed to create media library" << std::endl;
+        throw std::runtime_error("Failed to create media library");
+    }
+    app_resources->media_library = media_lib_expected.value();
     if (app_resources->media_library->initialize(frontend_config_string) != media_library_return::MEDIA_LIBRARY_SUCCESS)
     {
         std::cout << "Failed to initialize media library" << std::endl;
-        return;
+        throw std::runtime_error("Failed to initialize media library");
     }
     app_resources->frontend = std::make_shared<FrontendStage>(FRONTEND_STAGE);
     app_resources->pipeline->add_stage(app_resources->frontend, StageType::SOURCE);
@@ -482,7 +488,7 @@ void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
             .set_stage_name(TRACKER_STAGE)
             .set_queue_size_opt(5)
             .set_leaky_opt(false)
-            .set_classification_id(1)                      // Only track person
+            .set_classification_id(1) // Only track person
             .set_block_non_tracked_classification_id(true) // We block all non person object
             .set_printfps_opt(app_resources->print_fps)
             .buildptr();
@@ -498,7 +504,7 @@ void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
         TrackerTrafficCtrlStageBuild::create()
             .set_stage_name(TRACKER_TRAFFIC_CTRL_STAGE2)
             .set_classified_fps_to_block(30 * 2) // Let a detection frame pass every 60 classified frame
-            .set_unclassified_fps_to_block(10)   // Let a detection frame pass every 10 unclassified frame
+            .set_unclassified_fps_to_block(10) // Let a detection frame pass every 10 unclassified frame
             .set_leaky_opt(false)
             .set_printfps_opt(app_resources->print_fps)
             .buildptr();
@@ -671,84 +677,81 @@ void zmq_subscriber_thread(std::shared_ptr<AppResources> app_resources)
  * @param argv Array of command-line arguments.
  * @return int Exit status of the application.
  */
+std::mutex g_stop_mutex;
+std::condition_variable g_stop_cv;
 int main(int argc, char *argv[])
 {
-    {
-        // App resources
-        std::shared_ptr<AppResources> app_resources = std::make_shared<AppResources>();
-        app_resources->frontend_config = FRONTEND_CONFIG_FILE;
+    // App resources
+    std::shared_ptr<AppResources> app_resources = std::make_shared<AppResources>();
+    app_resources->frontend_config = FRONTEND_CONFIG_FILE;
 
-        // register signal SIGINT and signal handler
-        signal_utils::register_signal_handler([app_resources](int signal) {
-            std::cout << "Stopping Pipeline..." << std::endl;
-            // Stop pipeline
-            app_resources->pipeline->stop_pipeline();
-            app_resources->clear();
-            // terminate program
-            exit(0);
-        });
-
-        // Parse user arguments
-        cxxopts::Options options = build_arg_parser();
-        auto result = options.parse(argc, argv);
-        std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options);
-        int timeout = result["timeout"].as<int>();
-
-        for (ArgumentType argument : argument_handling_results)
-        {
-            switch (argument)
-            {
-            case ArgumentType::Help:
-                return 0;
-            case ArgumentType::Timeout:
-                break;
-            case ArgumentType::PrintFPS:
-                app_resources->print_fps = true;
-                break;
-            case ArgumentType::PrintLatency:
-                app_resources->print_latency = true;
-                break;
-            case ArgumentType::Config:
-                app_resources->frontend_config = result["config-file-path"].as<std::string>();
-                break;
-            case ArgumentType::HostIP:
-                app_resources->host_ip = result["host-ip"].as<std::string>();
-                break;
-            case ArgumentType::Error:
-                return 1;
-            }
-        }
-
-        // Create pipeline
-        app_resources->pipeline = std::make_shared<Pipeline>();
-
-        // Configure frontend and encoders
-        configure_frontend_and_encoders(app_resources);
-
-        // Create pipeline and stages
-        create_ai_pipeline(app_resources);
-
-        // Subscribe stages to frontend
-        subscribe_to_frontend(app_resources);
-
-        // Start pipeline
-        std::cout << "Starting." << std::endl;
-        app_resources->pipeline->start_pipeline();
-
-        std::cout << "Using frontend config: " << app_resources->frontend_config << std::endl;
-
-        std::thread zmq_thread(zmq_subscriber_thread, std::ref(app_resources));
-        zmq_thread.detach();
-
-        std::cout << "Started playing for " << timeout << " hours." << std::endl;
-
-        // Wait
-        std::this_thread::sleep_for(std::chrono::hours(timeout));
-
+    signal_utils::SignalHandler signal_handler(false);
+    signal_handler.register_signal_handler([](int signal) {
+        std::cout << "Stopping Pipeline..." << std::endl;
         // Stop pipeline
-        std::cout << "Stopping." << std::endl;
-        app_resources->pipeline->stop_pipeline();
-        app_resources->clear();
+        g_stop_cv.notify_all();
+    });
+
+    // Parse user arguments
+    cxxopts::Options options = build_arg_parser();
+    auto result = options.parse(argc, argv);
+    std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options);
+    int timeout = result["timeout"].as<int>();
+
+    for (ArgumentType argument : argument_handling_results)
+    {
+        switch (argument)
+        {
+        case ArgumentType::Help:
+            return 0;
+        case ArgumentType::Timeout:
+            break;
+        case ArgumentType::PrintFPS:
+            app_resources->print_fps = true;
+            break;
+        case ArgumentType::PrintLatency:
+            app_resources->print_latency = true;
+            break;
+        case ArgumentType::Config:
+            app_resources->frontend_config = result["config-file-path"].as<std::string>();
+            break;
+        case ArgumentType::HostIP:
+            app_resources->host_ip = result["host-ip"].as<std::string>();
+            break;
+        case ArgumentType::Error:
+            return 1;
+        }
     }
+
+    // Create pipeline
+    app_resources->pipeline = std::make_shared<Pipeline>();
+
+    // Configure frontend and encoders
+    configure_frontend_and_encoders(app_resources);
+
+    // Create pipeline and stages
+    create_ai_pipeline(app_resources);
+
+    // Subscribe stages to frontend
+    subscribe_to_frontend(app_resources);
+
+    // Start pipeline
+    std::cout << "Starting." << std::endl;
+    app_resources->pipeline->start_pipeline();
+
+    std::cout << "Using frontend config: " << app_resources->frontend_config << std::endl;
+
+    std::thread zmq_thread(zmq_subscriber_thread, std::ref(app_resources));
+    zmq_thread.detach();
+
+    std::cout << "Started playing for " << timeout << " hours." << std::endl;
+
+    // Wait for either timeout or signal
+    std::unique_lock<std::mutex> lk(g_stop_mutex);
+    g_stop_cv.wait_for(lk, std::chrono::seconds(timeout));
+
+    // Stop pipeline
+    std::cout << "Stopping." << std::endl;
+    app_resources->pipeline->stop_pipeline();
     return 0;
 }

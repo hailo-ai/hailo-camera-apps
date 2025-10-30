@@ -14,7 +14,6 @@ class IPipeline
     virtual void subscribe_to_events();
     virtual void callback_handle_encoder(ResourceStateChangeNotification notif) = 0;
     void callback_handle_osd(ResourceStateChangeNotification notif);
-    void callback_handle_privacy_mask(ResourceStateChangeNotification notif);
     virtual std::shared_ptr<osd::Blender> get_osd_blender() = 0;
     virtual std::shared_ptr<PrivacyMaskBlender> get_privacy_blender() = 0;
     virtual hailo_encoder_config_t get_encoder_config() = 0;

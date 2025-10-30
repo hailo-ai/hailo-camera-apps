@@ -1,0 +1,16 @@
+{
+    "version": "1.0.0",
+    "encoding": {
+        "input_stream": {
+            "width": 640,
+            "height": 480,
+            "framerate": 30,
+            "format": "NV12",
+            "max_pool_size": 40
+        },
+        "jpeg_encoder": {
+            "n_threads": 1,
+            "quality": 85
+        }
+    }
+}

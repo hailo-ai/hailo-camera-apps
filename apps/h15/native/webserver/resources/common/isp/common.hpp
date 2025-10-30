@@ -17,18 +17,7 @@ namespace webserver
 namespace common
 {
 
-#define ISP_CLASSNAME_AUTO_EXPOSURE "AdaptiveAe"
-#define ISP_CLASSNAME_AEEV1 "Aeev1"
-#define ISP_CLASSNAME_ACPROC "ACproc"
-#define ISP_CLASSNAME_AUTO_WHITE_BALANCE "AWdrv4"
-#define ISP_CLASSNAME_DSP_FILTERS "ACprocPost"
-
 static std::recursive_mutex g_file_config_mutex;
-void update_3a_config(bool enabled, const std::string default_3a_path = "");
-void update_3a_config(nlohmann::json config);
-nlohmann::json get_3a_config(const std::string path = "");
-std::optional<std::reference_wrapper<nlohmann::json>> get_3a_config_class(nlohmann::json &config,
-                                                                          const std::string &classname);
 
 struct ae_ranges_t
 {
@@ -72,7 +61,6 @@ class backlight_filter_t
 
     backlight_filter_t from_precentage(uint16_t precentage);
     uint16_t to_precentage(const backlight_filter_t &filter);
-    static backlight_filter_t get_from_json();
 };
 
 enum binning_mode_t

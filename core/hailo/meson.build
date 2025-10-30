@@ -1,7 +1,7 @@
 # Project Declaration
 
 project('gst-hailo-tools', 'c', 'cpp',
-        version : '1.8.1',
+        version : '1.9.0',
         default_options : [ 'buildtype=release',
                             'c_std=c11', 'cpp_std=c++17']
        )
@@ -14,6 +14,15 @@ if compiler_version >= 9
   add_global_arguments('-Wpessimizing-move', language : 'cpp')
   add_global_arguments('-Wredundant-move', language : 'cpp')
   add_global_arguments('-fconcepts', language : 'cpp')
+endif
+
+# Tune for Cortex‑A53 + NEON — see GCC’s “ARM Options” manual for all the flag details:
+#   https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html 
+if host_machine.cpu_family() in ['arm', 'aarch64']
+  add_project_arguments(
+    '-mcpu=cortex-a53',        # implies ARMv8‑A + NEON support
+    language: ['c', 'cpp']
+  )
 endif
 
 # Pkgconfig

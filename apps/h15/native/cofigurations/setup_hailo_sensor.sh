@@ -1,9 +1,60 @@
 #!/bin/bash
 
+# Constants for architecture detection
+MACHINE_FILE_PATH="/sys/devices/soc0/machine"
+HAILO_15_IDENTIFIER="Hailo-15"
+HAILO_15L_IDENTIFIER="Hailo-15L"
+
+# Function to detect Hailo architecture and set project name
+get_hailo_architecture() {
+    if [ ! -f "$MACHINE_FILE_PATH" ]; then
+        echo "unknown"
+        return
+    fi
+    
+    local machine_info=$(cat "$MACHINE_FILE_PATH" 2>/dev/null)
+    if [ -z "$machine_info" ]; then
+        echo "unknown"
+        return
+    fi
+    
+    # Convert to lowercase for case-insensitive comparison
+    local lower_machine_info=$(echo "$machine_info" | tr '[:upper:]' '[:lower:]')
+    local lower_hailo_15l=$(echo "$HAILO_15L_IDENTIFIER" | tr '[:upper:]' '[:lower:]')
+    local lower_hailo_15=$(echo "$HAILO_15_IDENTIFIER" | tr '[:upper:]' '[:lower:]')
+    
+    if echo "$lower_machine_info" | grep -q "$lower_hailo_15l"; then
+        echo "hailo15l"
+    elif echo "$lower_machine_info" | grep -q "$lower_hailo_15"; then
+        echo "hailo15h"
+    else
+        echo "unknown"
+    fi
+}
+
+# Detect architecture and set default project name
+DETECTED_ARCH=$(get_hailo_architecture)
+case "$DETECTED_ARCH" in
+    "hailo15l")
+        DEFAULT_PROJECT_NAME="hailo15l"
+        ;;
+    "hailo15h")
+        DEFAULT_PROJECT_NAME="hailo15h"
+        ;;
+    *)
+        DEFAULT_PROJECT_NAME="hailo15h"  # fallback to hailo15h
+        echo "Warning: Could not detect Hailo architecture, defaulting to hailo15h"
+        ;;
+esac
+
 # Default lens name
 LENS_NAME="theia_sl410m"
-PROJECT_NAME="hailo15h"
+PROJECT_NAME="$DEFAULT_PROJECT_NAME"
 MEDIALIB_CONFIG_BASE="/etc/imaging/cfg/medialib_configs"
+
+# Default resolution order (highest to lowest)
+RESOLUTION_ORDER=("4k" "5mp" "4mp" "fhd")
+RESOLUTION=""
 
 # Function to display help message
 show_help() {
@@ -15,13 +66,18 @@ show_help() {
     echo "  to the sensor-specific configuration directory."
     echo
     echo "  The script will:"
-    echo "  1. Detect the connected IMX sensor"
-    echo "  2. Remove the existing medialib_configs symlink in /etc/imaging/cfg/"
-    echo "  3. Create a new symlink pointing to the sensor-specific configuration"
+    echo "  1. Detect the Hailo architecture (Hailo-15 or Hailo-15L) to set default project"
+    echo "  2. Detect the connected IMX sensor"
+    echo "  3. Remove the existing medialib_configs symlink in /etc/imaging/cfg/"
+    echo "  4. Create a new symlink pointing to the sensor-specific configuration"
+    echo
+    echo "Detected architecture: $DETECTED_ARCH"
+    echo "Default project name: $DEFAULT_PROJECT_NAME"
     echo
     echo "Options:"
-    echo "  --project NAME    Specify the project name to use (default: '$PROJECT_NAME')"
+    echo "  --project NAME      Specify the project name to use (default: '$DEFAULT_PROJECT_NAME')"
     echo "  --lens-name NAME    Specify the lens name to use (default: '$LENS_NAME')"
+    echo "  --resolution RES    Specify the resolution (default: highest available from 4k, 5mp, 4mp, fhd)"
     echo "  --help              Display this help message and exit"
     echo
     exit 0
@@ -94,9 +150,33 @@ if [ ! -d "/etc/imaging/cfg/$PROJECT_NAME/$SENSOR_NAME/$LENS_NAME" ]; then
     exit 1
 fi
 
-# Set configuration directory
-CONFIG_DIR="/etc/imaging/cfg/$PROJECT_NAME/$SENSOR_NAME/$LENS_NAME"
-echo "Found configuration directory: $CONFIG_DIR"
+# Find the resolution directory
+RESOLUTION_DIR=""
+if [ -n "$RESOLUTION" ]; then
+    if [ -d "/etc/imaging/cfg/$PROJECT_NAME/$SENSOR_NAME/$LENS_NAME/$RESOLUTION" ]; then
+        RESOLUTION_DIR="/etc/imaging/cfg/$PROJECT_NAME/$SENSOR_NAME/$LENS_NAME/$RESOLUTION"
+    else
+        echo "Error: Resolution directory $RESOLUTION not found under /etc/imaging/cfg/$PROJECT_NAME/$SENSOR_NAME/$LENS_NAME"
+        exit 1
+    fi
+else
+    # Pick the highest available resolution
+    for res in "${RESOLUTION_ORDER[@]}"; do
+        if [ -d "/etc/imaging/cfg/$PROJECT_NAME/$SENSOR_NAME/$LENS_NAME/$res" ]; then
+            RESOLUTION_DIR="/etc/imaging/cfg/$PROJECT_NAME/$SENSOR_NAME/$LENS_NAME/$res"
+            RESOLUTION="$res"
+            break
+        fi
+    done
+    if [ -z "$RESOLUTION_DIR" ]; then
+        echo "Error: No supported resolution directory found under /etc/imaging/cfg/$PROJECT_NAME/$SENSOR_NAME/$LENS_NAME"
+        exit 1
+    fi
+fi
+
+CONFIG_DIR="$RESOLUTION_DIR"
+echo "Found configuration directory: $CONFIG_DIR (resolution: $RESOLUTION)"
+
 
 # Check if target medialib_configs directory exists
 if [ ! -d "$CONFIG_DIR/medialib_configs" ]; then

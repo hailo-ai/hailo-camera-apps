@@ -3,6 +3,21 @@ set -e
 
 CURRENT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 
+# Cleanup function to stop config tuning when script exits
+cleanup_on_exit() {
+    # Prevent multiple calls to cleanup
+    if [[ "${CLEANUP_DONE:-}" == "true" ]]; then
+        return 0
+    fi
+    CLEANUP_DONE=true
+    
+    echo "Script terminating - stopping config tuning application..."
+    /home/root/apps/manage_config_tuning.sh stop
+}
+
+# Set up exit trap
+trap cleanup_on_exit EXIT SIGINT SIGTERM
+
 function init_variables() {
     readonly RESOURCES_DIR="${CURRENT_DIR}/resources"
     readonly DEFAULT_FRONTEND_CONFIG_FILE_PATH="$RESOURCES_DIR/configs/frontend_config.json"
@@ -97,13 +112,13 @@ PIPELINE="gst-launch-1.0 \
             fpsdisplaysink fps-update-interval=2000 video-sink=fakesink name=hailo_display sync=$sync_pipeline text-overlay=false \
         ${additional_parameters}"
 
-/home/root/apps/clean_symlinks_config_isp.sh --mode "$mode" --tuning "$tuning_extension" --project "$project"
+/home/root/apps/manage_config_tuning.sh start "$mode"
 if [ $? -ne 0 ]; then
-    echo "Failed to clean symlinks and copy ISP configuration files."
+    echo "Failed to start config tuning application."
     exit 1
 fi
 
-echo "Running pipeline with MODE=${mode:-default}, TUNING_EXTENSION=${tuning_extension:-none}", PROJECT=${project:-hailo15h}
+echo "Running pipeline with MODE=${mode:-default}"
 echo ${PIPELINE}
 
 if [ "$print_gst_launch_only" = true ]; then

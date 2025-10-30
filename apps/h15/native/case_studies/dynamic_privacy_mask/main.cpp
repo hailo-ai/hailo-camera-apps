@@ -22,6 +22,7 @@
 #include "postprocess_stage.hpp"
 #include "encoder_stage.hpp"
 #include "frontend_stage.hpp"
+#include "frontend_stage_from_file.hpp"
 #include "reference_camera_logger.hpp"
 
 // Stage Params
@@ -30,7 +31,7 @@
 #define NO_PROFILE_SELECTED ""
 #define MEDIALIB_CONFIG_PATH "/etc/imaging/cfg/medialib_configs/case_studies/dynamic_privacy_mask_medialib_config.json"
 
-#define YOLO_HEF_FILE "/home/root/apps/dynamic_privacy_mask/resources/yolov5l_seg_1class_nv12.hef"
+#define YOLO_HEF_FILE "/home/root/apps/dynamic_privacy_mask/resources/yolov5s_seg_1class_nv12.hef"
 #define SEGMENTATION_AI_STAGE "yolo_segmentation"
 
 #define POST_STAGE "yolo_post"
@@ -86,7 +87,17 @@ cxxopts::Options build_arg_parser()
     ("n,nms-score-threshold", "NMS score threshold",
         cxxopts::value<float>()->default_value(std::to_string(DEFAULT_NMS_SCORE_THRESHOLD)))
     ("o,host-ip", "Host IP address for UDP output", 
-        cxxopts::value<std::string>()->default_value(HOST_IP));
+        cxxopts::value<std::string>()->default_value(HOST_IP))
+    ("f,file-path", "Path to input video file (NV12 format)", 
+        cxxopts::value<std::string>())
+    ("w,width", "Video width in pixels", 
+        cxxopts::value<size_t>())
+    ("e,height", "Video height in pixels", 
+        cxxopts::value<size_t>())
+    ("r,fps", "Video FPS", 
+        cxxopts::value<double>())
+    ("b,buffer-pool-size", "Buffer pool size for file reading", 
+        cxxopts::value<size_t>()->default_value("20"));
     // clang-format on
 
     return options;
@@ -135,7 +146,7 @@ std::vector<ArgumentType> handle_arguments(const cxxopts::ParseResult &result, c
     // Handle unrecognized options
     for (const auto &unrecognized : result.unmatched())
     {
-        std::cerr << "Error: Unrecognized option or argument: " << unrecognized << std::endl;
+        REFERENCE_CAMERA_LOG_ERROR("Error: Unrecognized option or argument: {}", unrecognized);
         return {ArgumentType::Error};
     }
 
@@ -162,6 +173,14 @@ struct AppResources
     std::string profile_name;
     std::string host_ip = HOST_IP;
 
+    // File input parameters
+    std::string file_path;
+    size_t video_width;
+    size_t video_height;
+    double video_fps;
+    size_t buffer_pool_size;
+    bool use_file_input = false;
+
     void clear()
     {
         frontend = nullptr;
@@ -174,6 +193,12 @@ struct AppResources
         media_library = nullptr;
         profile_name = NO_PROFILE_SELECTED;
         host_ip = HOST_IP;
+        file_path = "";
+        video_width = 0;
+        video_height = 0;
+        video_fps = 0.0;
+        buffer_pool_size = 20;
+        use_file_input = false;
     }
 
     ~AppResources()
@@ -190,7 +215,7 @@ std::string read_string_from_file(const char *file_path)
         throw std::runtime_error(std::string("config path (") + file_path + ") is not valid");
     std::string file_string((std::istreambuf_iterator<char>(file_to_read)), std::istreambuf_iterator<char>());
     file_to_read.close();
-    std::cout << "Read config from file: " << file_path << std::endl;
+    REFERENCE_CAMERA_LOG_INFO("Read config from file: {}", file_path);
     return file_string;
 }
 
@@ -210,14 +235,14 @@ void subscribe_to_frontend(std::shared_ptr<AppResources> app_resources)
     auto streams = app_resources->frontend->get_outputs_streams();
     if (!streams.has_value())
     {
-        std::cout << "Failed to get stream ids" << std::endl;
+        REFERENCE_CAMERA_LOG_ERROR("Failed to get stream ids");
         throw std::runtime_error("Failed to get stream ids");
     }
 
     // Subscribe to frontend
     for (auto s : streams.value())
     {
-        std::cout << "subscribing to frontend for '" << s.id << "'" << std::endl;
+        REFERENCE_CAMERA_LOG_INFO("subscribing to frontend for '{}'", s.id);
         if (s.id == AI_ANALYTICS_SINK)
         {
             // For AI analytics stream, subscribe to segmentation stage
@@ -258,6 +283,7 @@ void create_ai_analytics_pipeline(std::shared_ptr<AppResources> app_resources, u
             .set_dynamic_threshold_opt(true)
             .set_nms_score_threshold(nms_score_threshold)
             .set_scheduler_timeout_opt(std::chrono::milliseconds(100))
+            .set_nms_max_accumulated_mask_size_multiplier(2)
             .set_printfps_opt(app_resources->print_fps)
             .set_pool_mode_opt(StagePoolMode::LEAKY)
             .buildptr();
@@ -303,25 +329,25 @@ void create_encoder_and_udp(const std::string &id, std::shared_ptr<AppResources>
 {
     // Create and configure encoder
     std::string enc_name = "enc_" + id;
-    std::cout << "Creating encoder " << enc_name << std::endl;
+    REFERENCE_CAMERA_LOG_INFO("Creating encoder {}", enc_name);
     std::shared_ptr<EncoderStage> encoder_stage = EncoderStageBuild::create().set_stage_name(enc_name).buildptr();
     app_resources->encoders[id] = encoder_stage;
     AppStatus enc_config_status = encoder_stage->configure(app_resources->media_library->m_encoders[id]);
     if (enc_config_status != AppStatus::SUCCESS)
     {
-        std::cerr << "Failed to configure encoder " << enc_name << std::endl;
+        REFERENCE_CAMERA_LOG_ERROR("Failed to configure encoder {}", enc_name);
         throw std::runtime_error("Failed to configure encoder");
     }
 
     // Create and configure UDP
     std::string udp_name = "udp_" + id;
-    std::cout << "Creating udp " << udp_name << std::endl;
+    REFERENCE_CAMERA_LOG_INFO("Creating udp {}", udp_name);
     std::shared_ptr<UdpStage> udp_stage = UdpStageBuild::create().set_stage_name(udp_name).buildptr();
     app_resources->udp_outputs[id] = udp_stage;
     AppStatus udp_config_status = udp_stage->configure(app_resources->host_ip, PORT_FROM_ID(id), EncodingType::H264);
     if (udp_config_status != AppStatus::SUCCESS)
     {
-        std::cerr << "Failed to configure udp " << udp_name << std::endl;
+        REFERENCE_CAMERA_LOG_ERROR("Failed to configure udp {}", udp_name);
         throw std::runtime_error("Failed to configure udp");
     }
 
@@ -345,31 +371,63 @@ void configure_frontend_and_encoders(std::shared_ptr<AppResources> app_resources
                                      float nms_score_threshold)
 {
     std::string medialib_config_string = read_string_from_file(app_resources->medialib_config_path.c_str());
-    app_resources->media_library = std::make_shared<MediaLibrary>();
+    auto media_lib_expected = MediaLibrary::create();
+    if (!media_lib_expected.has_value())
+    {
+        REFERENCE_CAMERA_LOG_ERROR("Failed to create media library");
+        throw std::runtime_error("Failed to create media library");
+    }
+    app_resources->media_library = media_lib_expected.value();
     if (app_resources->media_library->initialize(medialib_config_string) != media_library_return::MEDIA_LIBRARY_SUCCESS)
     {
-        std::cout << "Failed to initialize media library" << std::endl;
-        return;
+        REFERENCE_CAMERA_LOG_ERROR("Failed to initialize media library");
+        throw std::runtime_error("Failed to initialize media library");
     }
     if (app_resources->profile_name != NO_PROFILE_SELECTED)
     {
         app_resources->media_library->set_profile(app_resources->profile_name);
     }
     // Create and configure frontend
-    app_resources->frontend = std::make_shared<FrontendStage>(FRONTEND_STAGE);
-    app_resources->pipeline->add_stage(app_resources->frontend, StageType::SOURCE);
-    AppStatus frontend_config_status = app_resources->frontend->configure(app_resources->media_library->m_frontend);
-    if (frontend_config_status != AppStatus::SUCCESS)
+    if (app_resources->use_file_input)
     {
-        std::cerr << "Failed to configure frontend " << FRONTEND_STAGE << std::endl;
-        throw std::runtime_error("Failed to configure frontend");
+        // Use file-based frontend
+        auto frontend_from_file = FrontendStageFromFileBuild::create()
+                                      .set_stage_name(FRONTEND_STAGE)
+                                      .set_file_location(app_resources->file_path)
+                                      .set_width(app_resources->video_width)
+                                      .set_height(app_resources->video_height)
+                                      .set_fps(app_resources->video_fps)
+                                      .set_loop_enabled_opt(true)
+                                      .set_buffer_pool_size(app_resources->buffer_pool_size)
+                                      .buildptr();
+
+        app_resources->frontend = std::static_pointer_cast<FrontendStage>(frontend_from_file);
+        app_resources->pipeline->add_stage(app_resources->frontend, StageType::SOURCE);
+        AppStatus frontend_config_status = frontend_from_file->configure(app_resources->media_library->m_frontend);
+        if (frontend_config_status != AppStatus::SUCCESS)
+        {
+            REFERENCE_CAMERA_LOG_ERROR("Failed to configure frontend from file {}", FRONTEND_STAGE);
+            throw std::runtime_error("Failed to configure frontend from file");
+        }
+    }
+    else
+    {
+        // Use camera-based frontend
+        app_resources->frontend = std::make_shared<FrontendStage>(FRONTEND_STAGE);
+        app_resources->pipeline->add_stage(app_resources->frontend, StageType::SOURCE);
+        AppStatus frontend_config_status = app_resources->frontend->configure(app_resources->media_library->m_frontend);
+        if (frontend_config_status != AppStatus::SUCCESS)
+        {
+            REFERENCE_CAMERA_LOG_ERROR("Failed to configure frontend {}", FRONTEND_STAGE);
+            throw std::runtime_error("Failed to configure frontend");
+        }
     }
 
     // Get frontend output streams
     auto streams = app_resources->frontend->get_outputs_streams();
     if (!streams.has_value())
     {
-        std::cout << "Failed to get stream ids" << std::endl;
+        REFERENCE_CAMERA_LOG_ERROR("Failed to get stream ids");
         throw std::runtime_error("Failed to get stream ids");
     }
 
@@ -398,93 +456,108 @@ void configure_frontend_and_encoders(std::shared_ptr<AppResources> app_resources
  * @param argv Array of command-line arguments.
  * @return int Exit status of the application.
  */
+std::mutex g_stop_mutex;
+std::condition_variable g_stop_cv;
+
 int main(int argc, char *argv[])
 {
+    // App resources
+    std::shared_ptr<AppResources> app_resources = std::make_shared<AppResources>();
+    app_resources->medialib_config_path = MEDIALIB_CONFIG_PATH;
+
+    // register signal SIGINT and signal handler
+    signal_utils::SignalHandler signal_handler(false);
+    signal_handler.register_signal_handler([app_resources](int signal) {
+        REFERENCE_CAMERA_LOG_INFO("Stopping Pipeline...");
+        g_stop_cv.notify_all();
+    });
+
+    // Parse user arguments
+    cxxopts::Options options = build_arg_parser();
+    auto result = options.parse(argc, argv);
+    std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options);
+    int timeout = result["timeout"].as<int>();
+    std::string hef_file = result["hef-file"].as<std::string>();
+    float nms_score_threshold = result["nms-score-threshold"].as<float>();
+
+    // Check if file input parameters are provided
+    if (result.count("file-path") && result.count("width") && result.count("height") && result.count("fps"))
     {
-        // App resources
-        std::shared_ptr<AppResources> app_resources = std::make_shared<AppResources>();
-        app_resources->medialib_config_path = MEDIALIB_CONFIG_PATH;
+        app_resources->use_file_input = true;
+        app_resources->file_path = result["file-path"].as<std::string>();
+        app_resources->video_width = result["width"].as<size_t>();
+        app_resources->video_height = result["height"].as<size_t>();
+        app_resources->video_fps = result["fps"].as<double>();
+        app_resources->buffer_pool_size = result["buffer-pool-size"].as<size_t>();
 
-        // register signal SIGINT and signal handler
-        signal_utils::register_signal_handler([app_resources](int signal) {
-            std::cout << "Stopping Pipeline..." << std::endl;
-            REFERENCE_CAMERA_LOG_INFO("Stopping Pipeline...");
-            // Stop pipeline
-            app_resources->pipeline->stop_pipeline();
-            if (app_resources->media_library != nullptr && app_resources->media_library->get_pipeline_state() ==
-                                                               media_library_pipeline_state_t::PIPELINE_STATE_RUNNING)
-            {
-                app_resources->media_library->stop_pipeline();
-            }
-            app_resources->clear();
-            // terminate program
-            exit(0);
-        });
-
-        // Parse user arguments
-        cxxopts::Options options = build_arg_parser();
-        auto result = options.parse(argc, argv);
-        std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options);
-        int timeout = result["timeout"].as<int>();
-        std::string hef_file = result["hef-file"].as<std::string>();
-        float nms_score_threshold = result["nms-score-threshold"].as<float>();
-
-        for (ArgumentType argument : argument_handling_results)
-        {
-            switch (argument)
-            {
-            case ArgumentType::Help:
-                return 0;
-            case ArgumentType::Timeout:
-                break;
-            case ArgumentType::PrintFPS:
-                app_resources->print_fps = true;
-                break;
-            case ArgumentType::PrintLatency:
-                app_resources->print_latency = true;
-                break;
-            case ArgumentType::Config:
-                app_resources->medialib_config_path = result["config-file-path"].as<std::string>();
-                break;
-            case ArgumentType::Profile:
-                app_resources->profile_name = result["profile"].as<std::string>();
-                break;
-            case ArgumentType::HostIP:
-                app_resources->host_ip = result["host-ip"].as<std::string>();
-                break;
-            case ArgumentType::Error:
-                return 1;
-            }
-        }
-
-        setenv("HAILORT_YOLOV5_SEG_PP_CROP_OPT", "1", 1);
-
-        // Create pipeline
-        app_resources->pipeline = std::make_shared<Pipeline>();
-
-        // Configure frontend and encoders
-        configure_frontend_and_encoders(app_resources, hef_file, nms_score_threshold);
-
-        // Subscribe stages to frontend
-        subscribe_to_frontend(app_resources);
-
-        // Start pipeline
-        std::cout << "Starting." << std::endl;
-        REFERENCE_CAMERA_LOG_INFO("Starting.");
-        app_resources->media_library->start_pipeline();
-        app_resources->pipeline->start_pipeline();
-
-        REFERENCE_CAMERA_LOG_INFO("Started playing for {} seconds.", timeout);
-
-        // Wait
-        std::this_thread::sleep_for(std::chrono::seconds(timeout));
-
-        // Stop pipeline
-        std::cout << "Stopping." << std::endl;
-        REFERENCE_CAMERA_LOG_INFO("Stopping.");
-        app_resources->pipeline->stop_pipeline();
-        app_resources->media_library->stop_pipeline();
-        app_resources->clear();
+        REFERENCE_CAMERA_LOG_INFO("Using file input: {}", app_resources->file_path);
+        REFERENCE_CAMERA_LOG_INFO("Video parameters: {}x{} @ {} fps", app_resources->video_width,
+                                  app_resources->video_height, app_resources->video_fps);
     }
+    else if (result.count("file-path") || result.count("width") || result.count("height") || result.count("fps"))
+    {
+        REFERENCE_CAMERA_LOG_ERROR(
+            "Error: When using file input, all parameters must be specified: --file-path, --width, --height, --fps");
+        return 1;
+    }
+    else
+    {
+        REFERENCE_CAMERA_LOG_INFO("Using camera input");
+    }
+
+    for (ArgumentType argument : argument_handling_results)
+    {
+        switch (argument)
+        {
+        case ArgumentType::Help:
+            return 0;
+        case ArgumentType::Timeout:
+            break;
+        case ArgumentType::PrintFPS:
+            app_resources->print_fps = true;
+            break;
+        case ArgumentType::PrintLatency:
+            app_resources->print_latency = true;
+            break;
+        case ArgumentType::Config:
+            app_resources->medialib_config_path = result["config-file-path"].as<std::string>();
+            break;
+        case ArgumentType::Profile:
+            app_resources->profile_name = result["profile"].as<std::string>();
+            break;
+        case ArgumentType::HostIP:
+            app_resources->host_ip = result["host-ip"].as<std::string>();
+            break;
+        case ArgumentType::Error:
+            return 1;
+        }
+    }
+
+    setenv("HAILORT_YOLOV5_SEG_PP_CROP_OPT", "1", 1);
+
+    // Create pipeline
+    app_resources->pipeline = std::make_shared<Pipeline>();
+
+    // Configure frontend and encoders
+    configure_frontend_and_encoders(app_resources, hef_file, nms_score_threshold);
+
+    // Subscribe stages to frontend
+    subscribe_to_frontend(app_resources);
+
+    // Start pipeline
+    REFERENCE_CAMERA_LOG_INFO("Starting.");
+    app_resources->media_library->start_pipeline();
+    app_resources->pipeline->start_pipeline();
+
+    REFERENCE_CAMERA_LOG_INFO("Started playing for {} seconds.", timeout);
+
+    // Wait for either timeout or signal
+    std::unique_lock<std::mutex> lk(g_stop_mutex);
+    g_stop_cv.wait_for(lk, std::chrono::seconds(timeout));
+
+    // Stop pipeline
+    REFERENCE_CAMERA_LOG_INFO("Stopping.");
+    app_resources->pipeline->stop_pipeline();
+    app_resources->media_library->stop_pipeline();
     return 0;
 }

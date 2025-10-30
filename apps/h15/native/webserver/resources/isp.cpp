@@ -23,7 +23,6 @@ IspResource::IspResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<Co
     : Resource(event_bus), m_baseline_stream_params(0, 0, 0, 0, 0), m_baseline_wdr_params(0),
       m_baseline_backlight_params(0, 0), m_isp_filters_manual_state(IspResource::FiltersManualState::FILTER_STATE_AUTO)
 {
-    m_default_3a_path = config_res->get_isp_default_config()["3a_config_path"].get<std::string>();
 
     subscribe_callback(EventType::RESET_ISP, [this](ResourceStateChangeNotification notification) {
         WEBSERVER_LOG_INFO("Received configure isp notification");
@@ -38,8 +37,14 @@ IspResource::IspResource(std::shared_ptr<EventBus> event_bus, std::shared_ptr<Co
                                          ? IspResource::FiltersManualState::FILTER_STATE_FORCE_AUTO
                                          : IspResource::FiltersManualState::FILTER_STATE_AUTO;
 
-        m_default_3a_path = config_res->get_isp_default_config()["3a_config_path"].get<std::string>();
         this->init();
+    });
+    subscribe_callback(EventType::UPDATE_BLENDER, [this](ResourceStateChangeNotification notification) {
+        WEBSERVER_LOG_DEBUG("Received update blender notification");
+        auto state =
+            notification.getResourceStateFromBase<ShareValueState<std::shared_ptr<webserver::pipeline::IspBlender>>>();
+        m_isp_blender_ptr = state->value;
+        WEBSERVER_LOG_DEBUG("Isp blender updated");
     });
 }
 
@@ -48,9 +53,18 @@ void IspResource::reset_config()
     this->init();
 }
 
+backlight_filter_t IspResource::get_blacklight()
+{
+    automatic_algorithms_config_t config = m_isp_blender_ptr->get_current_automatic_algorithms_config();
+    uint16_t max;
+    uint16_t min;
+    min = config.adaptive_ae.wdrContrast.min;
+    max = config.adaptive_ae.wdrContrast.max;
+    return backlight_filter_t(max, min);
+}
 void IspResource::init(bool set_auto_wb)
 {
-    this->m_baseline_backlight_params = backlight_filter_t::get_from_json();
+    this->m_baseline_backlight_params = get_blacklight();
     WEBSERVER_LOG_INFO("ISP: Baseline backlight params: \n\tmax level: {}, \tmin level: {}",
                        m_baseline_backlight_params.max_level, m_baseline_backlight_params.min_level);
 
@@ -71,9 +85,8 @@ void IspResource::init(bool set_auto_wb)
     }
 
     m_isp_converge = false;
-    WEBSERVER_LOG_DEBUG("ISP: enable 3a config auto algos, default config path: {}", m_default_3a_path);
-    update_3a_config(true, m_default_3a_path);
-
+    WEBSERVER_LOG_DEBUG("ISP: enable 3a config auto algos");
+    m_isp_blender_ptr->set_auto_configs(true);
     if (m_isp_filters_manual_state != IspResource::FiltersManualState::FILTER_STATE_MANUAL)
     {
         return; // baseline params are not needed in manual mode
@@ -81,7 +94,7 @@ void IspResource::init(bool set_auto_wb)
 
     wait_isp_converge(50, 1000);
     WEBSERVER_LOG_DEBUG("ISP: disable 3a config");
-    update_3a_config(false, m_default_3a_path);
+    m_isp_blender_ptr->set_auto_configs(false);
     m_isp_converge = true;
 
     uint16_t *sharpness_down = &m_baseline_stream_params.sharpness_down;
@@ -369,42 +382,45 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
                  return j_out;
              }));
 
-    srv->Post("/isp/stream_params",
-              std::function<nlohmann::json(const nlohmann::json &)>([this](const nlohmann::json &j_body) {
-                  if (ISP_FILTERS_MANUAL_STATE_IS_AUTO(m_isp_filters_manual_state))
-                  {
-                      WEBSERVER_LOG_ERROR("Stream params can only be set in manual mode");
-                      throw std::runtime_error("Stream params can only be set in manual mode");
-                  }
+    srv->Post(
+        "/isp/stream_params",
+        std::function<nlohmann::json(const nlohmann::json &)>([this](const nlohmann::json &j_body) {
+            if (ISP_FILTERS_MANUAL_STATE_IS_AUTO(m_isp_filters_manual_state))
+            {
+                WEBSERVER_LOG_ERROR("Stream params can only be set in manual mode");
+                throw std::runtime_error("Stream params can only be set in manual mode");
+            }
 
-                  std::string ret_msg;
-                  webserver::common::stream_params_t stream_params;
-                  try
-                  {
-                      stream_params = j_body.get<webserver::common::stream_params_t>();
-                  }
-                  catch (const std::exception &e)
-                  {
-                      throw std::runtime_error("Failed to cast JSON to stream_params_t");
-                  }
-                  auto isp_params = m_baseline_stream_params.from_stream_params(stream_params);
+            std::string ret_msg;
+            webserver::common::stream_params_t stream_params;
+            try
+            {
+                stream_params = j_body.get<webserver::common::stream_params_t>();
+            }
+            catch (const std::exception &e)
+            {
+                throw std::runtime_error("Failed to cast JSON to stream_params_t");
+            }
+            auto isp_params = m_baseline_stream_params.from_stream_params(stream_params);
+            WEBSERVER_LOG_INFO("Setting stream params to: \n\tSharpness Down: {}\n\tSharpness Up: {}\n\tSaturation: "
+                               "{}\n\tBrightness: {}\n\tContrast: {}",
+                               isp_params.sharpness_down, isp_params.sharpness_up, isp_params.saturation,
+                               isp_params.brightness, isp_params.contrast);
+            v4l2_ctrl::set<int32_t>(v4l2_ctrl::Video0Ctrl::SATURATION, isp_params.saturation);
+            v4l2_ctrl::set<int32_t>(v4l2_ctrl::Video0Ctrl::BRIGHTNESS, static_cast<int8_t>(isp_params.brightness));
+            v4l2_ctrl::set<int32_t>(v4l2_ctrl::Video0Ctrl::CONTRAST, isp_params.contrast);
 
-                  v4l2_ctrl::set<int32_t>(v4l2_ctrl::Video0Ctrl::SATURATION, isp_params.saturation);
-                  v4l2_ctrl::set<int32_t>(v4l2_ctrl::Video0Ctrl::BRIGHTNESS,
-                                          static_cast<int8_t>(isp_params.brightness));
-                  v4l2_ctrl::set<int32_t>(v4l2_ctrl::Video0Ctrl::CONTRAST, isp_params.contrast);
+            v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::EE_ENABLE, 0);
 
-                  v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::EE_ENABLE, 0);
+            v4l2_ctrl::set<uint16_t *>(v4l2_ctrl::Video0Ctrl::SHARPNESS_DOWN, &isp_params.sharpness_down);
+            v4l2_ctrl::set<uint16_t *>(v4l2_ctrl::Video0Ctrl::SHARPNESS_UP, &isp_params.sharpness_up);
 
-                  v4l2_ctrl::set<uint16_t *>(v4l2_ctrl::Video0Ctrl::SHARPNESS_DOWN, &isp_params.sharpness_down);
-                  v4l2_ctrl::set<uint16_t *>(v4l2_ctrl::Video0Ctrl::SHARPNESS_UP, &isp_params.sharpness_up);
+            v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::EE_ENABLE, 1);
 
-                  v4l2_ctrl::set<uint16_t>(v4l2_ctrl::Video0Ctrl::EE_ENABLE, 1);
-
-                  // cast out to json
-                  nlohmann::json j_out = stream_params;
-                  return j_out;
-              }));
+            // cast out to json
+            nlohmann::json j_out = stream_params;
+            return j_out;
+        }));
 
     srv->Post("/isp/auto_exposure",
               std::function<nlohmann::json(const nlohmann::json &)>(
@@ -467,7 +483,7 @@ auto_exposure_t IspResource::get_auto_exposure()
     WEBSERVER_LOG_DEBUG("Got auto exposure: enabled: {}, gain: {}, integration_time: {}", enabled, gain,
                         integration_time);
 
-    backlight_filter_t current = backlight_filter_t::get_from_json();
+    backlight_filter_t current = get_blacklight();
     uint16_t backlight = m_baseline_backlight_params.to_precentage(current);
 
     return auto_exposure_t{(bool)enabled, ROUND_GAIN_GET_U16(gain), integration_time, backlight};
@@ -507,19 +523,10 @@ bool IspResource::set_auto_exposure(auto_exposure_t &ae)
         // sleep so auto exposure values will be updated
         std::this_thread::sleep_for(std::chrono::seconds(1));
         backlight_filter_t current = m_baseline_backlight_params.from_precentage(ae.backlight);
-        nlohmann::json j_3a = get_3a_config();
-
-        std::optional<std::reference_wrapper<nlohmann::json>> ae_class_opt =
-            get_3a_config_class(j_3a, ISP_CLASSNAME_AUTO_EXPOSURE);
-        if (!ae_class_opt.has_value())
-        {
-            WEBSERVER_LOG_ERROR("Failed to get AE class from 3a config");
-            return false;
-        }
-        nlohmann::json &ae_class = ae_class_opt.value().get();
-        ae_class["wdrContrast.max"] = current.max_level;
-        ae_class["wdrContrast.min"] = current.min_level;
-        update_3a_config(j_3a);
+        automatic_algorithms_config_t config = m_isp_blender_ptr->get_current_automatic_algorithms_config();
+        config.adaptive_ae.wdrContrast.max = current.max_level;
+        config.adaptive_ae.wdrContrast.min = current.min_level;
+        m_isp_blender_ptr->set_automatic_algorithms_config(config);
     }
     else
     {

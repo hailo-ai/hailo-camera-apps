@@ -96,7 +96,6 @@ tools/build_tools/tappas_sphinx/_static/fonts/*
 # Face Recognition files
 apps/h8/gstreamer/general/face_recognition/resources/faces/
 apps/h8/gstreamer/general/face_recognition/resources/gallery/
-apps/h8/gstreamer/x86_hw_accelerated/video_management_system/resources/gallery/
 
 # Cross compile files
 tools/cross_compiler/unpacked-*

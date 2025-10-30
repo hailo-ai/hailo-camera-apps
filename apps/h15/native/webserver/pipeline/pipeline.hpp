@@ -1,5 +1,7 @@
 #pragma once
 #include "base_pipeline.hpp"
+#include "pipeline/isp_blender.hpp"
+
 // medialibrary includes
 #include "media_library/encoder.hpp"
 #include "media_library/frontend.hpp"
@@ -48,6 +50,7 @@ class CppPipeline : public IPipeline
         std::map<output_stream_id_t, std::shared_ptr<EncoderStage>> encoders;
         PipelinePtr pipeline;
         Architecture platform;
+        std::shared_ptr<IspBlender> m_isp_blender;
 
         void clear()
         {
@@ -74,21 +77,22 @@ class CppPipeline : public IPipeline
     std::shared_ptr<UdpStage> configure_udp(const std::string &stream_name);
     std::shared_ptr<WebrtcStage> configure_webrtc_callback();
     std::string read_string_from_file(const char *file_path);
-    void update_profile_config_frontend(const std::string &frontend_conf, ProfileConfig &profile_config);
+    void update_profile_config_frontend(const std::string &frontend_conf, config_profile_t &profile_config);
 
     void callback_handle_profile_switch(ResourceStateChangeNotification notif);
 
     hailo_encoder_config_t get_encoder_config() override;
     std::shared_ptr<osd::Blender> get_osd_blender() override;
     std::shared_ptr<PrivacyMaskBlender> get_privacy_blender() override;
+    void callback_handle_privacy_mask(ResourceStateChangeNotification notif);
     void callback_handle_encoder(ResourceStateChangeNotification notif) override;
     void callback_handle_update_profile(ResourceStateChangeNotification notif);
-    void update_fps(uint32_t fps, ProfileConfig &profile_config);
-    void update_resolution(const std::string &resolution, ProfileConfig &profile_config);
-    void update_flip(const std::string &flip, ProfileConfig &profile_config);
-    void update_rotation(const std::string &rotation, ProfileConfig &profile_config);
-    void update_zoom(std::shared_ptr<ProfileDigitalZoomState> state, ProfileConfig &profile_config);
-    void update_zoom_roi(std::shared_ptr<ProfileDigitalZoomRoiState> state, ProfileConfig &profile_config);
+    void update_fps(uint32_t fps, config_profile_t &profile_config);
+    void update_resolution(const std::string &resolution, config_profile_t &profile_config);
+    void update_flip(const std::string &flip, config_profile_t &profile_config);
+    void update_rotation(const std::string &rotation, config_profile_t &profile_config);
+    void update_zoom(std::shared_ptr<ProfileDigitalZoomState> state, config_profile_t &profile_config);
+    void update_zoom_roi(std::shared_ptr<ProfileDigitalZoomRoiState> state, config_profile_t &profile_config);
     int relative_to_absolut(float position, uint32_t resolution_axis_size);
     float absolut_to_relative(int position, uint32_t resolution_axis_size);
     int scale(int position, int old_size, int new_size);

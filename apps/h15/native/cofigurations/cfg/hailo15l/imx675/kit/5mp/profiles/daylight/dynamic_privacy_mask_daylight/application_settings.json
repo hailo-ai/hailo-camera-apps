@@ -1,0 +1,88 @@
+{
+  "version": "2.0.0",
+  "application_input_streams": {
+    "method": "INTERPOLATION_TYPE_BILINEAR",
+    "format": "IMAGE_FORMAT_NV12",
+    "resolutions": [
+      {
+        "width": 2592,
+        "height": 1944,
+        "framerate": 30,
+        "pool_max_buffers": 20,
+        "stream_id": "sink0"
+      },
+      {
+        "width": 640,
+        "height": 480,
+        "framerate": 15,
+        "pool_max_buffers": 20,
+        "stream_id": "sink1"
+      }
+    ]
+  },
+  "gmv": {
+    "source": "isp",
+    "frequency": 0.0
+  },
+  "optical_zoom": {
+    "enabled": true,
+    "magnification": 1.0
+  },
+  "digital_zoom": {
+    "enabled": false,
+    "mode": "DIGITAL_ZOOM_MODE_MAGNIFICATION",
+    "magnification": 1.0,
+    "roi": {
+      "x": 200,
+      "y": 200,
+      "width": 2300,
+      "height": 1300
+    }
+  },
+  "motion_detection": {
+    "enabled": false,
+    "resolution": {
+      "width": 640,
+      "height": 480,
+      "framerate": 30
+    },
+    "roi": {
+      "x": 200,
+      "y": 200,
+      "width": 640,
+      "height": 480
+    },
+    "sensitivity_level": "MEDIUM",
+    "threshold": 0.5
+  },
+  "rotation": {
+    "enabled": false,
+    "angle": "ROTATION_ANGLE_180"
+  },
+  "flip": {
+    "enabled": false,
+    "direction": "FLIP_DIRECTION_HORIZONTAL"
+  },
+  "hailort": {
+    "device-id": "device0"
+  },
+  "application_analytics": {
+    "instance_segmentation": [
+      {
+        "analytics_data_id": "yolo_segmentation",
+        "scaling_mode": "STRETCH",
+        "width": 640,
+        "height": 480,
+        "original_width_ratio": 4,
+        "original_height_ratio": 3,
+        "max_entries": 5,
+        "labels": [
+          {
+            "label": "person",
+            "id": 0
+          }
+        ]
+      }
+    ]
+  }
+}

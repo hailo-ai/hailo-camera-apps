@@ -4,11 +4,27 @@
     "profiles": [
         {
             "name": "Daylight",
-            "config_file": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_profile.json"
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/daylight_profile.json"
         },
         {
-            "name": "HDR",
-            "config_file": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_profile_hdr.json"
+            "name": "High_Dynamic_Range",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/HDR/HDR_profile.json"
+        },
+        {
+            "name": "Lowlight",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/lowlight_r0225c8_profile.json"
+        },
+        {
+            "name": "Lowlight_Bayer",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/lowlight_bayer_r0225c8_profile.json"
+        },
+        {
+            "name": "Lowlight_Bayer_Preprocess",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/lowlight/lowlight_bayer_preprocess_r0225c8_profile.json"
+        },
+        {
+            "name": "Infrared",
+            "config_file": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/IR/IR_profile.json"
         }
     ]
 }

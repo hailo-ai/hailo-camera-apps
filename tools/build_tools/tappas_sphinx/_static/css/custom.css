@@ -66,25 +66,25 @@
 }
 
 @font-face {
-    font-family: "Exo 2";
-    src: url("../fonts/Exo2-Regular.ttf") format("truetype");
+    font-family: "OpenSans";
+    src: url("../fonts/OpenSans-Regular.ttf") format("truetype");
 }
 
 @font-face {
-    font-family: "Exo 2";
-    src: url("../fonts/Exo2-Bold.ttf") format("truetype");
+    font-family: "OpenSans";
+    src: url("../fonts/OpenSans-Bold.ttf") format("truetype");
     font-weight: bold;
 }
 
 @font-face {
-    font-family: "Exo 2";
-    src: url("../fonts/Exo2-Italic.ttf") format("truetype");
+    font-family: "OpenSans";
+    src: url("../fonts/OpenSans-Italic.ttf") format("truetype");
     font-style: italic;
 }
 
 @font-face {
-    font-family: "Exo 2";
-    src: url("../fonts/Exo2-BoldItalic.ttf") format("truetype");
+    font-family: "OpenSans";
+    src: url("../fonts/OpenSans-Bold.ttf") format("truetype");
     font-weight: bold;
     font-style: italic;
 }
@@ -156,7 +156,7 @@ h4,
 h5,
 span.caption-text,
 p.rubric {
-    font-family: "Exo 2";
+    font-family: "OpenSans";
 }
 
 dd p.rubric {

@@ -16,6 +16,9 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
+#ifdef __ARM_NEON
+#include <arm_neon.h>
+#endif
 #include "hailo_common.hpp"
 #include "hailo_objects.hpp"
 
@@ -383,7 +386,125 @@ class HailoNV12Mat : public HailoMat
     {
         return HAILO_MAT_NV12;
     }
-    virtual void draw_rectangle(cv::Rect rect, const cv::Scalar color)
+
+    /**
+     * @brief Draws a NEON-accelerated 1-pixel border rectangle directly into NV12 image planes.
+     *
+     * Revised to include:
+     *  - bounds-clamping & early exit
+     *  - clearer snake_case names
+     *  - DRY helpers for horizontal edges
+     *  - explicit UV row calculation
+     *  - ptrdiff_t for strides
+     */
+    void draw_rectangle_neon(const cv::Rect &rect, const cv::Scalar &bgr_color)
+    {
+        // 1. Convert BGR → NV12 YUV bytes
+        cv::Scalar yuv_color = get_nv12_color(bgr_color);
+        uint8_t y_byte = static_cast<uint8_t>(yuv_color[0]);
+        uint8_t u_byte = static_cast<uint8_t>(yuv_color[1]);
+        uint8_t v_byte = static_cast<uint8_t>(yuv_color[2]);
+
+        // 2. Floor all coords/sizes to even for NV12 chroma alignment
+        int aligned_x = floor_to_even_number(rect.x);
+        int aligned_y = floor_to_even_number(rect.y);
+        int aligned_width = floor_to_even_number(rect.width);
+        int aligned_height = floor_to_even_number(rect.height);
+
+        // 3. Clamp to image bounds and re-floor to even
+        int img_width = m_matrices[0].cols;
+        int img_height = m_matrices[0].rows;
+
+        aligned_x = std::clamp(aligned_x, 0, img_width - 2);
+        aligned_y = std::clamp(aligned_y, 0, img_height - 2);
+        aligned_width = std::min(aligned_width, img_width - aligned_x);
+        aligned_height = std::min(aligned_height, img_height - aligned_y);
+
+        aligned_width = floor_to_even_number(aligned_width);
+        aligned_height = floor_to_even_number(aligned_height);
+        if (aligned_width < 2 || aligned_height < 2)
+            return; // nothing to draw
+
+        // 4. Compute half-res UV coords & rows
+        int uv_x = aligned_x / 2;
+        int uv_width = aligned_width / 2;
+        int uv_row_top = aligned_y / 2;
+        int uv_height = aligned_height / 2;
+        int uv_row_bottom = uv_row_top + uv_height - 1;
+
+        // 5. Grab Y and UV plane pointers + strides
+        const cv::Mat &y_mat = m_matrices[0];
+        const cv::Mat &uv_mat = m_matrices[1];
+        uint8_t *y_plane = y_mat.data;
+        uint8_t *uv_plane = uv_mat.data;
+        ptrdiff_t y_stride = static_cast<ptrdiff_t>(y_mat.step[0]);
+        ptrdiff_t uv_stride = static_cast<ptrdiff_t>(uv_mat.step[0]);
+
+        // 6. Broadcast color into NEON registers
+        uint8x16_t neon_y = vdupq_n_u8(y_byte);
+        uint8x16_t neon_u = vdupq_n_u8(u_byte);
+        uint8x16_t neon_v = vdupq_n_u8(v_byte);
+        uint8x16x2_t neon_uv = {neon_u, neon_v};
+
+        auto draw_horiz_y = [&](int row) {
+            uint8_t *p = y_plane + ptrdiff_t(row) * y_stride + aligned_x;
+            int rem = aligned_width;
+            while (rem >= 16)
+            {
+                vst1q_u8(p, neon_y);
+                p += 16;
+                rem -= 16;
+            }
+            while (rem--)
+            {
+                *p++ = y_byte;
+            }
+        };
+
+        auto draw_horiz_uv = [&](int uv_row) {
+            uint8_t *p = uv_plane + ptrdiff_t(uv_row) * uv_stride + uv_x * 2;
+            int rem = uv_width;
+            while (rem >= 16)
+            {
+                vst2q_u8(p, neon_uv);
+                p += 32;
+                rem -= 16;
+            }
+            while (rem--)
+            {
+                *p++ = u_byte;
+                *p++ = v_byte;
+            }
+        };
+
+        // 7. Draw horizontal edges
+        draw_horiz_y(aligned_y);
+        draw_horiz_y(aligned_y + aligned_height - 1);
+        draw_horiz_uv(uv_row_top);
+        draw_horiz_uv(uv_row_bottom);
+
+        // 8. Draw vertical edges on Y plane
+        for (int row = aligned_y; row < aligned_y + aligned_height; ++row)
+        {
+            uint8_t *row_ptr = y_plane + ptrdiff_t(row) * y_stride;
+            row_ptr[aligned_x] = y_byte;
+            row_ptr[aligned_x + aligned_width - 1] = y_byte;
+        }
+
+        // 9. Draw vertical edges on UV plane
+        for (int uv_row = uv_row_top; uv_row < uv_row_top + uv_height; ++uv_row)
+        {
+            uint8_t *row_ptr = uv_plane + ptrdiff_t(uv_row) * uv_stride + uv_x * 2;
+            // left
+            row_ptr[0] = u_byte;
+            row_ptr[1] = v_byte;
+            // right
+            row_ptr[(uv_width - 1) * 2 + 0] = u_byte;
+            row_ptr[(uv_width - 1) * 2 + 1] = v_byte;
+        }
+    }
+
+    void draw_rectangle_opencv(cv::Rect rect, const cv::Scalar color)
     {
         cv::Scalar yuv_color = get_nv12_color(color);
         uint thickness = m_line_thickness > 1 ? m_line_thickness / 2 : 1;
@@ -402,6 +523,15 @@ class HailoNV12Mat : public HailoMat
         cv::Rect uv_rect =
             cv::Rect(y_plane_rect_x / 2, y_plane_rect_y / 2, y_plane_rect_width / 2, y_plane_rect_height / 2);
         cv::rectangle(m_matrices[1], uv_rect, cv::Scalar(yuv_color[1], yuv_color[2]), thickness);
+    }
+
+    virtual void draw_rectangle(cv::Rect rect, const cv::Scalar color)
+    {
+#ifdef __ARM_NEON
+        draw_rectangle_neon(rect, color);
+#else
+        draw_rectangle_opencv(rect, color);
+#endif
     }
 
     virtual void draw_text(std::string text, cv::Point position, double font_scale, const cv::Scalar color)

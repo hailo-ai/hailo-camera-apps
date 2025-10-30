@@ -62,12 +62,15 @@ webserver::resources::EncoderResource::EncoderResource(
     std::shared_ptr<EventBus> event_bus, std::shared_ptr<webserver::resources::ConfigResourceBase> configs)
     : Resource(event_bus)
 {
-    WEBSERVER_LOG_INFO("Initializing EncoderResource");
-    m_default_config = configs->get_encoder_default_config().dump(4);
-    reset_config();
+    subscribe_callback(EventType::PIPELINE_READY, EventPriority::EVENT_PRIORITY_HIGH,
+                       [this, configs](ResourceStateChangeNotification notification) {
+                           WEBSERVER_LOG_INFO("Initializing EncoderResource");
+                           this->m_default_config = configs->get_encoder_default_config().dump(4);
+                           reset_config();
+                       });
 
-    subscribe_callback({EventType::CHANGE_RESOLUTION, EventType::CHANGE_ROTATION, EventType::SWITCH_PROFILE}, EventPriority::EVENT_PRIORITY_LOW,
-                       [this](ResourceStateChangeNotification notification) {
+    subscribe_callback({EventType::CHANGE_RESOLUTION, EventType::CHANGE_ROTATION, EventType::SWITCH_PROFILE},
+                       EventPriority::EVENT_PRIORITY_LOW, [this](ResourceStateChangeNotification notification) {
                            // renable the osds on the new stream resolution
                            WEBSERVER_LOG_INFO("Received reset affecting notification with LOW priority");
                            pull_encoder_config();

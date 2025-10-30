@@ -6,9 +6,6 @@
 #include "hailo_common.hpp"
 #include <algorithm>
 
-#define DETECTOR_WIDTH 1920
-#define DETECTOR_HEIGHT 1080
-
 /**
  * @brief Base class for DSP crop stages, responsible for handling common cropping and resizing operations.
  */
@@ -16,20 +13,20 @@ class DspBaseCropStage : public ConnectedStage
 {
   protected:
     MediaLibraryBufferPoolPtr m_buffer_pool; /**< Buffer pool for managing media library buffers */
-    int m_output_pool_size;                  /**< Size of the output buffer pool */
-    int m_input_width;                       /**< Width of the input data */
-    int m_input_height;                      /**< Height of the input data */
-    int m_output_width;                      /**< Width of the output data */
-    int m_output_hight;                      /**< Height of the output data */
+    int m_output_pool_size; /**< Size of the output buffer pool */
+    int m_input_width; /**< Width of the input data */
+    int m_input_height; /**< Height of the input data */
+    int m_output_width; /**< Width of the output data */
+    int m_output_hight; /**< Height of the output data */
 
     std::string m_main_subscriber; /**< Name of the main subscriber */
-    std::string m_sub_subscriber;  /**< Name of the sub-subscriber */
+    std::string m_sub_subscriber; /**< Name of the sub-subscriber */
     std::condition_variable m_available_buffers_cv;
     std::mutex m_buff_pool_mutex;
 
     StagePoolMode m_pool_mode; //< Pool mode for the buffer pool used in this stage
     int m_crop_every_x_frames; // Crop every n frames (default 1)
-    int m_frame_counter;       // Internal frame counter
+    int m_frame_counter; // Internal frame counter
   public:
     /**
      * @brief Constructor to initialize the stage with specified parameters.
@@ -257,6 +254,7 @@ class DspBaseCropStage : public ConnectedStage
             // Note, this will make overlay incorrect if the bboxes are not flattened
             cropped_buffer_ptr->get_roi()->set_scaling_bbox(get_crop_bbox(i));
             cropped_buffer_ptr->add_time_stamp(m_stage_name + "_" + std::to_string(i));
+            cropped_buffer_ptr->get_buffer()->isp_timestamp_ns = data->get_buffer()->isp_timestamp_ns;
 
             send_to_specific_subsciber(m_sub_subscriber, cropped_buffer_ptr);
         }
@@ -502,8 +500,8 @@ class BBoxCropStage : public DspBaseCropStage
 {
   private:
     std::vector<HailoBBox> m_detection_crops_bbox; /**< Bounding boxes for detected crops */
-    std::vector<HailoROIPtr> m_detection_rois;     /**< ROI pointers for detections */
-    std::string m_target_label;                    /**< Target label for filtering detections */
+    std::vector<HailoROIPtr> m_detection_rois; /**< ROI pointers for detections */
+    std::string m_target_label; /**< Target label for filtering detections */
   public:
     /**
      * @brief Constructor to initialize the stage with specified parameters.

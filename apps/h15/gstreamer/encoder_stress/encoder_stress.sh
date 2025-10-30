@@ -3,6 +3,21 @@ set -e
 
 CURRENT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 
+# Cleanup function to stop config tuning when script exits
+cleanup_on_exit() {
+    # Prevent multiple calls to cleanup
+    if [[ "${CLEANUP_DONE:-}" == "true" ]]; then
+        return 0
+    fi
+    CLEANUP_DONE=true
+    
+    echo "Script terminating - stopping config tuning application..."
+    /home/root/apps/manage_config_tuning.sh stop
+}
+
+# Set up exit trap
+trap cleanup_on_exit EXIT SIGINT SIGTERM
+
 function init_variables() {
     print_help_if_needed $@
 
@@ -165,9 +180,9 @@ function create_pipeline() {
                     $FPS_DISP name=hailo_display_fhd_enc "
 }
 
-/home/root/apps/clean_symlinks_config_isp.sh --mode "$mode" --tuning "$tuning_extension" --lens "$lens" --project "$project"
+/home/root/apps/manage_config_tuning.sh start "$mode"
 if [ $? -ne 0 ]; then
-    echo "Failed to clean symlinks and copy ISP configuration files."
+    echo "Failed to start config tuning application."
     exit 1
 fi
 

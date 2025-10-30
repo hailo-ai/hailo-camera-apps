@@ -1,0 +1,21 @@
+{
+    "version": "1.0.0",
+    "input_video": {
+        "source_type": "APPSRC",
+        "resolution": {
+            "width": 1920,
+            "height": 1080,
+            "framerate": 30
+        }
+    },
+    "sensor_configuration": {
+        "name": "imx678",
+        "drv": "HAILO_IMX678.drv",
+        "mode": 0,
+        "pixel_mode": 0,
+        "sensor_only": 0,
+        "af_i2c_bus": -1,
+        "af_i2c_addr": "0x0"
+    },
+    "sensor_calibration_file": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/daylight/clip_example_daylight/calib.json"
+}

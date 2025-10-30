@@ -18,7 +18,6 @@ void IPipeline::subscribe_to_events()
     std::map<EventType, CallbackFunction> event_callback_map = {
         {EventType::CHANGED_RESOURCE_OSD, &IPipeline::callback_handle_osd},
         {EventType::CHANGED_RESOURCE_ENCODER, &IPipeline::callback_handle_encoder},
-        {EventType::CHANGED_RESOURCE_PRIVACY_MASK, &IPipeline::callback_handle_privacy_mask},
     };
 
     for (const auto &event_callback : event_callback_map)
@@ -93,59 +92,4 @@ void IPipeline::callback_handle_osd(ResourceStateChangeNotification notif)
         }
     }
     WEBSERVER_LOG_DEBUG("Pipeline: OSD resource state change handled");
-}
-
-void IPipeline::callback_handle_privacy_mask(ResourceStateChangeNotification notif)
-{
-    WEBSERVER_LOG_DEBUG("Pipeline: Handling privacy mask resource state change");
-    auto state = notif.getResourceStateFromBase<PrivacyMaskResource::PrivacyMaskResourceState>();
-    auto masks = state->masks;
-    std::shared_ptr<PrivacyMaskBlender> privacy_blender = get_privacy_blender();
-
-    if (state->color)
-    {
-        privacy_blender->set_color(state->color.value());
-    }
-    else if (state->pixelization_size)
-    {
-        privacy_blender->set_pixelization_size(state->pixelization_size.value());
-    }
-
-    for (std::string id : state->changed_to_enabled)
-    {
-        WEBSERVER_LOG_DEBUG("Pipeline: recived candidate mask to add: {} ", id);
-        if (masks.find(id) != masks.end())
-        {
-            WEBSERVER_LOG_DEBUG("Pipeline: Adding privacy mask: {}", id);
-            privacy_blender->add_static_privacy_mask(masks[id]);
-        }
-    }
-    for (std::string id : state->changed_to_disabled)
-    {
-        WEBSERVER_LOG_DEBUG("Pipeline: recived candidate mask to disable: {} ", id);
-        if (masks.find(id) != masks.end())
-        {
-            WEBSERVER_LOG_DEBUG("Pipeline: Removing privacy mask: {}", id);
-            privacy_blender->remove_static_privacy_mask(id);
-        }
-    }
-    for (std::string &mask : state->polygon_to_update)
-    {
-        WEBSERVER_LOG_DEBUG("Pipeline: recived candidate mask to update: {} ", mask);
-        if (masks.find(mask) != masks.end())
-        {
-            WEBSERVER_LOG_DEBUG("Pipeline: Updating privacy mask: {}", mask);
-            privacy_blender->set_static_privacy_mask(masks[mask]);
-        }
-    }
-    for (std::string &mask : state->polygon_to_delete)
-    {
-        WEBSERVER_LOG_DEBUG("Pipeline: recived candidate mask to delete: {} ", mask);
-        if (masks.find(mask) != masks.end())
-        {
-            WEBSERVER_LOG_DEBUG("Pipeline: Deleting privacy mask: {}", mask);
-            privacy_blender->remove_static_privacy_mask(mask);
-        }
-    }
-    WEBSERVER_LOG_DEBUG("Pipeline: Privacy mask resource state change handled");
 }

@@ -86,6 +86,10 @@ inline OutputModule::~OutputModule()
     {
         gst_object_unref(m_pipeline);
     }
+    if (m_main_loop != nullptr)
+    {
+        g_main_loop_unref(m_main_loop);
+    }
 }
 
 inline AppStatus OutputModule::start()

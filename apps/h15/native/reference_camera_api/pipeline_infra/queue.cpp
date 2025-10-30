@@ -11,9 +11,10 @@ class QueueTracing
 #endif
 
   public:
-    QueueTracing(const std::string &name)
+    QueueTracing(const std::string &parent_name, const std::string &queue_name, size_t max_buffers)
 #ifdef HAVE_PERFETTO
-        : m_counter_name("queue_" + name), m_counter_track(perfetto::DynamicString(m_counter_name), "queue level")
+        : m_counter_name("queue_" + parent_name + "_" + queue_name + "_" + std::to_string(max_buffers)),
+          m_counter_track(perfetto::DynamicString(m_counter_name), "queue level")
 #endif
     {
     }
@@ -24,13 +25,13 @@ class QueueTracing
     }
 };
 
-Queue::Queue(std::string name, size_t max_buffers, bool leaky, bool print_level)
-    : m_max_buffers(max_buffers), m_leaky(leaky), m_print_level(print_level), m_name(name), m_flushing(false)
+Queue::Queue(std::string parent_name, std::string queue_name, size_t max_buffers, bool leaky, bool print_level)
+    : m_max_buffers(max_buffers), m_leaky(leaky), m_print_level(print_level), m_name(queue_name), m_flushing(false)
 {
     m_mutex = std::make_shared<std::mutex>();
     m_condvar = std::make_unique<std::condition_variable>();
     m_queue = std::queue<BufferPtr>();
-    m_tracing = std::make_unique<QueueTracing>(name);
+    m_tracing = std::make_unique<QueueTracing>(parent_name, queue_name, max_buffers);
 }
 
 Queue::~Queue()

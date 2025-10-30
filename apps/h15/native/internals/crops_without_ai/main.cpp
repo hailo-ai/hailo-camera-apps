@@ -41,7 +41,7 @@
 
 // AI Pipeline Params
 #define AI_VISION_SINK "sink0" // The streamid from frontend to 4K stream that shows vision results
-#define AI_SINK "sink2"        // The streamid from frontend to AI
+#define AI_SINK "sink2" // The streamid from frontend to AI
 // Detection AI Params
 #define YOLO_HEF_FILE "/home/root/apps/ai_example_app/resources/yolov8n_personface_nv12.hef"
 #define DETECTION_AI_STAGE "yolo_detection"
@@ -325,11 +325,17 @@ void create_encoder_and_udp(const std::string &id, std::shared_ptr<AppResources>
 void configure_frontend_and_encoders(std::shared_ptr<AppResources> app_resources)
 {
     std::string medialib_config_string = read_string_from_file(app_resources->medialib_config_path.c_str());
-    app_resources->media_library = std::make_shared<MediaLibrary>();
+    auto media_lib_expected = MediaLibrary::create();
+    if (!media_lib_expected.has_value())
+    {
+        std::cout << "Failed to create media library" << std::endl;
+        throw std::runtime_error("Failed to create media library");
+    }
+    app_resources->media_library = media_lib_expected.value();
     if (app_resources->media_library->initialize(medialib_config_string) != media_library_return::MEDIA_LIBRARY_SUCCESS)
     {
         std::cout << "Failed to initialize media library" << std::endl;
-        return;
+        throw std::runtime_error("Failed to initialize media library");
     }
     // Create and configure frontend
     app_resources->frontend = std::make_shared<FrontendStage>(FRONTEND_STAGE);
@@ -379,7 +385,7 @@ void generate_fifty_detections(BufferPtr input_buffer)
         for (int j = 0; j < num_cols; j++)
         {
             // add a person
-            float r_xmin = xmin_limit + (j * detection_width);  // Arrange in 10 columns
+            float r_xmin = xmin_limit + (j * detection_width); // Arrange in 10 columns
             float r_ymin = ymin_limit + (i * detection_height); // Arrange in 5 rows
             HailoBBox person_bbox = HailoBBox(r_xmin, r_ymin, detection_width * 0.9, detection_height * 0.9);
             hailo_common::add_detection(roi, person_bbox, "person", r_confidence);
@@ -430,8 +436,8 @@ void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
     std::shared_ptr<PersistStage> tracker_stage =
         std::make_shared<PersistStage>(TRACKER_STAGE, 3, 1, false, app_resources->print_fps);
     std::shared_ptr<OverlayStage> overlay_stage = std::make_shared<OverlayStage>(
-        OVERLAY_STAGE, app_resources->skip_drawing, !app_resources->full_landmarks, LANDMARKS_RANGE_MIN,
-        LANDMARKS_RANGE_MAX, 1, false, std::unordered_set<int>{}, nullptr, app_resources->print_fps);
+        OVERLAY_STAGE, app_resources->skip_drawing, !app_resources->full_landmarks, std::unordered_set<size_t>{}, 1,
+        false, std::unordered_set<int>{}, nullptr, app_resources->print_fps);
 
     // Add stages to pipeline
     app_resources->pipeline->add_stage(tee_stage);
@@ -474,85 +480,83 @@ void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
  * @param argv Array of command-line arguments.
  * @return int Exit status of the application.
  */
+std::mutex g_stop_mutex;
+std::condition_variable g_stop_cv;
+
 int main(int argc, char *argv[])
 {
+    // App resources
+    std::shared_ptr<AppResources> app_resources = std::make_shared<AppResources>();
+    app_resources->medialib_config_path = MEDIALIB_CONFIG_PATH;
+
+    // register signal SIGINT and signal handler
+    signal_utils::SignalHandler signal_handler(false);
+    signal_handler.register_signal_handler([app_resources](int signal) {
+        std::cout << "Stopping Pipeline..." << std::endl;
+        REFERENCE_CAMERA_LOG_INFO("Stopping Pipeline...");
+        g_stop_cv.notify_all();
+    });
+
+    // Parse user arguments
+    cxxopts::Options options = build_arg_parser();
+    auto result = options.parse(argc, argv);
+    std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options);
+    int timeout = result["timeout"].as<int>();
+
+    for (ArgumentType argument : argument_handling_results)
     {
-        // App resources
-        std::shared_ptr<AppResources> app_resources = std::make_shared<AppResources>();
-        app_resources->medialib_config_path = MEDIALIB_CONFIG_PATH;
-
-        // register signal SIGINT and signal handler
-        signal_utils::register_signal_handler([app_resources](int signal) {
-            std::cout << "Stopping Pipeline..." << std::endl;
-            REFERENCE_CAMERA_LOG_INFO("Stopping Pipeline...");
-            // Stop pipeline
-            app_resources->pipeline->stop_pipeline();
-            app_resources->clear();
-            // terminate program
-            exit(0);
-        });
-
-        // Parse user arguments
-        cxxopts::Options options = build_arg_parser();
-        auto result = options.parse(argc, argv);
-        std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options);
-        int timeout = result["timeout"].as<int>();
-
-        for (ArgumentType argument : argument_handling_results)
+        switch (argument)
         {
-            switch (argument)
-            {
-            case ArgumentType::Help:
-                return 0;
-            case ArgumentType::Timeout:
-                break;
-            case ArgumentType::PrintFPS:
-                app_resources->print_fps = true;
-                break;
-            case ArgumentType::PrintLatency:
-                app_resources->print_latency = true;
-                break;
-            case ArgumentType::Config:
-                app_resources->medialib_config_path = result["config-file-path"].as<std::string>();
-                break;
-            case ArgumentType::SkipDrawing:
-                app_resources->skip_drawing = true;
-                break;
-            case ArgumentType::FullLandmarks:
-                app_resources->full_landmarks = true;
-                break;
-            case ArgumentType::Error:
-                return 1;
-            }
+        case ArgumentType::Help:
+            return 0;
+        case ArgumentType::Timeout:
+            break;
+        case ArgumentType::PrintFPS:
+            app_resources->print_fps = true;
+            break;
+        case ArgumentType::PrintLatency:
+            app_resources->print_latency = true;
+            break;
+        case ArgumentType::Config:
+            app_resources->medialib_config_path = result["config-file-path"].as<std::string>();
+            break;
+        case ArgumentType::SkipDrawing:
+            app_resources->skip_drawing = true;
+            break;
+        case ArgumentType::FullLandmarks:
+            app_resources->full_landmarks = true;
+            break;
+        case ArgumentType::Error:
+            return 1;
         }
-
-        // Create pipeline
-        app_resources->pipeline = std::make_shared<Pipeline>();
-
-        // Configure frontend and encoders
-        configure_frontend_and_encoders(app_resources);
-
-        // Create pipeline and stages
-        create_ai_pipeline(app_resources);
-
-        // Subscribe stages to frontend
-        subscribe_to_frontend(app_resources);
-
-        // Start pipeline
-        std::cout << "Starting." << std::endl;
-        REFERENCE_CAMERA_LOG_INFO("Starting.");
-        app_resources->pipeline->start_pipeline();
-
-        REFERENCE_CAMERA_LOG_INFO("Started playing for {} seconds.", timeout);
-
-        // Wait
-        std::this_thread::sleep_for(std::chrono::seconds(timeout));
-
-        // Stop pipeline
-        std::cout << "Stopping." << std::endl;
-        REFERENCE_CAMERA_LOG_INFO("Stopping.");
-        app_resources->pipeline->stop_pipeline();
-        app_resources->clear();
     }
+
+    // Create pipeline
+    app_resources->pipeline = std::make_shared<Pipeline>();
+
+    // Configure frontend and encoders
+    configure_frontend_and_encoders(app_resources);
+
+    // Create pipeline and stages
+    create_ai_pipeline(app_resources);
+
+    // Subscribe stages to frontend
+    subscribe_to_frontend(app_resources);
+
+    // Start pipeline
+    std::cout << "Starting." << std::endl;
+    REFERENCE_CAMERA_LOG_INFO("Starting.");
+    app_resources->pipeline->start_pipeline();
+
+    REFERENCE_CAMERA_LOG_INFO("Started playing for {} seconds.", timeout);
+
+    // Wait for either timeout or signal
+    std::unique_lock<std::mutex> lk(g_stop_mutex);
+    g_stop_cv.wait_for(lk, std::chrono::seconds(timeout));
+
+    // Stop pipeline
+    std::cout << "Stopping." << std::endl;
+    REFERENCE_CAMERA_LOG_INFO("Stopping.");
+    app_resources->pipeline->stop_pipeline();
     return 0;
 }

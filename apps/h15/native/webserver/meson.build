@@ -28,6 +28,7 @@ src = common_src + [
   'pipeline/pipeline.cpp',
   'pipeline/pipeline_event_handle.cpp',
   'pipeline/pipeline_endpoints.cpp',
+  'pipeline/isp_blender.cpp',
   'pipeline/stages/webrtc_stage.cpp',
   'pipeline/stages/convert_rtp_module.cpp',
 ]

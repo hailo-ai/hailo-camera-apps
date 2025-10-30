@@ -13,11 +13,14 @@
 #include "pipeline_infra/tracker_stage.hpp"
 #include "pipeline_infra/udp_module.hpp"
 #include "pipeline_infra/udp_stage.hpp"
-#include "pipeline_infra/file_stage.hpp"
+#include "pipeline_infra/file_sink_stage.hpp"
 #include "pipeline_infra/reference_camera_logger.hpp"
 #include "pipeline_infra/valve_stage.hpp"
 #include "pipeline_infra/freeze_stage.hpp"
 #include "pipeline_infra/tracker_traffic_ctrl_stage.hpp"
 #include "pipeline_infra/zmq_comm_stage.hpp"
-
+#include "pipeline_infra/muxer_stage.hpp"
+#include "pipeline_infra/demuxer_stage.hpp"
+#include "pipeline_infra/file_source_stage.hpp"
+#include "pipeline_infra/reference_camera_app_constructor.hpp"
 // Header consolidation file

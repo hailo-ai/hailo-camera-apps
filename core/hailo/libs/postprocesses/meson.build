@@ -189,6 +189,20 @@ shared_library('facial_landmarks_post',
     install_dir: post_proc_install_dir,
 )
 
+mediapipe_post_sources = [
+    'facial_landmarking/mediapipe_landmarks_post.cpp',
+]
+
+shared_library('mediapipe_post',
+    mediapipe_post_sources,
+    cpp_args : hailo_lib_args,
+    include_directories: [hailo_general_inc, include_directories('./')] + xtensor_inc,
+    dependencies : post_deps,
+    gnu_symbol_visibility : 'default',
+    install: true,
+    install_dir: post_proc_install_dir,
+)
+
 ################################################
 # YOLOV5SEG SOURCES
 ################################################
@@ -350,3 +364,23 @@ shared_library('clip_post',
 if get_option('include_python')
     subdir('python_bindings')
 endif
+
+################################################
+# CLIP Gen SOURCES
+################################################
+zmq_dep = dependency('libzmq', method : 'pkg-config')
+json_dep = meson.get_compiler('cpp').find_library('libnlohmann_json_schema_validator', required: true, dirs: '/usr/lib/')
+
+clip_gen_sources = [
+    'clip/clip_gen.cpp',
+]
+
+shared_library('clipgen_post',
+    clip_gen_sources,
+    cpp_args : hailo_lib_args,
+    include_directories: [hailo_general_inc, include_directories('./')],
+    dependencies :[tracker_dep],
+    gnu_symbol_visibility : 'default',
+    install: true,
+    install_dir: post_proc_install_dir,
+)

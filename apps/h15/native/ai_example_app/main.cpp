@@ -8,6 +8,9 @@
 #include <tl/expected.hpp>
 #include <signal.h>
 #include <cxxopts/cxxopts.hpp>
+#include <signal.h>
+#include <condition_variable>
+#include <mutex>
 
 // medialibrary includes
 #include "media_library/media_library.hpp"
@@ -29,31 +32,39 @@
 #include "aggregator_stage.hpp"
 #include "reference_camera_logger.hpp"
 #include "pipeline_builder.hpp"
+#include "muxer_stage.hpp"
+#include "demuxer_stage.hpp"
 
 // Frontend Params
 #define FRONTEND_STAGE "frontend_stage"
 #define NO_PROFILE_SELECTED ""
 #define MEDIALIB_CONFIG_PATH "/etc/imaging/cfg/medialib_configs/ai_example_medialib_config.json"
 #define VISION_SINK "sink0" // The streamid from frontend to 4K stream that shows vision results
-#define AI_SINK "sink2"     // The streamid from frontend to AI (FHD)
+#define SECONDARY_VISION_SINK "sink1" // The small streamid from frontend that would be used for overlay
+#define AI_SINK "sink2" // The streamid from frontend to AI (FHD)
 #define CALLBACK_STAGE "callback_stage"
 
 // Output Params
 #define HOST_IP "10.0.0.2"
 #define TRACKER_STAGE "tracker"
 #define OVERLAY_STAGE "overlay"
+#define DEMUX_STAGE "demuxer"
 
 /*
     Stage 1 Params (Person/Face Detection)
 */
 // Tilling Params
+#define MUXER_STAGE "muxer"
+
 #define TILLING_STAGE "tilling"
 #define TILLING_INPUT_WIDTH 1920
 #define TILLING_INPUT_HEIGHT 1080
 #define TILLING_OUTPUT_WIDTH 640
-#define TILLING_OUTPUT_HEIGHT 640
+#define TILLING_OUTPUT_HEIGHT 384
 std::vector<HailoBBox> TILES = {
     {0.0, 0.0, 0.6, 0.6}, {0.4, 0, 0.6, 0.6}, {0, 0.4, 0.6, 0.6}, {0.4, 0.4, 0.6, 0.6}, {0.0, 0.0, 1.0, 1.0}};
+// Example: indices to draw for landmarks (used if not full_landmarks)
+const std::unordered_set<size_t> LANDMARKS_INDICES_EXAMPLE = {33, 468, 133, 362, 473, 263, 5, 4, 1};
 // Detection AI Params
 #define YOLO_HEF_FILE "/home/root/apps/ai_example_app/resources/yolov8n_personface_nv12.hef"
 #define DETECTION_AI_STAGE "yolo_detection"
@@ -74,18 +85,18 @@ std::vector<HailoBBox> TILES = {
 // Bbox crop Parms
 #define BBOX_CROP_STAGE "bbox_crops"
 #define BBOX_CROP_LABEL "face"
-#define BBOX_CROP_OUTPUT_WIDTH 120
-#define BBOX_CROP_OUTPUT_HEIGHT 120
+#define BBOX_CROP_OUTPUT_WIDTH 192
+#define BBOX_CROP_OUTPUT_HEIGHT 192
 // Landmarks AI Params
-#define LANDMARKS_HEF_FILE "/home/root/apps/ai_example_app/resources/tddfa_mobilenet_v1_nv12.hef"
+#define LANDMARKS_HEF_FILE "/home/root/apps/ai_example_app/resources/face_landmarks_lite_nv12.hef"
 #define LANDMARKS_AI_STAGE "face_landmarks"
 // Landmarks Postprocess Params
 #define LANDMARKS_POST_STAGE "landmarks_post"
-#define LANDMARKS_POST_SO "/usr/lib/hailo-post-processes/libfacial_landmarks_post.so"
+#define LANDMARKS_POST_SO "/usr/lib/hailo-post-processes/libmediapipe_post.so"
 #define LANDMARKS_FUNC_NAME "facial_landmarks_nv12"
 // Whitelist landmarks range
-#define LANDMARKS_RANGE_MIN 36
-#define LANDMARKS_RANGE_MAX 47
+#define LANDMARKS_RANGE_MIN 0
+#define LANDMARKS_RANGE_MAX 5
 // Stage 2 Aggregator Params
 #define LANDMARKS_AGGREGATOR "landmarks_aggregator"
 #define STAGE_2_AGGREGATOR "stage_2_aggregator"
@@ -304,11 +315,17 @@ void create_encoder_and_udp(const std::string &id, std::shared_ptr<AppResources>
 void configure_frontend_and_encoders(std::shared_ptr<AppResources> app_resources)
 {
     std::string medialib_config_string = read_string_from_file(app_resources->medialib_config_path.c_str());
-    app_resources->media_library = std::make_shared<MediaLibrary>();
+    auto media_lib_expected = MediaLibrary::create();
+    if (!media_lib_expected.has_value())
+    {
+        std::cout << "Failed to create media library" << std::endl;
+        throw std::runtime_error("Failed to create media library");
+    }
+    app_resources->media_library = media_lib_expected.value();
     if (app_resources->media_library->initialize(medialib_config_string) != media_library_return::MEDIA_LIBRARY_SUCCESS)
     {
         std::cout << "Failed to initialize media library" << std::endl;
-        return;
+        throw std::runtime_error("Failed to initialize media library");
     }
     if (app_resources->profile_name != NO_PROFILE_SELECTED)
     {
@@ -385,12 +402,22 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
         }
 
         /*
-                 _____________________________________
-                /                                     \
-            +--------+    +------+    +------+    +------------+
-            | tiling | -> | yolo | -> | post | -> | aggregator |
-            +--------+    +------+    +------+    +------------+
+                 ___________________________________________________________
+                /                                                           \
+            +-------+    +----------+    +--------+    +------+    +------+    +------------+
+            | muxer | -> | callback | -> | tiling | -> | yolo | -> | post | -> | aggregator |
+            +-------+    +----------+    +--------+    +------+    +------+    +------------+
         */
+        std::shared_ptr<MuxerStage> muxer_stage = MuxerStageBuild::create()
+                                                      .set_stage_name(MUXER_STAGE)
+                                                      .set_main_inlet_name(VISION_SINK)
+                                                      .set_sub_inlet_name(SECONDARY_VISION_SINK)
+                                                      .set_main_queue_size(10)
+                                                      .set_sub_queue_size(10)
+                                                      .set_main_leaky(false)
+                                                      .set_sub_leaky(false)
+                                                      .set_printfps_opt(app_resources->print_fps)
+                                                      .buildptr();
 
         std::shared_ptr<CallbackStage> callback_stage = CallbackStageBuild::create()
                                                             .set_stage_name(CALLBACK_STAGE)
@@ -398,7 +425,7 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
                                                             .set_leaky_opt(false)
                                                             .set_printfps_opt(app_resources->print_fps)
                                                             .buildptr();
-        callback_stage->set_callback([app_resources](BufferPtr data) {
+        callback_stage->set_callback([](BufferPtr data) {
             static int counter = 0;
             static const int threshold = 2; // Toggle every 2 calls
             counter = (counter + 1) % threshold;
@@ -474,22 +501,25 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
                                                                    .set_printfps_opt(app_resources->print_fps)
                                                                    .buildptr();
 
-        std::shared_ptr<AggregatorStage> stage_1_agg_stage = AggregatorStageBuild::create()
-                                                                 .set_stage_name(STAGE_1_AGGREGATOR)
-                                                                 .set_blocking(true)
-                                                                 .set_main_inlet_name(CALLBACK_STAGE)
-                                                                 .set_main_queue_size(4)
-                                                                 .set_main_leaky(true)
-                                                                 .set_sub_inlet_name(DETECTION_AGGREGATOR)
-                                                                 .set_sub_queue_size(3)
-                                                                 .set_sub_leaky(false)
-                                                                 .set_multiscale_opt(false)
-                                                                 .set_sync_opt(true)
-                                                                 .set_iou_threshold_opt(0.3)
-                                                                 .set_border_threshold_opt(0.1)
-                                                                 .set_printfps_opt(app_resources->print_fps)
-                                                                 .set_timeout_opt(std::chrono::milliseconds(66))
-                                                                 .buildptr();
+        std::shared_ptr<AggregatorStage> stage_1_agg_stage =
+            AggregatorStageBuild::create()
+                .set_stage_name(STAGE_1_AGGREGATOR)
+                .set_blocking(true)
+                .set_main_inlet_name(CALLBACK_STAGE)
+                .set_main_queue_size(4)
+                .set_main_leaky(true)
+                .set_sub_inlet_name(DETECTION_AGGREGATOR)
+                .set_sub_queue_size(3)
+                .set_sub_leaky(false)
+                .set_multiscale_opt(false)
+                .set_sync_opt(true)
+                .set_iou_threshold_opt(0.3)
+                .set_border_threshold_opt(0.1)
+                .set_printfps_opt(app_resources->print_fps)
+                .set_timeout_opt(std::chrono::milliseconds(66))
+                .set_timeout_adjustment_period(std::chrono::milliseconds(500))
+                .set_drop_rate_block(true)
+                .buildptr();
 
         /*
                  __________________________________________
@@ -529,9 +559,9 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
                 .set_queue_size(100)
                 .set_output_pool_size(201)
                 .set_group_id("device0")
-                .set_batch_size(50)
+                .set_batch_size(60)
                 .set_job_limit(60)
-                .set_scheduler_threshold_opt(50)
+                .set_scheduler_threshold_opt(60)
                 .set_dynamic_threshold_opt(true)
                 .set_scheduler_timeout_opt(std::chrono::milliseconds(100))
                 .set_printfps_opt(app_resources->print_fps)
@@ -564,28 +594,34 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
                                                                    .set_printfps_opt(app_resources->print_fps)
                                                                    .buildptr();
 
-        std::shared_ptr<AggregatorStage> stage_2_agg_stage = AggregatorStageBuild::create()
-                                                                 .set_stage_name(STAGE_2_AGGREGATOR)
-                                                                 .set_blocking(true)
-                                                                 .set_static_subframes_opt(1)
-                                                                 .set_main_inlet_name(TEE_STAGE)
-                                                                 .set_main_queue_size(5)
-                                                                 .set_main_leaky(false)
-                                                                 .set_sub_inlet_name(LANDMARKS_AGGREGATOR)
-                                                                 .set_sub_queue_size(3)
-                                                                 .set_sub_leaky(false)
-                                                                 .set_multiscale_opt(false)
-                                                                 .set_sync_opt(true)
-                                                                 .set_iou_threshold_opt(0.3)
-                                                                 .set_border_threshold_opt(0.1)
-                                                                 .set_printfps_opt(app_resources->print_fps)
-                                                                 .set_timeout_opt(std::chrono::milliseconds(33))
-                                                                 .buildptr();
+        std::shared_ptr<AggregatorStage> stage_2_agg_stage =
+            AggregatorStageBuild::create()
+                .set_stage_name(STAGE_2_AGGREGATOR)
+                .set_blocking(true)
+                .set_static_subframes_opt(1)
+                .set_main_inlet_name(TEE_STAGE)
+                .set_main_queue_size(5)
+                .set_main_leaky(false)
+                .set_sub_inlet_name(LANDMARKS_AGGREGATOR)
+                .set_sub_queue_size(3)
+                .set_sub_leaky(false)
+                .set_multiscale_opt(false)
+                .set_sync_opt(true)
+                .set_iou_threshold_opt(0.3)
+                .set_border_threshold_opt(0.1)
+                .set_skip_migration_opt(true)
+                .set_printfps_opt(app_resources->print_fps)
+                .set_timeout_opt(std::chrono::milliseconds(33))
+                .set_min_timeout_opt(std::chrono::milliseconds(33))
+                .set_max_timeout_opt(std::chrono::milliseconds(66))
+                .set_timeout_adjustment_period(std::chrono::milliseconds(500))
+                .set_drop_rate_threshold(0.1)
+                .buildptr();
 
         /*
-            +---------+    +---------+
-            | tracker | -> | overlay |
-            +---------+    +---------+
+            +---------+    +---------+    +---------+
+            | tracker | -> | demuxer | -> | overlay |
+            +---------+    +---------+    +---------+
         */
 
         std::shared_ptr<LightweightTrackerStage> tracker_stage = LightweightTrackerStageBuild::create()
@@ -602,12 +638,22 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
                                                                      .set_copy_nested_objects(true, 2)
                                                                      .buildptr();
 
+        std::shared_ptr<DemuxerStage> demux_stage =
+            DemuxerStageBuild::create()
+                .set_stage_name(DEMUX_STAGE)
+                .set_queue_size(3)
+                .set_main_outlet_name(app_resources->encoders[VISION_SINK]->get_name())
+                .set_sub_outlet_name(OVERLAY_STAGE)
+                .set_copy_roi_metadata_opt(true)
+                .set_leaky_opt(false)
+                .set_printfps_opt(app_resources->print_fps)
+                .buildptr();
+
         std::shared_ptr<OverlayStage> overlay_stage = OverlayStageBuild::create()
                                                           .set_stage_name(OVERLAY_STAGE)
                                                           .set_skip_opt(app_resources->skip_drawing)
                                                           .set_partial_landmarks(!app_resources->full_landmarks)
-                                                          .set_min_landmark(LANDMARKS_RANGE_MIN)
-                                                          .set_max_landmark(LANDMARKS_RANGE_MAX)
+                                                          .set_landmark_indices_to_draw(LANDMARKS_INDICES_EXAMPLE)
                                                           .set_queue_size(1)
                                                           .set_leaky_opt(false)
                                                           .set_printfps_opt(app_resources->print_fps)
@@ -621,6 +667,7 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
 
         pip_builder.add_stage(app_resources->frontend, StageType::SOURCE)
             .add_stage(stage_1_agg_stage)
+            .add_stage(muxer_stage)
             .add_stage(callback_stage)
             .add_stage(tilling_stage)
             .add_stage(detection_stage)
@@ -633,6 +680,7 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
             .add_stage(landmarks_post_stage)
             .add_stage(landmarks_agg_stage)
             .add_stage(tracker_stage)
+            .add_stage(demux_stage)
             .add_stage(overlay_stage);
 
         // Add encoder and udp to stage (except AI_SINK)
@@ -660,11 +708,11 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
                 // Subscribe tiling to frontend
                 pip_builder.connect_frontend(FRONTEND_STAGE, s.id, TILLING_STAGE);
             }
-            else if (s.id == VISION_SINK)
+            else if (s.id == VISION_SINK || s.id == SECONDARY_VISION_SINK)
             {
                 REFERENCE_CAMERA_LOG_INFO("subscribing to frontend for {}", s.id);
                 // Subscribe tiling aggregator to frontend
-                pip_builder.connect_frontend(FRONTEND_STAGE, s.id, CALLBACK_STAGE);
+                pip_builder.connect_frontend(FRONTEND_STAGE, s.id, MUXER_STAGE);
             }
             else
             {
@@ -675,7 +723,8 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
         }
 
         // Stage 1 AI Subscriptions
-        pip_builder.connect(CALLBACK_STAGE, STAGE_1_AGGREGATOR)
+        pip_builder.connect(MUXER_STAGE, CALLBACK_STAGE)
+            .connect(CALLBACK_STAGE, STAGE_1_AGGREGATOR)
             .connect(TILLING_STAGE, DETECTION_AGGREGATOR)
             .connect(TILLING_STAGE, DETECTION_AI_STAGE)
             .connect(DETECTION_AI_STAGE, POST_STAGE)
@@ -694,8 +743,10 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
 
         // Vision Pipeline stages
         pip_builder.connect(STAGE_2_AGGREGATOR, TRACKER_STAGE)
-            .connect(TRACKER_STAGE, OVERLAY_STAGE)
-            .connect(OVERLAY_STAGE, app_resources->encoders[VISION_SINK]->get_name());
+            .connect(TRACKER_STAGE, DEMUX_STAGE)
+            .connect(DEMUX_STAGE, app_resources->encoders[VISION_SINK]->get_name())
+            .connect(DEMUX_STAGE, OVERLAY_STAGE)
+            .connect(OVERLAY_STAGE, app_resources->encoders[SECONDARY_VISION_SINK]->get_name());
 
         // Stream Out pipeline stages
         for (auto s : streams.value())
@@ -730,89 +781,97 @@ void create_main_pipeline(std::shared_ptr<AppResources> app_resources)
  * @param argv Array of command-line arguments.
  * @return int Exit status of the application.
  */
+std::mutex g_stop_mutex;
+std::condition_variable g_stop_cv;
+bool g_stop_requested = false;
+
 int main(int argc, char *argv[])
 {
+    // App resources
+    std::shared_ptr<AppResources> app_resources = std::make_shared<AppResources>();
+    app_resources->medialib_config_path = MEDIALIB_CONFIG_PATH;
+
+    signal_utils::SignalHandler signal_handler(false);
+    signal_handler.register_signal_handler([](int signal) {
+        std::cout << "Stopping Pipeline..." << std::endl;
+        REFERENCE_CAMERA_LOG_INFO("Stopping Pipeline...");
+        std::lock_guard<std::mutex> lock(g_stop_mutex);
+        g_stop_requested = true;
+        g_stop_cv.notify_all();
+    });
+
+    // Parse user arguments
+    cxxopts::Options options = build_arg_parser();
+    auto result = options.parse(argc, argv);
+    std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options);
+    int timeout = result["timeout"].as<int>();
+
+    for (ArgumentType argument : argument_handling_results)
     {
-        // App resources
-        std::shared_ptr<AppResources> app_resources = std::make_shared<AppResources>();
-        app_resources->medialib_config_path = MEDIALIB_CONFIG_PATH;
-
-        // register signal SIGINT and signal handler
-        signal_utils::register_signal_handler([app_resources](int signal) {
-            std::cout << "Stopping Pipeline..." << std::endl;
-            REFERENCE_CAMERA_LOG_INFO("Stopping Pipeline...");
-            // Stop pipeline
-            app_resources->pipeline->stop_pipeline();
-            app_resources->clear();
-            // terminate program
-            exit(0);
-        });
-
-        // Parse user arguments
-        cxxopts::Options options = build_arg_parser();
-        auto result = options.parse(argc, argv);
-        std::vector<ArgumentType> argument_handling_results = handle_arguments(result, options);
-        int timeout = result["timeout"].as<int>();
-
-        for (ArgumentType argument : argument_handling_results)
+        switch (argument)
         {
-            switch (argument)
-            {
-            case ArgumentType::Help:
-                return 0;
-            case ArgumentType::Timeout:
-                break;
-            case ArgumentType::PrintFPS:
-                app_resources->print_fps = true;
-                break;
-            case ArgumentType::PrintLatency:
-                app_resources->print_latency = true;
-                break;
-            case ArgumentType::Config:
-                app_resources->medialib_config_path = result["config-file-path"].as<std::string>();
-                break;
-            case ArgumentType::Profile:
-                app_resources->profile_name = result["profile"].as<std::string>();
-                break;
-            case ArgumentType::SkipDrawing:
-                app_resources->skip_drawing = true;
-                break;
-            case ArgumentType::FullLandmarks:
-                app_resources->full_landmarks = true;
-                break;
-            case ArgumentType::HostIP:
-                app_resources->host_ip = result["host-ip"].as<std::string>();
-                break;
-            case ArgumentType::Error:
-                return 1;
-            }
+        case ArgumentType::Help:
+            return 0;
+        case ArgumentType::Timeout:
+            break;
+        case ArgumentType::PrintFPS:
+            app_resources->print_fps = true;
+            break;
+        case ArgumentType::PrintLatency:
+            app_resources->print_latency = true;
+            break;
+        case ArgumentType::Config:
+            app_resources->medialib_config_path = result["config-file-path"].as<std::string>();
+            break;
+        case ArgumentType::Profile:
+            app_resources->profile_name = result["profile"].as<std::string>();
+            break;
+        case ArgumentType::SkipDrawing:
+            app_resources->skip_drawing = true;
+            break;
+        case ArgumentType::FullLandmarks:
+            app_resources->full_landmarks = true;
+            break;
+        case ArgumentType::HostIP:
+            app_resources->host_ip = result["host-ip"].as<std::string>();
+            break;
+        case ArgumentType::Error:
+            return 1;
         }
-        
-        setenv("MEDIALIB_USE_DIV_FRAMERATE_LOGIC", "1", 1);
-
-        // Configure frontend and encoders
-        configure_frontend_and_encoders(app_resources);
-
-        // Create pipeline and stages
-        create_main_pipeline(app_resources);
-
-        // Start pipeline
-        std::cout << "Starting." << std::endl;
-        REFERENCE_CAMERA_LOG_INFO("Starting.");
-        app_resources->media_library->start_pipeline();
-        app_resources->pipeline->start_pipeline();
-
-        REFERENCE_CAMERA_LOG_INFO("Started playing for {} seconds.", timeout);
-
-        // Wait
-        std::this_thread::sleep_for(std::chrono::seconds(timeout));
-
-        // Stop pipeline
-        std::cout << "Stopping." << std::endl;
-        REFERENCE_CAMERA_LOG_INFO("Stopping.");
-        app_resources->pipeline->stop_pipeline();
-        app_resources->media_library->stop_pipeline();
-        app_resources->clear();
     }
+
+    setenv("MEDIALIB_USE_DIV_FRAMERATE_LOGIC", "1", 1);
+
+    // Configure frontend and encoders
+    configure_frontend_and_encoders(app_resources);
+
+    // Create pipeline and stages
+    create_main_pipeline(app_resources);
+
+    // Start pipeline
+    std::cout << "Starting." << std::endl;
+    REFERENCE_CAMERA_LOG_INFO("Starting.");
+    app_resources->media_library->start_pipeline();
+    app_resources->pipeline->start_pipeline();
+
+    REFERENCE_CAMERA_LOG_INFO("Started playing for {} seconds.", timeout);
+
+    // Wait for either timeout or signal
+    std::unique_lock<std::mutex> lk(g_stop_mutex);
+    if (!g_stop_requested)
+    {
+        g_stop_cv.wait_for(lk, std::chrono::seconds(timeout), [] { return g_stop_requested; });
+    }
+    else
+    {
+        // If stop was requested during startup, wait a bit for pipeline to settle before stopping
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+
+    // Stop pipeline
+    std::cout << "Stopping." << std::endl;
+    REFERENCE_CAMERA_LOG_INFO("Stopping.");
+    app_resources->media_library->stop_pipeline();
+    app_resources->pipeline->stop_pipeline();
     return 0;
 }

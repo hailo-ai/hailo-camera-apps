@@ -1,5 +1,6 @@
 #pragma once
 #include "common/resources.hpp"
+#include "media_library/media_library_types.hpp"
 
 namespace webserver
 {
@@ -40,12 +41,12 @@ class ConfigResourceMedialib : public ConfigResourceBase
     std::string m_current_profile_name;
     nlohmann::json m_profile;
     nlohmann::json m_medialib_config;
-    ProfileConfig m_current_profile;
+    config_profile_t m_current_profile;
     bool gyro_exist = false;
 
     tl::expected<nlohmann::json, std::string> load_config_from_file(const std::string &file_path);
     tl::expected<nlohmann::json, std::string> enable_gyro_if_exist(nlohmann::json profile);
-    tl::expected<nlohmann::json, std::string> get_profile(nlohmann::json profile_name);
+    tl::expected<nlohmann::json, std::string> get_profile(const nlohmann::json &profile_name);
     tl::expected<nlohmann::json, std::string> extract_frontend_config();
     tl::expected<nlohmann::json, std::string> extract_encoder_config();
     tl::expected<void, std::string> extract_profile_data(const std::string &profile_name);

@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+    "sensor_config": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/IR/ai_example_IR/sensor_config.json",
+    "application_settings": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/IR/ai_example_IR/application_settings.json",
+    "stabilizer_settings": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/IR/ai_example_IR/stabilizer_settings.json",
+    "iq_settings": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/IR/ai_example_IR/iq_settings.json",
+    "encoded_output_streams": [
+        {
+            "stream_id": "sink0",
+            "encoding": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/IR/ai_example_IR/encoder_sink0.json",
+            "osd": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/IR/ai_example_IR/osd_sink0.json",
+            "masking": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/IR/ai_example_IR/masking_sink0.json"
+        },
+        {
+            "stream_id": "sink1",
+            "encoding": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/IR/ai_example_IR/encoder_sink1.json",
+            "osd": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/IR/ai_example_IR/osd_sink1.json",
+            "masking": "/etc/imaging/cfg/hailo15l/imx675/theia_sl410m/5mp/profiles/IR/ai_example_IR/masking_sink1.json"
+        }
+    ]
+}

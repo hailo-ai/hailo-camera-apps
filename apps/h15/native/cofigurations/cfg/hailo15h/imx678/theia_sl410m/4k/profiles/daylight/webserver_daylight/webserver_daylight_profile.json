@@ -1,0 +1,15 @@
+{
+    "version": "1.0.0",
+    "sensor_config": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/webserver_daylight/sensor_config.json",
+    "application_settings": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/webserver_daylight/application_settings.json",
+    "stabilizer_settings": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/webserver_daylight/stabilizer_settings.json",
+    "iq_settings": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/webserver_daylight/iq_settings.json",
+    "encoded_output_streams": [
+        {
+            "stream_id": "sink0",
+            "encoding": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/webserver_daylight/encoder_sink0.json",
+            "osd": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/webserver_daylight/osd_sink0.json",
+            "masking": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/daylight/webserver_daylight/masking_sink0.json"
+        }
+    ]
+}

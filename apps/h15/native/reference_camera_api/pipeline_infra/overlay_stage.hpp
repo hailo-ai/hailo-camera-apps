@@ -1,11 +1,14 @@
 #pragma once
 #include "stage.hpp"
-#include "buffer.hpp"
-#include "queue.hpp"
-#include "hailo_objects.hpp"
 
 #include "overlay_native.hpp"
 #include <unordered_set>
+#include <vector>
+#include <string>
+#include <functional>
+#include <cstddef>
+#include <atomic>
+#include "hailo_objects.hpp"
 
 /**
  * @struct HailoOverlay
@@ -13,12 +16,12 @@
  */
 struct HailoOverlay
 {
-    int line_thickness;          /**< Line thickness for overlay. */
-    int font_thickness;          /**< Font thickness for overlay. */
+    int line_thickness; /**< Line thickness for overlay. */
+    int font_thickness; /**< Font thickness for overlay. */
     float landmark_point_radius; /**< Radius for landmark points. */
-    bool face_blur;              /**< Enable or disable face blur. */
-    bool show_confidence;        /**< Enable or disable confidence display. */
-    bool local_gallery;          /**< Enable or disable local gallery usage. */
+    bool face_blur; /**< Enable or disable face blur. */
+    bool show_confidence; /**< Enable or disable confidence display. */
+    bool local_gallery; /**< Enable or disable local gallery usage. */
     uint mask_overlay_n_threads; /**< Number of threads for mask overlay. */
 };
 
@@ -29,11 +32,10 @@ struct HailoOverlay
 class OverlayStage : public ConnectedStage
 {
   private:
-    HailoOverlay m_hailooverlay_info;            /**< Overlay configuration parameters. */
-    std::atomic_bool m_skip;                     /**< Flag to skip drawing. */
-    bool m_partial_landmarks;                    /**< Flag to enable partial landmarks. */
-    size_t m_min_landmark;                       /**< Minimum landmark index. */
-    size_t m_max_landmark;                       /**< Maximum landmark index. */
+    HailoOverlay m_hailooverlay_info; /**< Overlay configuration parameters. */
+    std::atomic_bool m_skip; /**< Flag to skip drawing. */
+    bool m_partial_landmarks; /**< Flag to enable partial landmarks. */
+    std::unordered_set<size_t> m_landmark_indices_to_draw; /**< indices to draw */
     std::unordered_set<int> m_class_ids_to_draw; /**< Label for the overlay stage. */
     std::function<cv::Scalar(const HailoDetectionPtr &)>
         m_color_selector; /**< Function to select color based on detection. */
@@ -46,13 +48,13 @@ class OverlayStage : public ConnectedStage
      * @param leaky Indicates if the queue is leaky.
      * @param print_fps Flag to enable or disable printing FPS information.
      */
-    OverlayStage(std::string name, bool skip = false, bool partial_landmarks = false, size_t min_landmark = 0,
-                 size_t max_landmark = 0, size_t queue_size = 5, bool leaky = false,
+    OverlayStage(std::string name, bool skip = false, bool partial_landmarks = false,
+                 std::unordered_set<size_t> landmark_indices_to_draw = {}, size_t queue_size = 5, bool leaky = false,
                  std::unordered_set<int> class_ids_to_draw = {},
                  std::function<cv::Scalar(const HailoDetectionPtr &)> color_selector = nullptr, bool print_fps = false)
         : ConnectedStage(name, queue_size, leaky, print_fps), m_skip(skip), m_partial_landmarks(partial_landmarks),
-          m_min_landmark(min_landmark), m_max_landmark(max_landmark), m_class_ids_to_draw(std::move(class_ids_to_draw)),
-          m_color_selector(color_selector)
+          m_landmark_indices_to_draw(std::move(landmark_indices_to_draw)),
+          m_class_ids_to_draw(std::move(class_ids_to_draw)), m_color_selector(color_selector)
     {
     }
 
@@ -138,8 +140,8 @@ class OverlayStage : public ConnectedStage
             overlay_status_t ret =
                 draw_all(*hmat.get(), data->get_roi(), m_debug_counters, m_hailooverlay_info.landmark_point_radius,
                          m_hailooverlay_info.show_confidence, m_hailooverlay_info.local_gallery,
-                         m_hailooverlay_info.mask_overlay_n_threads, m_partial_landmarks, m_min_landmark,
-                         m_max_landmark, m_class_ids_to_draw, m_color_selector);
+                         m_hailooverlay_info.mask_overlay_n_threads, m_partial_landmarks, m_landmark_indices_to_draw,
+                         m_class_ids_to_draw, m_color_selector);
             if (ret != OVERLAY_STATUS_OK)
             {
                 std::cerr << " Overlay failure draw_all failed, status = " << ret << std::endl;
@@ -197,8 +199,7 @@ class OverlayStageBuild : public OverlayStage
         std::optional<std::string> m_stage_name;
         bool m_skip = false;
         bool m_partial_landmarks = false;
-        size_t m_min_landmark = 0;
-        size_t m_max_landmark = 0;
+        std::unordered_set<size_t> m_landmark_indices_to_draw = {};
         size_t m_queue_size = 5;
         bool m_leaky = false;
         bool m_print_fps = false;
@@ -221,14 +222,9 @@ class OverlayStageBuild : public OverlayStage
             m_partial_landmarks = partial_landmarks;
             return *this;
         }
-        Builder &set_min_landmark(size_t min_landmark)
+        Builder &set_landmark_indices_to_draw(std::unordered_set<size_t> indices)
         {
-            m_min_landmark = min_landmark;
-            return *this;
-        }
-        Builder &set_max_landmark(size_t max_landmark)
-        {
-            m_max_landmark = max_landmark;
+            m_landmark_indices_to_draw = std::move(indices);
             return *this;
         }
         Builder &set_queue_size(size_t size)
@@ -261,9 +257,9 @@ class OverlayStageBuild : public OverlayStage
         {
             THROW_IF_MISSING(m_stage_name.has_value(), "set_stage_name");
 
-            return std::make_shared<OverlayStage>(m_stage_name.value(), m_skip, m_partial_landmarks, m_min_landmark,
-                                                  m_max_landmark, m_queue_size, m_leaky, m_class_ids_to_draw,
-                                                  m_color_selector, m_print_fps);
+            return std::make_shared<OverlayStage>(m_stage_name.value(), m_skip, m_partial_landmarks,
+                                                  m_landmark_indices_to_draw, m_queue_size, m_leaky,
+                                                  m_class_ids_to_draw, m_color_selector, m_print_fps);
         }
     };
 

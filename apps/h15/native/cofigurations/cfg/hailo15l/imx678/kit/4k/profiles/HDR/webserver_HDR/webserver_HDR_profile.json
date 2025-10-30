@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "sensor_config": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/HDR/webserver_HDR/sensor_config.json",
+    "application_settings": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/HDR/webserver_HDR/application_settings.json",
+    "stabilizer_settings": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/HDR/webserver_HDR/stabilizer_settings.json",
+    "iq_settings": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/HDR/webserver_HDR/iq_settings.json",
+    "encoded_output_streams": [
+        {
+            "stream_id": "sink0",
+            "encoding": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/HDR/webserver_HDR/encoder_sink0.json",
+            "osd": "/etc/imaging/cfg/hailo15l/imx678/kit/4k/profiles/HDR/webserver_HDR/osd_sink0.json",
+            "masking": ""
+        }
+    ]
+}

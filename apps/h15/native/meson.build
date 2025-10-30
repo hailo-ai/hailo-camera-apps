@@ -1,7 +1,7 @@
 # Project Declaration
 
 project('gst-hailo-tools', 'c', 'cpp',
-        version : '1.8.1',
+        version : '1.9.0',
         default_options : [ 'buildtype=release',
                             'c_std=c11', 'cpp_std=c++17']
        )
@@ -14,6 +14,15 @@ if compiler_version >= 9
   add_global_arguments('-Wpessimizing-move', language : 'cpp')
   add_global_arguments('-Wredundant-move', language : 'cpp')
   add_global_arguments('-fconcepts', language : 'cpp')
+endif
+
+# Tune for Cortex‑A53 + NEON — see GCC’s “ARM Options” manual for all the flag details:
+#   https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html 
+if host_machine.cpu_family() in ['arm', 'aarch64']
+  add_project_arguments(
+    '-mcpu=cortex-a53',        # implies ARMv8‑A + NEON support
+    language: ['c', 'cpp']
+  )
 endif
 
 # Pkgconfig
@@ -44,6 +53,8 @@ hailo_lib_args = get_option('libargs')
 
 # Apps install dir
 apps_install_dir = get_option('apps_install_dir')
+
+platform = get_option('platform') 
 
 
 ################################################
@@ -112,6 +123,7 @@ target = get_option('target')
 if target == 'all'
   subdir('reference_camera_api')
   subdir('ai_example_app')
+  subdir('new_clip')
   subdir('webserver')
   subdir('case_studies')
   subdir('internals')
@@ -121,6 +133,7 @@ elif target == 'api'
 elif target == 'apps'
   reference_camera_dep = dependency('reference_camera_api', method : 'pkg-config')
   subdir('ai_example_app')
+  subdir('new_clip')
   subdir('webserver')
   subdir('case_studies')
   subdir('internals')

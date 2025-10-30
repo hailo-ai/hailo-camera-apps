@@ -1,0 +1,21 @@
+{
+    "version": "1.0.0",
+    "sensor_config": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/IR/ai_example_IR/sensor_config.json",
+    "application_settings": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/IR/ai_example_IR/application_settings.json",
+    "stabilizer_settings": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/IR/ai_example_IR/stabilizer_settings.json",
+    "iq_settings": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/IR/ai_example_IR/iq_settings.json",
+    "encoded_output_streams": [
+        {
+            "stream_id": "sink0",
+            "encoding": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/IR/ai_example_IR/encoder_sink0.json",
+            "osd": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/IR/ai_example_IR/osd_sink0.json",
+            "masking": ""
+        },
+        {
+            "stream_id": "sink1",
+            "encoding": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/IR/ai_example_IR/encoder_sink1.json",
+            "osd": "/etc/imaging/cfg/hailo15h/imx678/kit/4k/profiles/IR/ai_example_IR/osd_sink1.json",
+            "masking": ""
+        }
+    ]
+}

@@ -2,6 +2,7 @@
 # Infra API Libs
 ################################################
 reference_camera_infra_src = [
+  'reference_camera_app_constructor.cpp',
   'reference_camera_infra.cpp',
   'reference_camera_logger.cpp',
   'pipeline_infra/pipeline_builder.cpp',
@@ -9,7 +10,12 @@ reference_camera_infra_src = [
   'pipeline_infra/stage.cpp',
   'pipeline_infra/stage_tracing.cpp',
   'pipeline_infra/aggregator_stage.cpp',
-  'pipeline_infra/ai_stage.cpp'
+  'pipeline_infra/ai_stage.cpp',
+  'pipeline_infra/frontend_stage_from_file.cpp',
+  'pipeline_infra/file_source_stage.cpp',
+  'pipeline_infra/file_reader_module.cpp',
+  'pipeline_infra/demuxer_stage.cpp',
+  'pipeline_infra/muxer_stage.cpp'
 ]
 
 if perfetto_dep.found()

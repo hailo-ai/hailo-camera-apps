@@ -1,0 +1,15 @@
+{
+    "version": "1.0.0",
+    "sensor_config": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/HDR/single_stream_HDR/sensor_config.json",
+    "application_settings": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/HDR/single_stream_HDR/application_settings.json",
+    "stabilizer_settings": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/HDR/single_stream_HDR/stabilizer_settings.json",
+    "iq_settings": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/HDR/single_stream_HDR/iq_settings.json",
+    "encoded_output_streams": [
+        {
+            "stream_id": "sink0",
+            "encoding": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/HDR/single_stream_HDR/encoder_sink0.json",
+            "osd": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/HDR/single_stream_HDR/osd_sink0.json",
+            "masking": "/etc/imaging/cfg/hailo15h/imx678/theia_sl410m/4k/profiles/HDR/single_stream_HDR/masking_sink0.json"
+        }
+    ]
+}

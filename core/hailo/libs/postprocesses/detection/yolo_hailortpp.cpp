@@ -157,9 +157,8 @@ void yolov8n_personface(HailoROIPtr roi, YoloParamsNMS *params)
     {
         return;
     }
-    auto post =
-        HailoNMSDecode(roi->get_tensor("yolov8n_personface_nv12/yolov8_nms_postprocess"), common::yolo_personface,
-                       params->detection_threshold, params->max_boxes, true);
+    auto post = HailoNMSDecode(roi->get_tensor("yolov8n_personface_384_640_nv12/yolov8_nms_postprocess"),
+                               common::yolo_personface, params->detection_threshold, params->max_boxes, true);
     auto detections = post.decode<float32_t, common::hailo_bbox_float32_t>();
     hailo_common::add_detections(roi, detections);
 }
@@ -204,8 +203,8 @@ void yolov5s_personface(HailoROIPtr roi, YoloParamsNMS *params)
         return;
     }
 
-    auto post = HailoNMSDecode(roi->get_tensor("yolov5s_personface_nv12/yolov5_nms_postprocess"),
-                               common::yolo_personface, params->detection_threshold, params->max_boxes, true);
+    auto post = HailoNMSDecode(roi->get_tensor("yolov5s_personface/yolov5_nms_postprocess"), common::yolo_personface,
+                               params->detection_threshold, params->max_boxes, true);
     auto detections = post.decode<float32_t, common::hailo_bbox_float32_t>();
     hailo_common::add_detections(roi, detections);
 }
@@ -247,7 +246,7 @@ void yolov5_seg(HailoROIPtr roi)
         {
             continue;
         }
-        
+
         uint8_t *buffer = tensor->data();
         std::vector<HailoSegmentation> segmentations = {};
         uint16_t segmentations_count = *(uint16_t *)buffer;
