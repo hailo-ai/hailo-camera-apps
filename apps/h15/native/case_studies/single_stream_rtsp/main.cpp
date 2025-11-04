@@ -20,6 +20,10 @@
 #include "frontend_stage.hpp"
 #include "reference_camera_logger.hpp"
 
+#include <gst/gst.h>
+#include <gst/app/gstappsrc.h>
+#include <gst/rtsp-server/rtsp-server.h>
+
 // Stage Params
 #define FRONTEND_STAGE "frontend_stage"
 #define NO_PROFILE_SELECTED ""
@@ -128,6 +132,25 @@ struct AppResources
     bool print_latency;
     std::string medialib_config_path;
     std::string profile_name;
+    std::shared_ptr<GstRTSPServer> s_rtsp_server;
+    std::shared_ptr<GstRTSPMountPoints> s_rtsp_mounts;
+
+    void init_global_server()
+    {
+        gst_init(nullptr, nullptr);
+
+        s_rtsp_server = std::shared_ptr<GstRTSPServer>(
+            gst_rtsp_server_new(),
+            [](GstRTSPServer *s) { g_object_unref(s); });
+
+        s_rtsp_mounts = std::shared_ptr<GstRTSPMountPoints>(
+            gst_rtsp_server_get_mount_points(s_rtsp_server.get()),
+            [](GstRTSPMountPoints *m) { g_object_unref(m); });
+
+        gst_rtsp_server_attach(s_rtsp_server.get(), nullptr);
+        const gchar *service = gst_rtsp_server_get_service(s_rtsp_server.get());
+        g_print("RTSP server started on port %s\n", service ? service : "8554");
+    }
 
     void clear()
     {
@@ -233,6 +256,8 @@ void create_encoder_and_rtsp(const std::string &id, std::shared_ptr<AppResources
     .width(h264_encoder_config.input_stream.width)
     .height(h264_encoder_config.input_stream.height)
     .fps(h264_encoder_config.input_stream.framerate)
+    .server(app_resources->s_rtsp_server)
+    .mount(app_resources->s_rtsp_mounts)
     .build();
     app_resources->rtsp_outputs[id] = rtsp_stage;
 
@@ -349,6 +374,8 @@ int main(int argc, char *argv[])
                 return 1;
             }
         }
+        //init the RTSP server
+        app_resources->init_global_server();
 
         // Create pipeline
         app_resources->pipeline = std::make_shared<Pipeline>();

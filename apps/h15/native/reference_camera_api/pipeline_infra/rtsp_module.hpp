@@ -19,7 +19,9 @@ public:
                EncodingType encoding,
                uint32_t width,
                uint32_t height,
-               uint32_t fps);
+               uint32_t fps,
+               const std::shared_ptr<GstRTSPServer> &server,
+               const std::shared_ptr<GstRTSPMountPoints> &mounts);
 
     ~RtspModule();
 
@@ -29,7 +31,9 @@ public:
         EncodingType encoding,
         uint32_t width,
         uint32_t height,
-        uint32_t fps);
+        uint32_t fps,
+        const std::shared_ptr<GstRTSPServer> &server,
+        const std::shared_ptr<GstRTSPMountPoints> &mounts);
 
     AppStatus start();
     AppStatus stop();
@@ -42,8 +46,9 @@ private:
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_fps;
+    std::shared_ptr<GstRTSPServer> m_server;
+    std::shared_ptr<GstRTSPMountPoints> m_mounts;
 
-    GstRTSPServer* m_server = nullptr;
     GstRTSPMediaFactory* m_factory = nullptr;
     GstAppSrc* m_appsrc = nullptr;
     GMainLoop* m_loop = nullptr;
@@ -71,9 +76,11 @@ inline tl::expected<std::shared_ptr<RtspModule>, AppStatus> RtspModule::create(
     EncodingType type,
     uint32_t width,
     uint32_t height,
-    uint32_t fps)
+    uint32_t fps,
+    const std::shared_ptr<GstRTSPServer> &server,
+    const std::shared_ptr<GstRTSPMountPoints> &mounts)
 {
-    auto module = std::make_shared<RtspModule>(name, mount_point, type, width, height, fps);
+    auto module = std::make_shared<RtspModule>(name, mount_point, type, width, height, fps, server, mounts);
     return module;
 }
 
@@ -82,11 +89,13 @@ inline RtspModule::RtspModule(const std::string &name,
                               EncodingType type,
                               uint32_t width,
                               uint32_t height,
-                              uint32_t fps)
+                              uint32_t fps,
+                              const std::shared_ptr<GstRTSPServer> &server,
+                              const std::shared_ptr<GstRTSPMountPoints> &mounts)
     : m_name(name), m_mount_point(mount_point), m_type(type),
-      m_width(width), m_height(height), m_fps(fps)
+      m_width(width), m_height(height), m_fps(fps),
+      m_server(server), m_mounts(mounts)
 {
-    gst_init(nullptr, nullptr);
 }
 
 inline RtspModule::~RtspModule()
@@ -178,9 +187,6 @@ inline void RtspModule::loop()
 
 inline AppStatus RtspModule::start()
 {
-    if (m_server) return AppStatus::SUCCESS;
-
-    m_server = gst_rtsp_server_new();
     if (!m_server) return AppStatus::CONFIGURATION_ERROR;
 
     m_factory = gst_rtsp_media_factory_new();
@@ -193,9 +199,6 @@ inline AppStatus RtspModule::start()
     g_object_unref(mounts);
 
     g_signal_connect(m_server, "client-connected", G_CALLBACK(client_connected), this);
-
-    if (!gst_rtsp_server_attach(m_server, nullptr))
-        return AppStatus::CONFIGURATION_ERROR;
 
     std::cout << "[RtspModule] RTSP server ready at rtsp://0.0.0.0:8554" << m_mount_point << std::endl;
 
@@ -210,9 +213,7 @@ inline AppStatus RtspModule::stop()
         if (m_loop_thread.joinable()) m_loop_thread.join();
     }
 
-    if (m_appsrc) { gst_object_unref(m_appsrc); m_appsrc = nullptr; }
     if (m_factory) { g_object_unref(m_factory); m_factory = nullptr; }
-    if (m_server) { g_object_unref(m_server); m_server = nullptr; }
     if (m_loop) { g_main_loop_unref(m_loop); m_loop = nullptr; }
 
     m_running = false;

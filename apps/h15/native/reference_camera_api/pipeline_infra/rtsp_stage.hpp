@@ -122,6 +122,8 @@ private:
     uint32_t m_width = 3840;
     uint32_t m_height = 2160;
     uint32_t m_fps = 30;
+    std::shared_ptr<GstRTSPServer> m_server = nullptr;
+    std::shared_ptr<GstRTSPMountPoints> m_mounts = nullptr;
 
 public:
     RtspStageBuilder &name(const std::string &name)
@@ -159,10 +161,21 @@ public:
         m_fps = mp;
         return *this;
     }
+    RtspStageBuilder &server(const std::shared_ptr<GstRTSPServer> &server)
+    {
+        m_server = server;
+        return *this;
+    }
+    RtspStageBuilder &mount(const std::shared_ptr<GstRTSPMountPoints> &mounts)
+    {
+        m_mounts = mounts;
+        return *this;
+    }
 
     std::shared_ptr<RtspStage> build()
     {
-        auto stage = std::make_shared<RtspStage>(m_name, m_type, RTSP_QUEUE_SIZE_DEFAULT, m_print_fps, m_width, m_height, m_fps);
+        auto stage = std::make_shared<RtspStage>(m_name, m_type, RTSP_QUEUE_SIZE_DEFAULT,
+                                         m_print_fps, m_width, m_height, m_fps, m_server, m_mounts);
         stage->configure(m_mount_point);
         return stage;
     }
