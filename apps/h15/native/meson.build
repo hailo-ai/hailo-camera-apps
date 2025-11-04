@@ -38,9 +38,11 @@ gst_app_dep = dependency('gstreamer-app-1.0', version : gst_req,
   fallback : ['gstreamer', 'gst_app_dep'])
 gstvideo_dep = dependency('gstreamer-video-1.0', version : gst_req,
   fallback : ['gst-plugins-base', 'video_dep'])
+gst_rtsp_dep = dependency('gstreamer-rtsp-server-1.0', version : gst_req, required: true)
+
 
 # Plugin Dependencies
-gst_deps = [gst_dep, gst_base_dep, gstvideo_dep, gst_app_dep]
+gst_deps = [gst_dep, gst_base_dep, gstvideo_dep, gst_app_dep, gst_rtsp_dep]
 
 # Opencv Dependencies
 opencv_dep = dependency('opencv4', version : '>= 4.0', method : 'pkg-config')
