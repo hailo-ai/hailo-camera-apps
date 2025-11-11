@@ -178,7 +178,8 @@ void setup_frontend() {
     // Set the next configuration as defaul
     // Dewrap off, FOV 1
     frontend_config["dewarp"]["enabled"] = true;
-    frontend_config["dewarp"]["sensor_calib_path"] = "/home/root/apps/resources/cam_intrinsics.txt";
+    frontend_config["dewarp"]["sensor_calib_path"] =
+        "/etc/imaging/cfg/imx678/theia_sl410m/4k/shared/calibration/cam_intrinsics.txt";
     // EIS on, gyro on
     frontend_config["eis"]["enabled"] = true;
     frontend_config["gyro"]["enabled"] = true;

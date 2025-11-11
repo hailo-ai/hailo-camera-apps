@@ -41,7 +41,7 @@
     "dewarp": {
         "enabled": true,
         "color_interpolation": "INTERPOLATION_TYPE_BILINEAR",
-        "sensor_calib_path": "/home/root/apps/resources/cam_intrinsics.txt",
+        "sensor_calib_path": "/etc/imaging/cfg/imx678/theia_sl410m/4k/shared/calibration/cam_intrinsics.txt",
         "camera_type": "CAMERA_TYPE_PINHOLE"
     },
     "dis": {
@@ -81,7 +81,9 @@
         "iir_hpf_coefficient": 0.997,
         "camera_fov_factor": 0.85,
         "line_readout_time": 7410,
-        "hdr_exposure_ratio": 0.2
+        "hdr_exposure_ratio": 0.2,
+        "min_angle_deg": 0.05,
+        "max_angle_deg": 6.0
     },
     "gyro": {
         "enabled": false,
@@ -159,10 +161,10 @@
         }
     },
     "encoded_output_streams": [
-	 	{
-		  "stream_id": "sink0",
-		  "config_path": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_encoder_sink0.json"
-		},
+        {
+            "stream_id": "sink0",
+            "config_path": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_encoder_sink0.json"
+        },
         {
             "stream_id": "sink1",
             "config_path": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_encoder_sink1.json"
@@ -175,7 +177,7 @@
             "stream_id": "sink3",
             "config_path": "/home/root/apps/internals/validation_apps_configs/resources/configs/stress_encoder_sink3.json"
         }
-	],
+    ],
     "isp_config_files": {
         "3a_config_path": "/usr/lib/medialib/sensors/imx678/theia_sl410m/4k/isp_profiles/daylight/3aconfig.json",
         "sensor_entry": "/usr/lib/medialib/sensors/imx678/theia_sl410m/4k/isp_profiles/daylight/Sensor0_Entry.cfg"

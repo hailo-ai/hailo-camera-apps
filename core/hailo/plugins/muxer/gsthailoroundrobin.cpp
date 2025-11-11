@@ -155,6 +155,8 @@ static GstPad *gst_hailo_round_robin_request_new_pad(GstElement *element,
 
 static void gst_hailo_round_robin_release_pad(GstElement *element, GstPad *pad);
 static void gst_hailo_round_robin_dispose(GObject *object);
+static gboolean gst_hailo_round_robin_condvar_contains_pad(GstHailoRoundRobin *hailo_round_robin,
+                                                          guint pad_num, gboolean blocking);
 
 static void
 gst_hailo_round_robin_set_property(GObject *object, guint prop_id,
@@ -431,16 +433,20 @@ static void
 gst_hailo_round_robin_dispose(GObject *object)
 {
     GstHailoRoundRobin *hailo_round_robin = GST_HAILO_ROUND_ROBIN_CAST(object);
+    GST_INFO_OBJECT(hailo_round_robin, "Starting hailoroundrobin dispose");
     hailo_round_robin->srcpad = NULL;
     hailo_round_robin->current_pad_num = 0;
     hailo_round_robin->pad_queues.clear();
     hailo_round_robin->preroll_buffer_counter = 0;
     hailo_round_robin->num_of_sink_pads = 0;
+
+    G_OBJECT_CLASS(parent_class)->dispose(object);
+
     hailo_round_robin->mutexes_blocking.clear();
     hailo_round_robin->mutexes_non_blocking.clear();
     hailo_round_robin->condition_vars_blocking.clear();
     hailo_round_robin->condition_vars_non_blocking.clear();
-    G_OBJECT_CLASS(parent_class)->dispose(object);
+    GST_DEBUG_OBJECT(hailo_round_robin, "Dispose done");
 }
 
 void set_chain_to_all_pads(GstHailoRoundRobin *hailo_round_robin, GstPadChainFunction chain_function)
@@ -547,6 +553,27 @@ done:
     return all_eos;
 }
 
+static gboolean
+gst_hailo_round_robin_condvar_contains_pad(GstHailoRoundRobin *hailo_round_robin, guint pad_num, gboolean blocking)
+{
+    if (blocking)
+    {
+        if(hailo_round_robin->condition_vars_blocking.size() == 0)
+            return false;
+        return std::find(hailo_round_robin->condition_vars_blocking.begin(),
+                                    hailo_round_robin->condition_vars_blocking.end(),
+                                    hailo_round_robin->condition_vars_blocking[pad_num]) !=
+                                    hailo_round_robin->condition_vars_blocking.end() && hailo_round_robin->condition_vars_blocking[pad_num] != NULL;
+    }
+    if(hailo_round_robin->condition_vars_non_blocking.size() == 0)
+        return false;
+
+    return std::find(hailo_round_robin->condition_vars_non_blocking.begin(),
+                                hailo_round_robin->condition_vars_non_blocking.end(),
+                                hailo_round_robin->condition_vars_non_blocking[pad_num]) !=
+                                hailo_round_robin->condition_vars_non_blocking.end() && hailo_round_robin->condition_vars_non_blocking[pad_num] != NULL;
+}
+
 static void
 gst_hailo_round_robin_release_pad(GstElement *element, GstPad *pad)
 {
@@ -554,11 +581,19 @@ gst_hailo_round_robin_release_pad(GstElement *element, GstPad *pad)
     GST_DEBUG_OBJECT(hailo_round_robin, "releasing pad %s:%s", GST_DEBUG_PAD_NAME(pad));
     gst_pad_set_active(pad, FALSE);
 
-    if (hailo_round_robin->condition_vars_blocking[get_pad_num(pad)] != NULL)
-        hailo_round_robin->condition_vars_blocking[get_pad_num(pad)]->notify_all();
+    if(gst_hailo_round_robin_condvar_contains_pad(hailo_round_robin, get_pad_num(pad), true))
+    {
+            GST_DEBUG_OBJECT(hailo_round_robin, "Notifying condition_vars_blocking pad %zu that it is released", get_pad_num(pad));
+            hailo_round_robin->condition_vars_blocking[get_pad_num(pad)]->notify_all();
+    }
 
-    if (hailo_round_robin->condition_vars_non_blocking[get_pad_num(pad)] != NULL)
+    if (gst_hailo_round_robin_condvar_contains_pad(hailo_round_robin, get_pad_num(pad), false))
+    {
+        GST_DEBUG_OBJECT(hailo_round_robin, "Notifying condition_vars_non_blocking pad %zu that it is released", get_pad_num(pad));
         hailo_round_robin->condition_vars_non_blocking[get_pad_num(pad)]->notify_all();
+    }
+
+    GST_DEBUG_OBJECT(hailo_round_robin, "Removing pad %s:%s", GST_DEBUG_PAD_NAME(pad));
     gst_element_remove_pad(GST_ELEMENT_CAST(hailo_round_robin), pad);
 }
 
@@ -572,7 +607,7 @@ gst_hailo_round_robin_sink_chain_preroll(GstPad *pad, GstObject *parent, GstBuff
     if (hailo_round_robin->current_pad_num != pad_num)
     {
         // Wait for the turn of this pad.
-        if (hailo_round_robin->condition_vars_blocking[pad_num] != NULL)
+        if (gst_hailo_round_robin_condvar_contains_pad(hailo_round_robin, pad_num, true))
         {
             std::unique_lock lock(*hailo_round_robin->mutexes_blocking[pad_num].get());
             hailo_round_robin->condition_vars_blocking[pad_num]->wait(lock);
@@ -622,7 +657,7 @@ gst_hailo_round_robin_sink_chain_preroll(GstPad *pad, GstObject *parent, GstBuff
         // notify all pads that are waiting in the blocking mode
         for (size_t i = 0; i < hailo_round_robin->mutexes_blocking.size(); i++)
         {
-            if (hailo_round_robin->condition_vars_blocking[i] != NULL)
+            if (gst_hailo_round_robin_condvar_contains_pad(hailo_round_robin, i, true))
                 hailo_round_robin->condition_vars_blocking[i]->notify_all();
         }
     }
@@ -636,7 +671,7 @@ gst_hailo_round_robin_sink_chain_preroll(GstPad *pad, GstObject *parent, GstBuff
         if (hailo_round_robin->current_pad_num == hailo_round_robin->mutexes_blocking.size())
             hailo_round_robin->current_pad_num = 0;
 
-        while (hailo_round_robin->condition_vars_blocking[hailo_round_robin->current_pad_num] == NULL)
+        while (!gst_hailo_round_robin_condvar_contains_pad(hailo_round_robin, hailo_round_robin->current_pad_num, true))
         {
             hailo_round_robin->current_pad_num++;
             if (hailo_round_robin->current_pad_num == hailo_round_robin->mutexes_blocking.size())
@@ -657,7 +692,7 @@ gst_hailo_round_robin_sink_chain_blocking_mode(GstPad *pad, GstObject *parent, G
     if (hailo_round_robin->current_pad_num != pad_num)
     {
         // Wait for the turn of this pad.
-        if (hailo_round_robin->condition_vars_blocking[pad_num] != NULL)
+        if (gst_hailo_round_robin_condvar_contains_pad(hailo_round_robin, pad_num, true))
         {
             std::unique_lock lock(*hailo_round_robin->mutexes_blocking[pad_num].get());
             hailo_round_robin->condition_vars_blocking[pad_num]->wait(lock);
@@ -690,6 +725,7 @@ gst_hailo_round_robin_sink_chain_blocking_mode(GstPad *pad, GstObject *parent, G
     // Forward sticky events.
     gst_pad_sticky_events_foreach(pad, forward_events, hailo_round_robin->srcpad);
 
+    GST_DEBUG_OBJECT(hailo_round_robin, "Pushing buffer to srcpad");
     // Push out_buffer forward.
     ret = gst_pad_push(hailo_round_robin->srcpad, buf);
 
@@ -700,7 +736,7 @@ gst_hailo_round_robin_sink_chain_blocking_mode(GstPad *pad, GstObject *parent, G
     if (hailo_round_robin->current_pad_num == hailo_round_robin->mutexes_blocking.size())
         hailo_round_robin->current_pad_num = 0;
 
-    while (hailo_round_robin->condition_vars_blocking[hailo_round_robin->current_pad_num] == NULL)
+    while (!gst_hailo_round_robin_condvar_contains_pad(hailo_round_robin, hailo_round_robin->current_pad_num, true))
     {
         hailo_round_robin->current_pad_num++;
         if (hailo_round_robin->current_pad_num == hailo_round_robin->mutexes_blocking.size())
@@ -738,7 +774,7 @@ gst_hailo_round_robin_sink_chain_non_blocking_mode(GstPad *pad, GstObject *paren
     GstHailoRoundRobin *hailo_round_robin = GST_HAILO_ROUND_ROBIN_CAST(parent);
     size_t pad_num = get_pad_num(pad);
 
-    if (hailo_round_robin->condition_vars_non_blocking[pad_num] != NULL)
+    if (gst_hailo_round_robin_condvar_contains_pad(hailo_round_robin, pad_num, false))
     {
         std::unique_lock lock(*hailo_round_robin->mutexes_non_blocking[pad_num].get());
         hailo_round_robin->condition_vars_non_blocking[pad_num]->wait(lock, [hailo_round_robin, pad_num]
@@ -775,12 +811,14 @@ gst_hailo_round_robin_sink_event(GstPad *pad, GstObject *parent, GstEvent *event
 
         if (GST_EVENT_TYPE(event) == GST_EVENT_EOS)
         {
+            GST_DEBUG_OBJECT(hailo_round_robin, "Received EOS event on pad %zu - Locking the pad and notifying all condition variables", pad_num);
             GST_OBJECT_LOCK(hailo_round_robin);
             fpad->got_eos = TRUE;
             hailo_round_robin->condition_vars_blocking[pad_num]->notify_all();
             hailo_round_robin->condition_vars_non_blocking[pad_num]->notify_all();
             forward = gst_hailo_round_robin_all_sinkpads_eos_unlocked(hailo_round_robin);
             GST_OBJECT_UNLOCK(hailo_round_robin);
+            GST_DEBUG_OBJECT(hailo_round_robin, "EOS event: , Object unlocked");
         }
         else if (pad_num != get_current_pad_num(hailo_round_robin))
         {
@@ -791,9 +829,11 @@ gst_hailo_round_robin_sink_event(GstPad *pad, GstObject *parent, GstEvent *event
     {
         unlock = TRUE;
         GST_PAD_STREAM_LOCK(hailo_round_robin->srcpad);
+        GST_DEBUG_OBJECT(hailo_round_robin, "Received FLUSH_STOP event on pad %zu - Locking the pad and notifying all condition variables", pad_num);
         GST_OBJECT_LOCK(hailo_round_robin);
         fpad->got_eos = FALSE;
         GST_OBJECT_UNLOCK(hailo_round_robin);
+        GST_DEBUG_OBJECT(hailo_round_robin, "FLUSH_STOP event: Object unlocked");
     }
 
     if (forward && GST_EVENT_IS_SERIALIZED(event))
@@ -819,7 +859,10 @@ gst_hailo_round_robin_sink_event(GstPad *pad, GstObject *parent, GstEvent *event
         gst_event_unref(event);
 
     if (unlock)
+    {
         GST_PAD_STREAM_UNLOCK(hailo_round_robin->srcpad);
+    }
+    GST_DEBUG_OBJECT(pad, "Event %" GST_PTR_FORMAT " handled, res: %d", event, res);
 
     return res;
 }
@@ -839,12 +882,12 @@ gst_hailo_round_robin_change_state(GstElement *element, GstStateChange transitio
             hailo_round_robin->stop_thread = true;
             for (uint i = 0; i < hailo_round_robin->condition_vars_blocking.size(); i++)
             {
-                if (hailo_round_robin->condition_vars_blocking[i] != NULL)
+                if (gst_hailo_round_robin_condvar_contains_pad(hailo_round_robin, i, true))
                     hailo_round_robin->condition_vars_blocking[i]->notify_all();
             }
             for (uint i = 0; i < hailo_round_robin->condition_vars_non_blocking.size(); i++)
             {
-                if (hailo_round_robin->condition_vars_non_blocking[i] != NULL)
+                if (gst_hailo_round_robin_condvar_contains_pad(hailo_round_robin, i, false))
                     hailo_round_robin->condition_vars_non_blocking[i]->notify_all();
             }
             break;
@@ -855,6 +898,7 @@ gst_hailo_round_robin_change_state(GstElement *element, GstStateChange transitio
         break;
     }
     ret = GST_ELEMENT_CLASS(parent_class)->change_state(element, transition);
+    GST_DEBUG_OBJECT(hailo_round_robin, "gst_hailo_round_robin_change_state done");
 
     return ret;
 }
