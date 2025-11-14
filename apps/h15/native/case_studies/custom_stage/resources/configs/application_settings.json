@@ -6,8 +6,8 @@
     "resolutions": [
       {
         "width": 1920,
-        "height": 1080,
-        "framerate": 30,
+        "height": 1024,
+        "framerate": 15,
         "pool_max_buffers": 20,
         "stream_id": "sink0"
       }

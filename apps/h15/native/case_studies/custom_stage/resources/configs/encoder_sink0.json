@@ -3,8 +3,8 @@
     "encoding": {
         "input_stream": {
             "width": 1920,
-            "height": 1080,
-            "framerate": 30,
+            "height": 1024,
+            "framerate": 15,
             "format": "NV12"
         },
         "hailo_encoder": {

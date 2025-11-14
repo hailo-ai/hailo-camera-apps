@@ -33,19 +33,19 @@
 // AI Pipeline Params
 #define AI_VISION_SINK "sink0" // The streamid from frontend to 4K stream that shows vision results
 // Detection AI Params
-#define YOLO_HEF_FILE "/home/root/apps/detection/resources/yolov5m_wo_spp_60p_nv12_fhd.hef"
-#define DETECTION_AI_STAGE "yolo_detection"
-// Detection Postprocess Params
-#define POST_STAGE "yolo_post"
-#define YOLO_POST_SO "/usr/lib/hailo-post-processes/libyolo_post.so"
-#define YOLO_FUNC_NAME "yolov5"
-#define YOLO_CONFIG_PATH "/home/root/apps/detection/resources/configs/yolov5.json"
-#define OVERLAY_STAGE "overlay"
+#define SEG_HEF_FILE "resources/hefs/fcn8_resnet_v1_18.hef"
+#define SEG_AI_STAGE "fcn8_seg"
+
+//#define POST_STAGE "yolo_post"
+//#define YOLO_POST_SO "/usr/lib/hailo-post-processes/libyolo_post.so"
+//#define YOLO_FUNC_NAME "yolov5"
+//#define YOLO_CONFIG_PATH "/home/root/apps/detection/resources/configs/yolov5.json"
+//#define OVERLAY_STAGE "overlay"
 
 // Macro that turns coverts stream ids to port #s
 #define PORT_FROM_ID(id) std::to_string(5000 + std::stoi(id.substr(4)) * 2)
 
-//#define AI_ENABLE
+#define AI_ENABLE
 
 enum class ArgumentType
 {
@@ -217,7 +217,7 @@ void subscribe_to_frontend(std::shared_ptr<AppResources> app_resources)
       #ifdef AI_ENABLE
         app_resources->frontend->subscribe_to_stream(
             s.id,
-            std::static_pointer_cast<ConnectedStage>(app_resources->pipeline->get_stage_by_name(DETECTION_AI_STAGE)));
+            std::static_pointer_cast<ConnectedStage>(app_resources->pipeline->get_stage_by_name(SEG_AI_STAGE)));
       #else
         app_resources->frontend->subscribe_to_stream(s.id, app_resources->encoders[s.id]);
       #endif
@@ -331,18 +331,55 @@ class CustomStage : public ConnectedStage
     {
         // Process the data here
         // For example, you can access the inference results and react accordingly
-        HailoROIPtr hailo_roi = data->get_roi();
-        std::vector<HailoDetectionPtr> objects = hailo_common::get_hailo_detections(hailo_roi);
-        if (!objects.empty())
+        //std::cout << "CustomStage process " << std::endl;
+        HailoROIPtr roi = data->get_roi();
+        if (!roi->has_tensors())
         {
-            std::cout << "Detected " << objects.size() << " objects: ";
-            for (const auto &object : objects)
+            return AppStatus::PIPELINE_ERROR;
+        }
+        HailoTensorPtr tensor_ptr;
+        std::vector<HailoTensorPtr> tensors = roi->get_tensors();
+        // find the argmax1 tensor
+        for (auto tensor : tensors)
+        {
+            if (std::regex_search(tensor->name(), std::regex("argmax"))) 
             {
-                std::cout << object->get_label() << ", ";
+                tensor_ptr = tensor;
             }
-            std::cout << std::endl;
+        }
+        if (!tensor_ptr)
+        {
+            std::cerr << "Semantic Segmentation post process: No argmax1 tensor found" << std::endl;
+            return AppStatus::PIPELINE_ERROR;
         }
 
+        HailoMediaLibraryBufferPtr input_buffer = data->get_buffer();
+        void* y_plane_ptr = input_buffer->get_plane_ptr(0);
+        uint32_t y_plane_size = input_buffer->get_plane_size(0);
+        void* uv_plane_ptr = input_buffer->get_plane_ptr(1);
+        uint32_t uv_plane_size = input_buffer->get_plane_size(1);
+        uint8_t* y_ptr  = reinterpret_cast<uint8_t*>(y_plane_ptr);
+        uint8_t* uv_ptr = reinterpret_cast<uint8_t*>(uv_plane_ptr);
+
+        //get the input image buffer.
+        if (DmaMemoryAllocator::get_instance().dmabuf_sync_start(y_plane_ptr) != MEDIA_LIBRARY_SUCCESS)
+            return AppStatus::DMA_ERROR;
+        if (DmaMemoryAllocator::get_instance().dmabuf_sync_start(uv_plane_ptr) != MEDIA_LIBRARY_SUCCESS)
+            return AppStatus::DMA_ERROR;
+        // 拷贝 Y（灰度）分量
+        if (sizeof(uint8_t) * tensor_ptr->size() == y_plane_size)
+        {
+            memcpy(y_ptr, tensor_ptr->data(), y_plane_size);
+            //memset(y_ptr, 255, y_plane_size);
+        } else {
+            std::cerr << "Y plane size mismatch!" << std::endl;
+        }
+        // 填充 UV 为 128
+        memset(uv_ptr, 128, uv_plane_size);
+        if (DmaMemoryAllocator::get_instance().dmabuf_sync_end(y_plane_ptr) != MEDIA_LIBRARY_SUCCESS)
+            return AppStatus::DMA_ERROR;
+        if (DmaMemoryAllocator::get_instance().dmabuf_sync_end(uv_plane_ptr) != MEDIA_LIBRARY_SUCCESS)
+            return AppStatus::DMA_ERROR;
         // Send the data to the next subscribers in the pipeline
         send_to_subscribers(data);
 
@@ -365,34 +402,34 @@ void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
     // AI Pipeline Stages
 
     // Detection inference stage
-    std::shared_ptr<HailortAsyncStage> detection_stage = std::make_shared<HailortAsyncStage>(
-        DETECTION_AI_STAGE, YOLO_HEF_FILE, 5, 50, "device0", 5, 10, 5, false, std::chrono::milliseconds(100),
+    std::shared_ptr<HailortAsyncStage> seg_stage = std::make_shared<HailortAsyncStage>(
+        SEG_AI_STAGE, SEG_HEF_FILE, 5, 50, "device0", 5, 10, 5, false, std::chrono::milliseconds(100),
         app_resources->print_fps, StagePoolMode::BLOCKING);
 
     // Detection postprocess stage
-    std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(
-        POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, YOLO_CONFIG_PATH, 5, false, app_resources->print_fps);
+    //std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(
+    //    POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, YOLO_CONFIG_PATH, 5, false, app_resources->print_fps);
 
     // Custom stage for processing detection results
     std::shared_ptr<CustomStage> custom_stage =
         std::make_shared<CustomStage>("custom_stage", 3, false, app_resources->print_fps);
 
     // Results overlay stage
-    std::shared_ptr<OverlayStage> overlay_stage =
-        std::make_shared<OverlayStage>(OVERLAY_STAGE, false, true, std::unordered_set<size_t>{}, 1, false,
-                                       std::unordered_set<int>{}, nullptr, app_resources->print_fps);
+    //std::shared_ptr<OverlayStage> overlay_stage =
+    //    std::make_shared<OverlayStage>(OVERLAY_STAGE, false, true, std::unordered_set<size_t>{}, 1, false,
+    //                                   std::unordered_set<int>{}, nullptr, app_resources->print_fps);
 
     // Add stages to pipeline
-    app_resources->pipeline->add_stage(detection_stage);
-    app_resources->pipeline->add_stage(detection_post_stage);
+    app_resources->pipeline->add_stage(seg_stage);
+    //app_resources->pipeline->add_stage(detection_post_stage);
     app_resources->pipeline->add_stage(custom_stage);
-    app_resources->pipeline->add_stage(overlay_stage);
+    //app_resources->pipeline->add_stage(overlay_stage);
 
     // Subscribe stages to each other
-    detection_stage->add_subscriber(detection_post_stage);
-    detection_post_stage->add_subscriber(custom_stage);
-    custom_stage->add_subscriber(overlay_stage);
-    overlay_stage->add_subscriber(app_resources->encoders[AI_VISION_SINK]);
+    seg_stage->add_subscriber(custom_stage);
+    //detection_post_stage->add_subscriber(custom_stage);
+    custom_stage->add_subscriber(app_resources->encoders[AI_VISION_SINK]);
+    //overlay_stage->add_subscriber(app_resources->encoders[AI_VISION_SINK]);
 }
 
 /**
