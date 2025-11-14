@@ -369,7 +369,26 @@ class CustomStage : public ConnectedStage
         // 拷贝 Y（灰度）分量
         if (sizeof(uint8_t) * tensor_ptr->size() == y_plane_size)
         {
-            memcpy(y_ptr, tensor_ptr->data(), y_plane_size);
+            uint8_t *src = (uint8_t*)tensor_ptr->data();
+            uint8_t *dst = y_ptr;
+            // 1. Find min/max
+            uint8_t minVal = 255, maxVal = 0;
+            for (size_t i = 0; i < y_plane_size; i++) {
+                uint8_t v = src[i];
+                if (v < minVal) minVal = v;
+                if (v > maxVal) maxVal = v;
+            }
+            // Avoid divide-by-zero
+            if (maxVal <= minVal) {
+                memset(dst, 0, y_plane_size);
+                return AppStatus::PIPELINE_ERROR;
+            }
+            // 2. Normalize + copy in ONE pass
+            float scale = 255.0f / (maxVal - minVal);
+            for (size_t i = 0; i < y_plane_size; i++) {
+                dst[i] = (uint8_t)((src[i] - minVal) * scale);
+            }
+            //memcpy(y_ptr, tensor_ptr->data(), y_plane_size);
             //memset(y_ptr, 255, y_plane_size);
         } else {
             std::cerr << "Y plane size mismatch!" << std::endl;
