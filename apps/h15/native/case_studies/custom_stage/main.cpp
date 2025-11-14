@@ -36,12 +36,6 @@
 #define SEG_HEF_FILE "resources/hefs/fcn8_resnet_v1_18.hef"
 #define SEG_AI_STAGE "fcn8_seg"
 
-//#define POST_STAGE "yolo_post"
-//#define YOLO_POST_SO "/usr/lib/hailo-post-processes/libyolo_post.so"
-//#define YOLO_FUNC_NAME "yolov5"
-//#define YOLO_CONFIG_PATH "/home/root/apps/detection/resources/configs/yolov5.json"
-//#define OVERLAY_STAGE "overlay"
-
 // Macro that turns coverts stream ids to port #s
 #define PORT_FROM_ID(id) std::to_string(5000 + std::stoi(id.substr(4)) * 2)
 
@@ -342,7 +336,7 @@ class CustomStage : public ConnectedStage
         // find the argmax1 tensor
         for (auto tensor : tensors)
         {
-            if (std::regex_search(tensor->name(), std::regex("argmax"))) 
+            if (std::regex_search(tensor->name(), std::regex("argmax")))
             {
                 tensor_ptr = tensor;
             }
@@ -419,36 +413,22 @@ class CustomStage : public ConnectedStage
 void create_ai_pipeline(std::shared_ptr<AppResources> app_resources)
 {
     // AI Pipeline Stages
-
-    // Detection inference stage
+    // Segmentation inference stage
     std::shared_ptr<HailortAsyncStage> seg_stage = std::make_shared<HailortAsyncStage>(
         SEG_AI_STAGE, SEG_HEF_FILE, 5, 50, "device0", 5, 10, 5, false, std::chrono::milliseconds(100),
         app_resources->print_fps, StagePoolMode::BLOCKING);
 
-    // Detection postprocess stage
-    //std::shared_ptr<PostprocessStage> detection_post_stage = std::make_shared<PostprocessStage>(
-    //    POST_STAGE, YOLO_POST_SO, YOLO_FUNC_NAME, YOLO_CONFIG_PATH, 5, false, app_resources->print_fps);
-
-    // Custom stage for processing detection results
+    // Custom stage for processing Segmentation results
     std::shared_ptr<CustomStage> custom_stage =
         std::make_shared<CustomStage>("custom_stage", 3, false, app_resources->print_fps);
 
-    // Results overlay stage
-    //std::shared_ptr<OverlayStage> overlay_stage =
-    //    std::make_shared<OverlayStage>(OVERLAY_STAGE, false, true, std::unordered_set<size_t>{}, 1, false,
-    //                                   std::unordered_set<int>{}, nullptr, app_resources->print_fps);
-
     // Add stages to pipeline
     app_resources->pipeline->add_stage(seg_stage);
-    //app_resources->pipeline->add_stage(detection_post_stage);
     app_resources->pipeline->add_stage(custom_stage);
-    //app_resources->pipeline->add_stage(overlay_stage);
 
     // Subscribe stages to each other
     seg_stage->add_subscriber(custom_stage);
-    //detection_post_stage->add_subscriber(custom_stage);
     custom_stage->add_subscriber(app_resources->encoders[AI_VISION_SINK]);
-    //overlay_stage->add_subscriber(app_resources->encoders[AI_VISION_SINK]);
 }
 
 /**
