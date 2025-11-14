@@ -27,7 +27,8 @@
 #define FRONTEND_STAGE "frontend_stage"
 #define HOST_IP "10.0.0.2"
 #define NO_PROFILE_SELECTED ""
-#define MEDIALIB_CONFIG_PATH "/etc/imaging/cfg/medialib_configs/case_studies/detection_medialib_config.json"
+#define MEDIALIB_CONFIG_PATH "resources/configs/segmentation_medialib_config.json"
+//#define MEDIALIB_CONFIG_PATH "/etc/imaging/cfg/medialib_configs/case_studies/detection_medialib_config.json"
 
 // AI Pipeline Params
 #define AI_VISION_SINK "sink0" // The streamid from frontend to 4K stream that shows vision results
@@ -43,6 +44,8 @@
 
 // Macro that turns coverts stream ids to port #s
 #define PORT_FROM_ID(id) std::to_string(5000 + std::stoi(id.substr(4)) * 2)
+
+//#define AI_ENABLE
 
 enum class ArgumentType
 {
@@ -211,9 +214,13 @@ void subscribe_to_frontend(std::shared_ptr<AppResources> app_resources)
     {
         std::cout << "subscribing to frontend for '" << s.id << "'" << std::endl;
         // Subscribe encoder to frontend
+      #ifdef AI_ENABLE
         app_resources->frontend->subscribe_to_stream(
             s.id,
             std::static_pointer_cast<ConnectedStage>(app_resources->pipeline->get_stage_by_name(DETECTION_AI_STAGE)));
+      #else
+        app_resources->frontend->subscribe_to_stream(s.id, app_resources->encoders[s.id]);
+      #endif
     }
 }
 
@@ -455,8 +462,10 @@ int main(int argc, char *argv[])
     // Configure frontend and encoders
     configure_frontend_and_encoders(app_resources);
 
+  #ifdef AI_ENABLE
     // Create pipeline and stages
     create_ai_pipeline(app_resources);
+  #endif
 
     // Subscribe stages to frontend
     subscribe_to_frontend(app_resources);
