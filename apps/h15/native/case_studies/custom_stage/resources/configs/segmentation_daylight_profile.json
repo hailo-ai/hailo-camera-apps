@@ -1,0 +1,15 @@
+{
+    "version": "1.0.0",
+    "sensor_config": "resources/configs/sensor_config.json",
+    "application_settings": "resources/configs/application_settings.json",
+    "stabilizer_settings": "resources/configs/stabilizer_settings.json",
+    "iq_settings": "resources/configs/iq_settings.json",
+    "encoded_output_streams": [
+        {
+            "stream_id": "sink0",
+            "encoding": "resources/configs/encoder_sink0.json",
+            "osd": "resources/configs/osd_sink0.json",
+            "masking": "resources/configs/masking_sink0.json"
+        }
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "version": "1.0.0",
+    "default_profile": "Daylight",
+    "profiles": [
+        {
+            "name": "Daylight",
+            "config_file": "resources/configs/segmentation_daylight_profile.json"
+        }
+    ]
+}
