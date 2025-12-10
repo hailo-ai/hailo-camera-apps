@@ -18,7 +18,7 @@ storage:
   thumbnail_directory: thumbnails #Directory for thumbnail images, this will be created under root_directory
   video_directory: videos         #Directory for video files, this will be created under root_directory
   low_disk_threshold_percent: 25  #Threshold percentage for low disk space warning
-  check_interval_seconds: 1       #Interval in seconds to check disk space
+  check_interval_seconds: 30      #Interval in seconds to check disk space
 
 # Text Encoder Network Support/Configuration
 # This section defines the available text encoder networks for the CLIP application.

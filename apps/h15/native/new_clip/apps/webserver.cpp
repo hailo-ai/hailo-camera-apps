@@ -132,6 +132,36 @@ std::shared_ptr<IntegratedWebServer::WebRtcStreamers> IntegratedWebServer::findW
     return nullptr;
 }
 
+std::string IntegratedWebServer::createPlayFromFileMediaConfigTempFile()
+{
+    std::string temp_file_path;
+
+    std::ifstream medialib_conf_file(app::paths::medialib_config);
+    if (!medialib_conf_file.is_open()) {
+        return "";
+    }        
+
+    json media_config_json;
+    medialib_conf_file >> media_config_json;
+    medialib_conf_file.close();
+
+    // Modify the default_profile field to play_from_file
+    media_config_json[app::medialib_profile::default_profile_node] = app::medialib_profile::play_from_file;
+
+    // Save to new file
+    std::string medialib_conf_play_from_file = "/var/volatile/clip_medialib_config_play_from_file.json";
+    std::ofstream outputFile(medialib_conf_play_from_file);
+    if (!outputFile.is_open()) {
+        return "";
+    }
+    // Write with indentation for readability (4 spaces)
+    outputFile << media_config_json.dump(4) << std::endl;
+    outputFile.close();        
+        
+    temp_file_path = medialib_conf_play_from_file;
+    return temp_file_path;
+}
+
 // Static factory method
 tl::expected<std::shared_ptr<IntegratedWebServer>, std::string> IntegratedWebServer::create(const ClipAppConfig &config)
 {
@@ -153,7 +183,18 @@ tl::expected<std::shared_ptr<IntegratedWebServer>, std::string> IntegratedWebSer
     if (instance->web_server_config->frontend_source_from_file.enabled)
     {
         //Override media config path for frontend source from file
-        app_config.m_start_profile_name = app::medialib_profile::play_from_file;
+        // Here we do not longer use app_config.m_start_profile_name = app::medialib_profile::play_from_file;
+        // because we won't be able to set profile if the source is play from file. Instead we will need to work around it
+        // by changing the media config default_profile to play from file, save it to temp file, load that temp file instead.
+        // Set the new media config path as override
+        std::string medialib_conf_play_from_file = instance->createPlayFromFileMediaConfigTempFile();
+        if (!medialib_conf_play_from_file.empty()) {
+            app_config.m_media_config_path = medialib_conf_play_from_file;
+        } else {
+            return tl::make_unexpected("Failed to create temporary medialib config for play from file");
+        }
+        
+        // Set the file that we want to play from
         app_config.m_appsrc_file_path = instance->web_server_config->frontend_source_from_file.file_path;
     }
 

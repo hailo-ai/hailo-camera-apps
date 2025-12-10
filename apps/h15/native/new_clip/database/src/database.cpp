@@ -61,7 +61,7 @@ bool Database::open()
     // Set PRAGMA statements hardcoded for now as all connection is suggested to have the same settings
     // for optimal performance on SD card. We can implement dynamic configuration later if needed.
     const char *pragmas = "PRAGMA journal_mode=WAL;"             // Enables WAL mode
-                          "PRAGMA synchronous=NORMAL;"           // Good balance between performance and durability
+                          "PRAGMA synchronous=OFF;"              // Best performance but low durability
                           "PRAGMA temp_store=MEMORY;"            // Keeps temp tables in memory for speed
                           "PRAGMA page_size=4096;"               // Standard page size, good for most systems
                           "PRAGMA cache_size=-16384;"            // 16MB cache (negative means KB)

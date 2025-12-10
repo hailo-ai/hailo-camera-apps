@@ -23,6 +23,8 @@
 #include <sys/sysinfo.h>
 #include <fcntl.h>
 
+constexpr const char* VOLATILE_PATH = "/var/volatile";
+
 namespace fs = std::filesystem;
 
 namespace FileSysUtils

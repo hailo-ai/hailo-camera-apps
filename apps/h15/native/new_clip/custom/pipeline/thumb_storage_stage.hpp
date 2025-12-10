@@ -28,8 +28,7 @@ namespace fs = std::filesystem;
 #define THUMB_DB_FLASH_INTERVAL_MS 1500
 #define THUMB_DB_FLASH_MIN_SIZE 50
 
-constexpr const char* VOLATILE_PATH = "/var/volatile";
-constexpr const char* THUMB_TEMP_PATH = "clip_storage/thumbnail";
+constexpr const char* THUMB_TEMP_PATH = "clip_cache_storage/thumbnail";
 
 class ThumStorageStage : public ConnectedStage
 {
@@ -99,8 +98,6 @@ class ThumStorageStage : public ConnectedStage
         if (!FileSysUtils::ensure_directory_exists(m_thumb_dir))
             return AppStatus::UNINITIALIZED;
 
-        std::cout << "Thumb storage dir: " << m_thumb_dir << std::endl;
-
         // If the thumbnail mount point is not /var/volatile (memory), we create a temp cache path in /var/volatile
         if (m_thumb_dir.compare(0, std::strlen(VOLATILE_PATH), VOLATILE_PATH) != 0)
         {
@@ -108,11 +105,8 @@ class ThumStorageStage : public ConnectedStage
             m_thumb_cache_dir = FileSysUtils::join_path(VOLATILE_PATH, THUMB_TEMP_PATH);
             if (!FileSysUtils::ensure_directory_exists(m_thumb_cache_dir))
                 return AppStatus::UNINITIALIZED;
-
-            std::cout << "Thumb cache dir: " << m_thumb_cache_dir << std::endl;
         }
 
-        
         // Start the database access thread
         m_database_thread = std::thread(&ThumStorageStage::database_access, this);
 
@@ -165,7 +159,7 @@ class ThumStorageStage : public ConnectedStage
         {
             thumb_path = m_thumb_cache_dir;
         }
-
+          
         // Save thumbnail to file
         std::ofstream file = create_file(thumb_path, filename);
         if (!file)
@@ -239,7 +233,7 @@ class ThumStorageStage : public ConnectedStage
                     std::cout << "Time taken THUMB table insert: " << duration.count() << " ms"
                               << ", total insert item: " << thumbnails_to_process.size() << std::endl;
                 }
-            }
+            }        
 
             // Move files from temp cache to final thumb dir
             if (!m_thumb_cache_dir.empty())

@@ -263,6 +263,7 @@ void MKVStreamer::streaming_thread()
         {
             std::lock_guard<std::mutex> lock(m_buffer_mutex);
             m_current_file_index++;
+            m_current_context->cleanup();
             m_current_context.reset();
         }
     }
@@ -568,7 +569,7 @@ std::unique_ptr<MKVStreamer::FileContext> MKVStreamer::create_file_context(const
 
     // Set up bus callback
     GstBus *bus = gst_element_get_bus(context->pipeline);
-    gst_bus_add_watch(bus, (GstBusFunc)bus_callback, context.get());
+    context->bus_watch_id = gst_bus_add_watch(bus, (GstBusFunc)bus_callback, context.get());
     gst_object_unref(bus);
 
     // Preroll pipeline to PAUSED state
@@ -600,7 +601,7 @@ std::string MKVStreamer::create_pipeline_string(const std::string &file_path, Rt
 
     pipeline << "filesrc location=\"" << file_path << "\" ! "
              << "matroskademux ! "
-             << "queue max-size-buffers=0 max-size-bytes=0 max-size-time=2000000000 ! ";
+             << "queue max-size-buffers=0 max-size-bytes=0 max-size-time=500000000 ! ";
 
     // Add parser and RTP payloader based on codec
     if (detected_codec == RtpPacketData::CodecType::H264)
@@ -614,7 +615,7 @@ std::string MKVStreamer::create_pipeline_string(const std::string &file_path, Rt
                  << "rtph265pay name=payloader config-interval=1 timestamp-offset=0 ! ";
     }
 
-    pipeline << "queue max-size-buffers=0 max-size-bytes=0 max-size-time=1000000000 ! "
+    pipeline << "queue max-size-buffers=0 max-size-bytes=0 max-size-time=500000000 ! "
              << "appsink name=appsink emit-signals=false max-buffers=10 drop=false";
 
     std::string result = pipeline.str();
@@ -672,25 +673,52 @@ gboolean MKVStreamer::bus_callback(GstBus *bus, GstMessage *msg, gpointer user_d
     return TRUE;
 }
 
+
+
 void MKVStreamer::FileContext::cleanup()
 {
+    // 1. Remove the bus watch first
+    if (bus_watch_id > 0)
+    {
+        g_source_remove(bus_watch_id);
+        bus_watch_id = 0;
+    }
+
     if (pipeline)
     {
+        // 2. Set the pipeline to the NULL state. This begins the process of releasing resources.
         gst_element_set_state(pipeline, GST_STATE_NULL);
+
+        // 3. Wait for the state change to complete. This is a synchronous call
+        //    that ensures all elements have shut down before we proceed.
+        GstState state, pending;
+        gst_element_get_state(pipeline, &state, &pending, GST_CLOCK_TIME_NONE);
+
+        // 4. Unreference the child elements we explicitly got.
+        if (appsink)
+        {
+            // Drain any pending samples from the appsink to prevent leaks.
+            // This is crucial if the pipeline stops abruptly.
+            GstSample *sample;
+            while ((sample = gst_app_sink_try_pull_sample(GST_APP_SINK(appsink), 0)) != NULL)
+            {
+                gst_sample_unref(sample);
+            }
+            gst_object_unref(appsink);
+            appsink = nullptr;
+        }
+
+        if (payloader)
+        {
+            gst_object_unref(payloader);
+            payloader = nullptr;
+        }
+
+        // 5. Finally, unreference the pipeline itself. Since the bus watch reference
+        //    is gone and the state is NULL, this should be the final reference,
+        //    triggering its complete destruction and the freeing of its memory pools.
         gst_object_unref(pipeline);
         pipeline = nullptr;
-    }
-
-    if (appsink)
-    {
-        gst_object_unref(appsink);
-        appsink = nullptr;
-    }
-
-    if (payloader)
-    {
-        gst_object_unref(payloader);
-        payloader = nullptr;
     }
 }
 

@@ -17,7 +17,7 @@ Frontend Pipeline
     :alt: Application Pipeline
     :align: center
 
-The application begins with the Frontend pipeline. This is also known as the **Vision Pipeline**, as it is responsible for capturing the video feed from the camera and adjusting the image for application needs.
+The application begins with the Frontend pipeline. This is sometimes also called the **Vision Pipeline**, as it is responsible for capturing the video feed from the camera and adjusting the image for application needs.
 The Frontend pipeline is provided by the Media Library package on the Hailo-15, and provides the following operations:
 
 - **Video capture** - from the camera sensor
@@ -34,20 +34,34 @@ The FHD resolution stream is used for inference, while the other streams are dis
 It is important to note here that each stream can be output at a different framerate (also configurable to the user). 
 For the case of this application, the two vision streams that go to display are output at 30 FPS, while the AI stream (FHD) is output at **15 FPS**.
 
-It is also important to note that the 4K output stream is split in 2 using a tee stage. This stage takes the pointer to incoming data 
-and sends it to mutliple outputs. This means that two streams can access the 4K images **without** copying the data.
-One of the streams will be used in the 4K vision pipeline to display on the screen, and the second will be used by
-the ai piepline to take better resolution crops of the image.
+It is also important to note that the FHD stream is leaky, meaning that when full, older frames will be dropped to make room for new ones. This prevents back pressure from 
+reaching sensor capture and stalling the pipeline.
 
 For further reading on the Frontend module, please refer to the Media Library documentation.
 
-HD Vision Pipeline
+Vision Pipeline
 ==================
-.. image:: readme_resources/hd_stream.png
+.. image:: readme_resources/vision_pipeline.png
     :alt: Application Pipeline
     :align: center
 
-The HD pipeline is responsible for encoding and streaming the video feed to RTSP.
+The vision pipeline is responsible for taking the video feed from the Frontend pipeline and preparing it for streaming to the host machine.
+An important feature of this pipeline is that the results from the AI pipeline are overlayed on top of the video feed before streaming.
+This requires that we sync AI results with the video feed. We do this using aggregator stages: stages that take an expected amount of metadata (AI results)
+from one stream and add it to another stream (video feed). These stages are able to sync frames based on timestamps to ensure that the right AI results
+are added to the right video frames. The stages also employ multiple buffering techniques to ensure smooth operation, such as timeouts to
+prevent deadlocks when AI latency passes certain thresholds.
+
+A muxer is used to merge the two incoming streams (HD and 4K) into a single stream that syncs with AI results. The streams are then split
+(now with AI results added) into two pipelines for encoding and streaming. Results are overlayed on the HD stream.
+
+4K Vision Pipeline
+==================
+.. image:: readme_resources/fourk_stream.png
+    :alt: Application Pipeline
+    :align: center
+
+The 4K pipeline is responsible for encoding and streaming the video feed to RTSP.
 The Encoder/OSD module is provided by the Media Library package on the Hailo-15, and is accelerated by both the DSP and the encoder hardware.
 
 After the Frontend pipeline, the HD pipeline takes the resized video stream and performs the following operations:
@@ -79,9 +93,9 @@ AI Stage 1: Tiling Object Detection
 
     The firt stage in the AI pipeline detects people and faces from the FHD stream and adds them to the 4K stream.
 
-The first interesting point in this pipeline is that there are two input streams: 
-the **FHD** stream is tiled into smaller pieces for inference, and the **4K** stream has the results overlayed on top.
-Also note that these inputs are at different framerates: the FHD stream is at 15 FPS, while the 4K stream is at 30 FPS, we will come back to this later.
+The interesting point in this pipeline is that it syncs at end with the 4k vision pipeline: 
+the **FHD** stream is tiled into smaller pieces for inference, and the **4K** stream (or the HD stream it is muxed with) has the results overlayed on top.
+Also note that these streams are at different framerates: the FHD stream is at 15 FPS, while the 4K stream is at 30 FPS, this difference will be referred to later.
 
 Tiling
 ------
@@ -128,9 +142,8 @@ Afterwards NMS is used to remove overlapping bounding boxes between large and sm
     The detections from the 5 tiles are aggregated to the 4K image space.
 
 The second aggregator has two input streams coming at different framerates, so how is it able to match FHD frames with inference to the right 4K frame? 
-In this case the aggregator stage is set to a "sync" mode, so frames arriving int he aggregator compare timestamps to match the right frames. If 
-a 4K frame arrives and the next FHD frame has a timestamp that is newer (the disonance between the two framerates), the aggregator will let 
-the 4K frame continue without adding any detections, since this one is the gap between the 30FPS and 15FPS streams.
+In this case the aggregator stage is set to a "sync" mode, so frames arriving in the aggregator compare timestamps to match the right frames. 
+
 
 .. figure:: readme_resources/aggregator_sync.png
     :alt: Application Pipeline
@@ -139,8 +152,10 @@ the 4K frame continue without adding any detections, since this one is the gap b
 
     The matching frames are synced by timestamp.
 
-It is important to note from the figure above that we now expect every other frame to have detections, since the 4K stream is at 30FPS and the FHD stream is at 15FPS.
-This will be important later in the *persist stage* when we try to smooth the missing frames in between detections.
+Note that it is expected that every other frame will have detections, since the 4K stream is at 30FPS and the FHD stream is at 15FPS. We can avoid uneccessary waits by marking the 4K buffers in advance with metadata that warns if this
+frame is expected to have detections or not. This way the aggregator can skip waits for frames that are not expected to have detections, and so the 4k 30FPS stream is not forced to wait for the 15FPS AI stream (creating a bottleneck).
+4K frames wait up to a timeout for matching AI frames, and if no match arrives in time they continue without detections. If a FHD frame arrives with a timestamp that is older than the current 4K frame, the FHD frame is thrown outsince it's match has
+already passed.
 
 From here the 4K stream continues to stage 2 of the AI pipeline.
 
@@ -150,8 +165,8 @@ AI Stage 2: Detection Cropping and Face Landmarking
 .. figure:: readme_resources/stage_2.png
     :alt: Application Pipeline
     :align: center
-    :height: 238 px
-    :width: 1098 px
+    :height: 267 px
+    :width: 1017 px
     :scale: 90%
 
     The second stage in the AI pipeline crops faces from the 4K stream and adds landmarks to them.
@@ -207,34 +222,26 @@ the Hailort Scheduler, which will split the workload between the two networks on
 Aggregation
 -----------
 This aggregation stage is similar to the one in the first half of the AI pipeline, but here we have a dynamic number of cropped images to add to the 4K stream.
-The aggregator will take the metadata from the 4K stream that arrived and use that to know how many faces should arrive.
+The aggregator will take the metadata from the 4K stream that arrived and use that to know how many faces should arrive. The results are then synced to the 
+vision pipeline with another aggregator in sync mode like at the end of Stage 1.
 
-From here the 4K stream continues to 4K vision pipeline.
+From here the stream continues in the vision pipeline to the demuxer.
 
 
-4K Vision Pipeline
+HD Vision Pipeline
 ==================
-The 4K vision pipeline is very similar to the HD pipeline, but with a few additions:
+The HD vision pipeline is very similar to the HD pipeline, but with a few additions:
 
-.. image:: readme_resources/fourk_stream.png
+.. image:: readme_resources/hd_stream.png
     :alt: Application Pipeline
     :align: center
 
 We will focus on each stage separately and explain the operations performed in each.
 
-Results Aggregation
--------------------
-This stage merges the results of the AI pipeline into the 4K stream. This is done by adding the bounding boxes and landmarks to the 4K stream
-with an aggregator like in previous instances. This aggregator is synced, so it also compares timestamps to
-match the right frames between the two streams.
-
-An important mechanism in this instance of aggregator is an inital latency delay between the first buffer arriving from the frontend pipeline and the first buffer arriving from the AI pipeline.
-This provides the AI pipeline the initial oppurtunity to catch up on it's latency to stay synced with the frontend pipeline.
-
 Tracking / Persist
 ------------------
-`As mentioned before <#aggregation>`_, we now have a 4K stream at 30FPS that has detection boxes for every second frame.
-We have two options on how to complete the the detections in the missing frames:
+`As mentioned before <#aggregation>`_, we now have a HD stream at 30FPS that has detection boxes for every second frame.
+Two options are available for completing the detections in the missing frames:
 
 * **Tracking**: We can track the detected objects between frames. This is done by computing box movement on the CPU.
 * **Persist**: We can persist the detections from the previous frame to the next frame.
@@ -245,7 +252,7 @@ Tracking
 ~~~~~~~~
 We can complete the missing frames by tracking the detected objects between frames. 
 This is done using the HailoTracker API provided in Tappas, which tracks bounding boxes using a Joint Detection and Embedding (JDE) algorithm.
-The tracker uses a Kalman Filter to predict bounding box movements, which completes the missing frames in the 4K stream. This can 
+The tracker uses a Kalman Filter to predict bounding box movements, which completes the missing frames in the HD stream. This can 
 be very accurate at approximating the movement of objects between frames, but can be compute-heavy at large numbers of detections.
 
 .. figure:: readme_resources/tracking.png
@@ -264,14 +271,8 @@ faster, as no compute is required, and therefore also scales very well when larg
 this method is still very useful for many scenarios. Considering that the we only need to complete detections for 1 frame until the next batch of detections arrives,
 this method is very suitable for this application as the boxes cannot travel as much.
 
-In the current iteration of the application, the persist method is used to complete the detections between frames. This step is applied near the end-to-end 
-of the AI pipeline, before the 4K stream is passed for object drawing.
-
-Persist
--------
-It is at this stage where we persist the detections between frames. This is done by applying the latest seen detections to the next frame. The latest
-seen detections will be applied until new detections arrive, at which point those new detections will be used and persisted  instead. This stage comes with a configurable
-half-life, in case the originally detected object is no longer in the frame.
+In the current iteration of the application, a lightweight tracker (similar to but simpler than a Kalman Filter) is used to complete the detections between frames. This step is applied near the end
+of the AI pipeline, before the HD stream is passed for object drawing.
 
 Overlay
 -------
@@ -279,4 +280,4 @@ The next stage calls the HailoOverlay module provided in Tappas to draw all the 
 
 Streaming AI Pipeline
 ---------------------
-From here the AI Piepline is the same as the `HD Pipeline <#hd-vision-pipeline>`_: OSD blending is performed by the DSP, and the image is encoded then finaly streamed to the host machine.
+From here the AI Pipeline is the same as the `4K Pipeline <#4k-vision-pipeline>`_: OSD blending is performed by the DSP, and the image is encoded then finaly streamed to the host machine.

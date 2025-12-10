@@ -124,11 +124,12 @@ class MKVStreamer
         int64_t current_position_ms;
         RtpPacketData::CodecType detected_codec;
         uint32_t base_rtp_timestamp; // Base timestamp for this file
+        guint bus_watch_id;
 
         FileContext(const VideoFile &vf)
             : video_file(vf), pipeline(nullptr), appsink(nullptr), payloader(nullptr), is_prepared(false),
               is_eos(false), current_position_ms(0), detected_codec(RtpPacketData::CodecType::UNKNOWN),
-              base_rtp_timestamp(0)
+              base_rtp_timestamp(0), bus_watch_id(0)
         {
         }
 

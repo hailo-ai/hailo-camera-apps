@@ -112,6 +112,7 @@ class IntegratedWebServer
     void setupRoutes();
     void serveIntegratedHTML(httplib::Response &res);
     bool processEmbedding(const EmbeddingInfo &embedding_info);
+    std::string createPlayFromFileMediaConfigTempFile();
 
   public:
     // Delete copy operations

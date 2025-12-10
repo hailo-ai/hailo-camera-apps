@@ -29,7 +29,9 @@ namespace paths {
  * @brief Defines medialib profile.
  */
 namespace medialib_profile {
+    
     inline const std::string play_from_file = "PlayFromFile";
+    inline const std::string default_profile_node = "default_profile";
 
 } // namespace medialib_profile
 

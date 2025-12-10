@@ -22,7 +22,9 @@
 #include "custom/converter/segmented_mkv_muxer.hpp"
 #include "database/sql_factory.hpp"
 
-#define VIDEO_STORAGE_QUEUE_SIZE_DEFAULT 15
+constexpr const char* VIDEO_TEMP_PATH = "clip_cache_storage/video";
+
+#define VIDEO_STORAGE_QUEUE_SIZE_DEFAULT 50
 #define VIDEO_DURATION_SECONDS_DEFAULT 15
 
 #include <deque>
@@ -44,6 +46,7 @@ class VideoStorageStage : public ConnectedStage
     DBSource m_db_source;
     std::string m_db_source_data;
     std::string m_video_dir;
+    std::string m_video_cache_dir;
     std::string m_video_filename_prefix;
     uint32_t m_video_segment_duration_seconds;
     std::shared_ptr<GStreamerMkvSegmenter> m_muxer;
@@ -96,7 +99,6 @@ class VideoStorageStage : public ConnectedStage
             auto video_table_result = SqlDatabaseQuickAccess::get_database(m_db_source_data);
             if (!video_table_result)
             {
-                std::cerr << "Video Storage " << m_stage_name << " database not found in factory" << std::endl;
                 REFERENCE_CAMERA_LOG_ERROR("Video Storage {} database not found in factory", m_stage_name);
                 return AppStatus::UNINITIALIZED;
             }
@@ -105,7 +107,6 @@ class VideoStorageStage : public ConnectedStage
             break;
         }
         default:
-            std::cerr << "Video Storage " << m_stage_name << " unsupported faiss database source" << std::endl;
             REFERENCE_CAMERA_LOG_ERROR("Video Storage {} unsupported faiss database source", m_stage_name);
             return AppStatus::CONFIGURATION_ERROR;
         }
@@ -113,15 +114,30 @@ class VideoStorageStage : public ConnectedStage
         if (!FileSysUtils::ensure_directory_exists(m_video_dir))
             return AppStatus::UNINITIALIZED;
 
+        std::string video_path = m_video_dir;
+
+        // If the video mount point is not /var/volatile (memory), we create a temp cache path in /var/volatile
+        if (m_video_dir.compare(0, std::strlen(VOLATILE_PATH), VOLATILE_PATH) != 0)
+        {
+            // Create temporary video storage path in memory as cache
+            m_video_cache_dir = FileSysUtils::join_path(VOLATILE_PATH, VIDEO_TEMP_PATH);
+            if (!FileSysUtils::ensure_directory_exists(m_video_cache_dir))
+                return AppStatus::UNINITIALIZED;
+
+            video_path = m_video_cache_dir;
+
+            //Clean up any old cached files on init
+            auto cached_files = FileSysUtils::get_all_file_names(m_video_cache_dir, true);
+            if (!cached_files.empty())
+                FileSysUtils::delete_files(cached_files);
+        }
+        
         // Initialize segmenter
-        //AARON TODO:   Do we need to support H265? If so then also need to check webrtc since it will be related to 
-        //              host browser frontend support.
-        m_muxer = std::make_shared<GStreamerMkvSegmenter>(CodecType::H264, m_video_dir, m_video_filename_prefix,
+        m_muxer = std::make_shared<GStreamerMkvSegmenter>(CodecType::H264, video_path, m_video_filename_prefix,
                                                           m_video_segment_duration_seconds);
 
         if (!m_muxer->initialize() || !m_muxer->start())
         {
-            std::cerr << "Failed to initialize and start video muxer" << std::endl;
             REFERENCE_CAMERA_LOG_ERROR("Video Storage {} failed to initialize and start muxer", m_stage_name);
             return AppStatus::UNINITIALIZED;
         }
@@ -189,16 +205,13 @@ class VideoStorageStage : public ConnectedStage
         {
             if (m_video_table == nullptr)
             {
-                std::cerr << "Video Storage " << m_stage_name << " database failed to initialized" << std::endl;
-                REFERENCE_CAMERA_LOG_ERROR("Vido Storage {} database failed to initialized", m_stage_name);
+                REFERENCE_CAMERA_LOG_ERROR("Video Storage {} database failed to initialize", m_stage_name);
                 return AppStatus::UNINITIALIZED;
             }
 
             auto metadata = data->get_metadata_of_type(MetadataType::SIZE);
             if (metadata.empty())
             {
-                std::cerr << "video storage " << m_stage_name << " got buffer of unknown size, add SizeMeta"
-                          << std::endl;
                 REFERENCE_CAMERA_LOG_ERROR("video storage {} got buffer of unknown size, add SizeMeta", m_stage_name);
                 return AppStatus::PIPELINE_ERROR;
             }
@@ -291,7 +304,23 @@ class VideoStorageStage : public ConnectedStage
                 }
             }
 
-            if (m_video_table && !operations_to_process.empty())
+            if (operations_to_process.empty())
+                continue;
+
+            // Update file paths if using cache directory
+            for (auto &item : operations_to_process)
+            {
+                if (!m_video_cache_dir.empty())
+                {
+                    std::string cache_filepath = item.filename;
+                    auto filename = FileSysUtils::extract_file_name(cache_filepath);
+
+                    std::string dest_filepath = (fs::path(m_video_dir) / filename).string();
+                    item.filename = dest_filepath;
+                }
+            }
+
+            if (m_video_table)
             {
                 // Start measuring time
                 auto start = std::chrono::high_resolution_clock::now();
@@ -311,8 +340,36 @@ class VideoStorageStage : public ConnectedStage
                     std::chrono::high_resolution_clock::now() - start);
                 if (duration.count() > 30)
                 {
-                    std::cout << "Time taken VIDEO table batch insert: " << duration.count() << " ms"
-                              << ", total insert items: " << operations_to_process.size() << std::endl;
+                    REFERENCE_CAMERA_LOG_INFO("Time taken VIDEO table batch insert: {} ms, total insert items: {}", duration.count(), operations_to_process.size());
+                }
+            }
+
+            // Move files from temp cache to final video dir
+            if (!m_video_cache_dir.empty())
+            {
+                // Start measuring time
+                auto start = std::chrono::high_resolution_clock::now();
+
+                for (const auto &item : operations_to_process)
+                {
+                    std::string dest_filepath = item.filename;
+
+                    auto filename = FileSysUtils::extract_file_name(dest_filepath);
+
+                    std::string cache_filepath = (fs::path(m_video_cache_dir) / filename).string();
+                    int ret = FileSysUtils::move_file_sendfile(cache_filepath, dest_filepath);
+                    if (ret != 0)
+                    {
+                        REFERENCE_CAMERA_LOG_ERROR("Video Storage {} failed to move file from {} to {}, error code: {}", m_stage_name, cache_filepath, dest_filepath, ret);
+                    }
+                }
+
+                // DEBUG Measure
+                auto duration =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
+                if (duration.count() > 30)
+                {
+                    REFERENCE_CAMERA_LOG_INFO("Time taken Video files move from cache to storage: {} ms", duration.count());
                 }
             }
 

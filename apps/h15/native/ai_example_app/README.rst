@@ -64,9 +64,11 @@ Some extra flags are available to run the application with different configurati
             -p, --print-fps             Print FPS
             -l, --print-latency         Print Latency
             -c, --config-file-path arg  media library Configuration Path (default: 
-                                        /home/root/apps/ai_example_app/resources/configs/medialib_config.json)
-            -s, --skip-drawing          Skip drawing
+                                        /etc/imaging/cfg/medialib_configs/ai_example_medialib_config.json)
+            -a, --profile               Profile name (default: "Daylight")
+            -d, --draw-overlay          Comma-separated list of stream numbers to draw overlay on (e.g., '0,1...'), will ignore any non-existing streams (default "1")
             -f, --full-landmarks        Draw all landmarks (default draws only eyes for face landmarks)
+            -o, --host-ip               Host IP address for UDP output (default: "10.0.0.2")
 
 Some of the flags control basic pipeline functionality (timeout / print-fps), in particular the **--skip-drawing** 
 and **--full-landmarks** flags can be used to control the drawing behavior of the pipeline. Drawing bounding boxes and face landmarks
@@ -75,32 +77,13 @@ while the **--full-landmarks** flag will draw to full set of landmarks. For runn
 on large crowds, it is recommended to leave the default flag or skip drawing entirely.
 
 Note that you have the option to change the configuration file path for the vision pipeline configurations: **--config-file-path**. 
-A second json is provided with the default that can be used to enable low-light enhancement (denoising), and a third
-is provided for high-dynamic range (HDR).
+Within this configuration file are multiple options for vision profiles to choose from, such as high-dynamic-range (HDR) and low-light enhancement (denoising).
+To choose a specific profile, you can use the **--profile** flag.
 
     .. note:: 
-        In the current configuration, the application does not automatically change 3AConfig when enabling low-light enhancement or HDR. If you
-        choose to run with this configuration, you will need to adjust the 3AConfig manually.
+        Each profile chosen comes with it's own configuration tree for the vision pipeline, which includes settings for the 3AConfig (Auto Exposure, Auto White Balance, etc..) and other parameters.
 
-    If you do need to change the 3AConfig, you can copy the one provided in **/usr/lib/medialib/sensors/** (note that imx678 is chosen as the sensor type here): 
-    
-    .. code-block:: bash
-
-        $ cp /usr/lib/medialib/sensors/imx678/kit_sc65a/4k/isp_profiles/lowlight/3aconfig.json /usr/bin/3aconfig.json
-    
-    Then run the app with the new configuration:
-
-    .. code-block:: bash
-    
-            $ ./apps/ai_example_app/ai_example_app --config-file-path apps/ai_example_app/resources/configs/frontend_config_denoise.json
-
-    You can revert the 3AConfig back to the default by copying the original file back:
-
-    .. code-block:: bash
-
-        $ cp /usr/bin/3aconfig_imx678.json /usr/bin/3aconfig.json
-
-As you experiment with the application you may want to adjust the configurations through this flag.
+As you experiment with the application you may want to create your own profile configurations and test them out, you may do so by setting your configuration file with the **--config-file-path** flag.
 
 
 Application at a Glance
@@ -112,10 +95,13 @@ Below you can see the pipeline that the application is running:
 .. image:: docs/readme_resources/ai_example_simplified_pipeline.png
     :alt: Application Pipeline
     :align: center
+    :height: 554 px
+    :width: 1569 px
+    :scale: 80%
 
 This is a simplified view of the full pipeline, but we will break it down into smaller peices later. For now the key takeways are:
 
-- The pipeline outputs 2 vision streams: one of just video (HD), and a second (4K) with the inference overlay.
+- The pipeline outputs 2 vision streams: one of just video (4K), and a second (HD) with the inference overlay.
 - The AI pipeline is comprised of two stages:
     - The first stage performs yolo object detection (person and face classes) on a tiled FHD stream
         - Netwrork: yolov8n_personface
@@ -123,8 +109,8 @@ This is a simplified view of the full pipeline, but we will break it down into s
         - Classes: Person, Face
         - Output: FLOAT32, HAILO NMS(number of classes: 2, maximum bounding boxes per class: 80, maximum frame size: 3208)
     - The second stage performs facial landmarking on faces detected in the first stage
-        - Netwrork: tddfa_mobilenet_v1_nv12
-        - Input: 120x120 NV12
+        - Netwrork: MediaPipe face landmarks
+        - Input: 192x192 NV12
         - Output: UINT8, NC(62)
 - In both stages of the AI pipeline the DSP is used to crop and resize the image before inference is performed
 

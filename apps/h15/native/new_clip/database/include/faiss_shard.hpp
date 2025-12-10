@@ -263,8 +263,8 @@ class FaissShard
     void create_new_index()
     {
         std::unique_lock<std::shared_mutex> lock(m_rw_mutex);
-        auto flat_index = std::make_unique<faiss::IndexFlatIP>(m_dimension);
-        m_index = std::make_unique<faiss::IndexIDMap2>(flat_index.release());
+        m_index = std::make_unique<faiss::IndexIDMap2>(new faiss::IndexFlatIP(m_dimension));
+        m_index->own_fields = true;  // Tell IndexIDMap2 to take ownership and delete on destruction
         m_used_ids.clear();
     }
 

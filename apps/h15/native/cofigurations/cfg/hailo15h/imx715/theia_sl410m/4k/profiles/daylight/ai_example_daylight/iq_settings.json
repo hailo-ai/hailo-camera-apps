@@ -27,6 +27,9 @@
         "camera_type": "CAMERA_TYPE_PINHOLE"
     },
     "automatic_algorithms": {
+        "Reloadmode": {
+            "mode": "Poll"
+        },
         "Aev1": {
             "enable": false
         },

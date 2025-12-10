@@ -97,8 +97,6 @@ class GStreamerMkvSegmenter
     void reorder_frames(std::queue<FrameData> &frames);
 
     // GStreamer callbacks
-    static void on_need_data(GstAppSrc *src, guint length, gpointer user_data);
-    static void on_enough_data(GstAppSrc *src, gpointer user_data);
     static GstBusSyncReply on_bus_message(GstBus *bus, GstMessage *message, gpointer user_data);
     static gchar *on_epoch_format_location_safe(GstElement *splitmux, guint fragment_id, GstSample *first_sample,
                                                 gpointer user_data);
@@ -124,7 +122,6 @@ class GStreamerMkvSegmenter
     GstElement *m_pipeline;
     GstElement *m_appsrc;
     GstElement *m_parser; // h264parse or h265parse
-    GstElement *m_muxer;  // matroskamux
     GstBus *m_bus;
 
     // Segment management

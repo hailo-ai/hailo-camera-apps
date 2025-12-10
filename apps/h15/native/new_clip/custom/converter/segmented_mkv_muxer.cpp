@@ -1,10 +1,11 @@
 #include "custom/converter/segmented_mkv_muxer.hpp"
+#include "reference_camera_logger.hpp"
 
 GStreamerMkvSegmenter::GStreamerMkvSegmenter(CodecType codec, const std::string &output_path,
                                              const std::string &file_prefix, uint32_t segment_duration_sec)
     : m_codec_type(codec), m_output_path(output_path), m_file_prefix(file_prefix),
       m_segment_duration_sec(segment_duration_sec), m_epoch_naming_data(nullptr), m_notification_callback(nullptr),
-      m_callback_user_data(nullptr), m_pipeline(nullptr), m_appsrc(nullptr), m_parser(nullptr), m_muxer(nullptr),
+      m_callback_user_data(nullptr), m_pipeline(nullptr), m_appsrc(nullptr), m_parser(nullptr),
       m_bus(nullptr), m_last_segment_end_running_time(0), m_current_segment_start_running_time(0),
       m_processing_active(false), m_initialized(false), m_running(false)
 {
@@ -51,7 +52,7 @@ bool GStreamerMkvSegmenter::initialize()
 
     if (!create_pipeline())
     {
-        g_printerr("Failed to create GStreamer pipeline\n");
+        REFERENCE_CAMERA_LOG_ERROR("Failed to create GStreamer pipeline");
         return false;
     }
 
@@ -65,7 +66,7 @@ bool GStreamerMkvSegmenter::create_pipeline()
     m_pipeline = gst_pipeline_new("mkv-segmenter");
     if (!m_pipeline)
     {
-        g_printerr("Failed to create pipeline\n");
+        REFERENCE_CAMERA_LOG_ERROR("Failed to create pipeline");
         return false;
     }
 
@@ -73,7 +74,7 @@ bool GStreamerMkvSegmenter::create_pipeline()
     m_appsrc = gst_element_factory_make("appsrc", "source");
     if (!m_appsrc)
     {
-        g_printerr("Failed to create appsrc\n");
+        REFERENCE_CAMERA_LOG_ERROR("Failed to create appsrc");
         return false;
     }
 
@@ -82,7 +83,7 @@ bool GStreamerMkvSegmenter::create_pipeline()
     m_parser = gst_element_factory_make(parser_name, "parser");
     if (!m_parser)
     {
-        g_printerr("Failed to create %s\n", parser_name);
+        REFERENCE_CAMERA_LOG_ERROR("Failed to create {}", parser_name);
         return false;
     }
 
@@ -90,7 +91,7 @@ bool GStreamerMkvSegmenter::create_pipeline()
     GstElement *splitmuxsink = gst_element_factory_make("splitmuxsink", "splitsink");
     if (!splitmuxsink)
     {
-        g_printerr("Failed to create splitmuxsink (requires GStreamer 1.8+)\n");
+        REFERENCE_CAMERA_LOG_ERROR("Failed to create splitmuxsink (requires GStreamer 1.8+)");
         return false;
     }
 
@@ -111,6 +112,15 @@ bool GStreamerMkvSegmenter::create_pipeline()
                  nullptr);
     gst_caps_unref(caps);
 
+    // Add flow-control limits
+    const guint64 maxBytes  = 3 * 1024 * 1024;  // ~3 MB buffered
+    const guint   maxBuffers = 60;              // ≈ two seconds at 30 fps
+    g_object_set(G_OBJECT(m_appsrc),
+                "block", TRUE,                  // wait when the limits are hit
+                "max-bytes", maxBytes,
+                "max-buffers", maxBuffers,
+                nullptr);
+
     // Configure parser
     g_object_set(G_OBJECT(m_parser), "config-interval", -1, nullptr);
 
@@ -118,20 +128,26 @@ bool GStreamerMkvSegmenter::create_pipeline()
     std::string location_pattern = generate_location_pattern();
 
     /*
-    g_print("=== SPLITMUXSINK DEBUG INFO ===\n");
-    g_print("Location pattern: %s\n", location_pattern.c_str());
-    g_print("Segment duration: %u seconds\n", m_segment_duration_sec);
+    REFERENCE_CAMERA_LOG_INFO("=== SPLITMUXSINK DEBUG INFO ===");
+    REFERENCE_CAMERA_LOG_INFO("Location pattern: {}", location_pattern);
+    REFERENCE_CAMERA_LOG_INFO("Segment duration: {} seconds", m_segment_duration_sec);
     */
+
+    GstStructure *muxer_props = gst_structure_new("properties", 
+                                                "streamable", G_TYPE_BOOLEAN, FALSE, 
+                                                "offset-to-zero", G_TYPE_BOOLEAN, TRUE,
+                                                "writing-app", G_TYPE_STRING, "GStreamerMkvSegmenter", 
+                                                NULL);
 
     g_object_set(G_OBJECT(splitmuxsink), "max-size-time", (guint64)(m_segment_duration_sec * GST_SECOND),
                  "muxer-factory", "matroskamux",
                  // KEY: Set muxer properties to fix seeking/duration
                  "muxer-properties",
-                 gst_structure_new("properties", "streamable", G_TYPE_BOOLEAN, FALSE, "offset-to-zero", G_TYPE_BOOLEAN,
-                                   TRUE, // Reset timestamps to 0
-                                   "writing-app", G_TYPE_STRING, "GStreamerMkvSegmenter", nullptr),
-                 "async-finalize", TRUE, // Ensure proper file finalization
+                 muxer_props,
+                 "async-finalize", FALSE, // Ensure proper file finalization
                  nullptr);
+
+    gst_structure_free(muxer_props);  // Free the structure after use
 
     // Connect callback with safe data (NOT 'this')
     g_signal_connect(splitmuxsink, "format-location-full", G_CALLBACK(on_epoch_format_location_safe),
@@ -143,17 +159,13 @@ bool GStreamerMkvSegmenter::create_pipeline()
     // Link elements
     if (!gst_element_link_many(m_appsrc, m_parser, splitmuxsink, nullptr))
     {
-        g_printerr("Failed to link elements\n");
+        REFERENCE_CAMERA_LOG_ERROR("Failed to link elements");
         return false;
     }
 
     // Set up bus
     m_bus = gst_element_get_bus(m_pipeline);
     gst_bus_set_sync_handler(m_bus, on_bus_message, this, nullptr);
-
-    // Set up callbacks for appsrc
-    g_signal_connect(m_appsrc, "need-data", G_CALLBACK(on_need_data), this);
-    g_signal_connect(m_appsrc, "enough-data", G_CALLBACK(on_enough_data), this);
 
     return true;
 }
@@ -162,7 +174,7 @@ bool GStreamerMkvSegmenter::start()
 {
     if (!m_initialized)
     {
-        g_printerr("Segmenter not initialized\n");
+        REFERENCE_CAMERA_LOG_ERROR("Segmenter not initialized");
         return false;
     }
 
@@ -179,7 +191,7 @@ bool GStreamerMkvSegmenter::start()
     GstStateChangeReturn ret = gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
     if (ret == GST_STATE_CHANGE_FAILURE)
     {
-        g_printerr("Failed to start pipeline\n");
+        REFERENCE_CAMERA_LOG_ERROR("Failed to start pipeline");
         m_processing_active = false;
         if (m_processing_thread.joinable())
         {
@@ -251,7 +263,6 @@ void GStreamerMkvSegmenter::destroy_pipeline()
 
     m_appsrc = nullptr;
     m_parser = nullptr;
-    m_muxer = nullptr;
 }
 
 void GStreamerMkvSegmenter::set_segment_notification_callback(SegmentNotificationCallback callback, void *user_data)
@@ -269,9 +280,6 @@ bool GStreamerMkvSegmenter::feed_frame(const uint8_t *nal_data, size_t size, uin
 
     // Create frame data
     FrameData frame(nal_data, size, pts_ns);
-    frame.is_keyframe = is_keyframe(nal_data, size);
-
-    // Add to queue
     {
         std::lock_guard<std::mutex> lock(m_queue_mutex);
         m_frame_queue.push(std::move(frame));
@@ -307,6 +315,12 @@ void GStreamerMkvSegmenter::process_frame_queue()
 
             // Create GStreamer buffer
             GstBuffer *buffer = gst_buffer_new_allocate(nullptr, frame.data.size(), nullptr);
+            if (!buffer)
+            {
+                REFERENCE_CAMERA_LOG_ERROR("Failed to allocate GstBuffer");
+                break;
+            }
+
             GstMapInfo map;
             gst_buffer_map(buffer, &map, GST_MAP_WRITE);
             memcpy(map.data, frame.data.data(), frame.data.size());
@@ -323,7 +337,8 @@ void GStreamerMkvSegmenter::process_frame_queue()
             GstFlowReturn ret = gst_app_src_push_buffer(GST_APP_SRC(m_appsrc), buffer);
             if (ret != GST_FLOW_OK)
             {
-                g_printerr("Failed to push buffer: %d\n", ret);
+                REFERENCE_CAMERA_LOG_ERROR("Failed to push buffer: {}", ret);
+                gst_buffer_unref(buffer);
                 break;
             }
 
@@ -331,6 +346,7 @@ void GStreamerMkvSegmenter::process_frame_queue()
         }
     }
 }
+
 
 bool GStreamerMkvSegmenter::is_keyframe(const uint8_t *nal_data, size_t size) const
 {
@@ -402,8 +418,6 @@ bool GStreamerMkvSegmenter::is_keyframe(const uint8_t *nal_data, size_t size) co
             uint16_t nal_header = (data[0] << 8) | data[1];
             uint8_t nal_type = (nal_header >> 9) & 0x3F;
 
-            // g_print("H265 NAL type: %u (header: 0x%04x) ", nal_type, nal_header);
-
             // H265 keyframe indicators:
             // 19-20 = IDR slices (primary keyframes)
             // 21 = CRA (Clean Random Access)
@@ -449,6 +463,7 @@ bool GStreamerMkvSegmenter::is_keyframe(const uint8_t *nal_data, size_t size) co
     return found_keyframe;
 }
 
+
 std::string GStreamerMkvSegmenter::generate_location_pattern() const
 {
     return m_output_path + "/" + m_file_prefix + "_%06d.mkv";
@@ -462,19 +477,6 @@ uint64_t GStreamerMkvSegmenter::get_current_epoch_time_ms() const
     return static_cast<uint64_t>(millis);
 }
 
-// Static callback implementations
-void GStreamerMkvSegmenter::on_need_data(GstAppSrc *src, guint length, gpointer user_data)
-{
-    // This callback is triggered when the appsrc needs more data
-    // We handle data pushing in our own thread, so we don't need to do anything here
-}
-
-void GStreamerMkvSegmenter::on_enough_data(GstAppSrc *src, gpointer user_data)
-{
-    // This callback is triggered when the appsrc has enough data
-    // We can use this to implement flow control if needed
-}
-
 GstBusSyncReply GStreamerMkvSegmenter::on_bus_message(GstBus *bus, GstMessage *message, gpointer user_data)
 {
     GStreamerMkvSegmenter *segmenter = static_cast<GStreamerMkvSegmenter *>(user_data);
@@ -485,31 +487,36 @@ GstBusSyncReply GStreamerMkvSegmenter::on_bus_message(GstBus *bus, GstMessage *m
         GError *error;
         gchar *debug;
         gst_message_parse_error(message, &error, &debug);
-        g_printerr("ERROR from element %s: %s\n", GST_OBJECT_NAME(message->src), error->message);
-        g_printerr("Debug info: %s\n", debug ? debug : "none");
+        REFERENCE_CAMERA_LOG_ERROR("ERROR from element {}: {}", GST_OBJECT_NAME(message->src), error->message);
+        REFERENCE_CAMERA_LOG_ERROR("Debug info: {}", debug ? debug : "none");
         g_clear_error(&error);
         g_free(debug);
-        break;
+        gst_message_unref(message);
+        return GST_BUS_DROP;
     }
+
     case GST_MESSAGE_WARNING: {
         GError *error;
         gchar *debug;
         gst_message_parse_warning(message, &error, &debug);
-        g_printerr("WARNING from element %s: %s\n", GST_OBJECT_NAME(message->src), error->message);
-        g_printerr("Debug info: %s\n", debug ? debug : "none");
+        REFERENCE_CAMERA_LOG_ERROR("WARNING from element {}: {}", GST_OBJECT_NAME(message->src), error->message);
+        REFERENCE_CAMERA_LOG_ERROR("Debug info: {}", debug ? debug : "none");
         g_clear_error(&error);
         g_free(debug);
-        break;
+        gst_message_unref(message);
+        return GST_BUS_DROP;
     }
+
     case GST_MESSAGE_EOS:
-        break;
+        return GST_BUS_PASS;    //Let stop() receive it
+
     case GST_MESSAGE_ELEMENT: {
         const GstStructure *s = gst_message_get_structure(message);
 
         // Debug: Print all element messages
         /*
         gchar* struct_str = gst_structure_to_string(s);
-        g_print("ELEMENT MESSAGE: %s\n", struct_str);
+        REFERENCE_CAMERA_LOG_INFO("MKV Muxer ELEMENT MESSAGE: {}", struct_str);
         g_free(struct_str);
         */
 
@@ -522,9 +529,6 @@ GstBusSyncReply GStreamerMkvSegmenter::on_bus_message(GstBus *bus, GstMessage *m
 
             gst_structure_get_uint64(s, "running-time", &running_time);
 
-            // g_print("  New file started: %s\n", filename ? filename : "NULL");
-            // g_print("  Start running time: %lu ns (%.3f sec)\n", running_time, running_time / (double)GST_SECOND);
-
             // Track the start of this segment
             segmenter->m_current_segment_start_running_time = running_time;
 
@@ -533,20 +537,15 @@ GstBusSyncReply GStreamerMkvSegmenter::on_bus_message(GstBus *bus, GstMessage *m
             {
                 uint32_t segment_index = segmenter->extract_segment_index(filename);
                 segmenter->m_segment_start_times[segment_index] = running_time;
-                // g_print("  Stored start time for segment %u: %lu ns\n", segment_index, running_time);
             }
         }
         // Handle fragment closed (segment complete)
         else if (gst_structure_has_name(s, "splitmuxsink-fragment-closed"))
         {
-
             const gchar *filename = gst_structure_get_string(s, "location");
             guint64 running_time = 0;
 
             gst_structure_get_uint64(s, "running-time", &running_time);
-
-            // g_print("  File closed: %s\n", filename ? filename : "NULL");
-            // g_print("  End running time: %lu ns (%.3f sec)\n", running_time, running_time / (double)GST_SECOND);
 
             if (filename && segmenter)
             {
@@ -556,13 +555,13 @@ GstBusSyncReply GStreamerMkvSegmenter::on_bus_message(GstBus *bus, GstMessage *m
             // Update for next segment
             segmenter->m_last_segment_end_running_time = running_time;
         }
-        break;
+        gst_message_unref(message);
+        return GST_BUS_DROP;
     }
     default:
-        break;
+        gst_message_unref(message);
+        return GST_BUS_DROP;
     }
-
-    return GST_BUS_PASS;
 }
 
 gchar *GStreamerMkvSegmenter::on_epoch_format_location_safe(GstElement *splitmux, guint fragment_id,
@@ -572,7 +571,7 @@ gchar *GStreamerMkvSegmenter::on_epoch_format_location_safe(GstElement *splitmux
     // Check if user_data is valid
     if (!user_data)
     {
-        g_printerr("ERROR: user_data is NULL\n");
+        REFERENCE_CAMERA_LOG_ERROR("ERROR: user_data is NULL");
         return g_strdup_printf("error_%u_%lu.mkv", fragment_id, (uint64_t)time(nullptr));
     }
 
@@ -584,7 +583,7 @@ gchar *GStreamerMkvSegmenter::on_epoch_format_location_safe(GstElement *splitmux
     // Check if data is still valid
     if (!data->is_valid)
     {
-        g_printerr("ERROR: naming data is no longer valid\n");
+        REFERENCE_CAMERA_LOG_ERROR("ERROR: naming data is no longer valid");
         return g_strdup_printf("invalid_%u_%lu.mkv", fragment_id, (uint64_t)time(nullptr));
     }
 
@@ -596,9 +595,6 @@ gchar *GStreamerMkvSegmenter::on_epoch_format_location_safe(GstElement *splitmux
     // Generate filename using COPIED strings (safe)
     gchar *filename =
         g_strdup_printf("%s/%s_%lu.mkv", data->output_path.c_str(), data->file_prefix.c_str(), epoch_timestamp);
-
-    // g_print("Generated safe epoch filename: %s\n", filename);
-    // g_print("Fragment ID: %u, Epoch: %lu\n", fragment_id, epoch_timestamp);
 
     // Increment counter (thread-safe)
     data->segment_counter.fetch_add(1);
@@ -631,7 +627,6 @@ void GStreamerMkvSegmenter::handle_split_mux_segment_with_running_time(const cha
 
     // Extract segment index
     uint32_t segment_index = extract_segment_index(filename);
-    // g_print("Segment index: %u\n", segment_index);
 
     // Find the start running time for this segment
     uint64_t start_running_time = 0;
@@ -639,14 +634,12 @@ void GStreamerMkvSegmenter::handle_split_mux_segment_with_running_time(const cha
     if (it != m_segment_start_times.end())
     {
         start_running_time = it->second;
-        // g_print("Found start running time: %lu ns (%.3f sec)\n", start_running_time, start_running_time /
-        // (double)GST_SECOND);
     }
     else
     {
         // Fallback: use the last segment's end time
         start_running_time = m_last_segment_end_running_time;
-        g_print("WARNING: Using fallback start time: %lu ns (%.3f sec)\n", start_running_time,
+        REFERENCE_CAMERA_LOG_INFO("WARNING: Using fallback start time: {} ns ({:.3f} sec)", start_running_time,
                 start_running_time / (double)GST_SECOND);
     }
 
@@ -656,10 +649,10 @@ void GStreamerMkvSegmenter::handle_split_mux_segment_with_running_time(const cha
     uint32_t duration_ms = static_cast<uint32_t>(duration_ns / 1000000);
 
     /*
-    g_print("*** CALCULATED ACTUAL DURATION ***\n");
-    g_print("  Start running time: %lu ns (%.3f sec)\n", start_running_time, start_running_time / (double)GST_SECOND);
-    g_print("  End running time:   %lu ns (%.3f sec)\n", end_running_time, end_running_time / (double)GST_SECOND);
-    g_print("  Duration:           %lu ns (%.3f sec = %u ms)\n", duration_ns, duration_ns / (double)GST_SECOND,
+    REFERENCE_CAMERA_LOG_INFO("*** CALCULATED ACTUAL DURATION ***");
+    REFERENCE_CAMERA_LOG_INFO("  Start running time: {} ns ({:.3f} sec)", start_running_time, start_running_time / (double)GST_SECOND);
+    REFERENCE_CAMERA_LOG_INFO("  End running time:   {} ns ({:.3f} sec)", end_running_time, end_running_time / (double)GST_SECOND);
+    REFERENCE_CAMERA_LOG_INFO("  Duration:           {} ns ({:.3f} sec = {} ms)", duration_ns, duration_ns / (double)GST_SECOND,
     duration_ms);
     */
 
@@ -678,11 +671,11 @@ void GStreamerMkvSegmenter::handle_split_mux_segment_with_running_time(const cha
     {
 
         /*
-        g_print("*** CALLING NOTIFICATION CALLBACK OF CLOSING FILE WITH ACCURATE DURATION ***\n");
-        g_print("  - Filename: %s\n", info.filename.c_str());
-        g_print("  - ACCURATE Duration: %u ms\n", duration_ms);
-        g_print("  - Start time: %lu ms\n", info.start_time_epoch_ms);
-        g_print("  - Index: %u\n", info.index);
+        REFERENCE_CAMERA_LOG_INFO("*** CALLING NOTIFICATION CALLBACK OF CLOSING FILE WITH ACCURATE DURATION ***");
+        REFERENCE_CAMERA_LOG_INFO("  - Filename: {}", info.filename);
+        REFERENCE_CAMERA_LOG_INFO("  - ACCURATE Duration: {} ms", duration_ms);
+        REFERENCE_CAMERA_LOG_INFO("  - Start time: {} ms", info.start_time_epoch_ms);
+        REFERENCE_CAMERA_LOG_INFO("  - Index: {}", info.index);
         */
 
         m_notification_callback(info.filename.c_str(),
@@ -691,7 +684,7 @@ void GStreamerMkvSegmenter::handle_split_mux_segment_with_running_time(const cha
     }
     else
     {
-        g_print("WARNING: m_notification_callback is NULL\n");
+        REFERENCE_CAMERA_LOG_INFO("WARNING: m_notification_callback is NULL");
     }
 
     // Clean up old start times

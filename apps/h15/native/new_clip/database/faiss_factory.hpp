@@ -97,7 +97,7 @@ class FaissVectorDBFactory
         }
 
         // Store the instance and configuration
-        auto shared_db = std::shared_ptr<PartitionedFaissDB>(db_result.value().release());
+        auto shared_db = std::shared_ptr<PartitionedFaissDB>(std::move(db_result.value()));
         m_instances[name] = shared_db;
         m_configs[name] = std::make_shared<FaissDatabaseConfig>(config);
 

@@ -5,25 +5,25 @@
     "format": "IMAGE_FORMAT_NV12",
     "resolutions": [
       {
-          "width": 3840,
-          "height": 2160,
-          "framerate": 30,
-          "pool_max_buffers": 30,
-          "stream_id": "HighRes"
+        "width": 3840,
+        "height": 2160,
+        "framerate": 30,
+        "pool_max_buffers": 30,
+        "stream_id": "HighRes"
       },
       {
-          "width": 1920,
-          "height": 1080,
-          "framerate": 15,
-          "pool_max_buffers": 20,
-          "stream_id": "AI"
+        "width": 1920,
+        "height": 1080,
+        "framerate": 15,
+        "pool_max_buffers": 20,
+        "stream_id": "AI"
       },
       {
-          "width": 640,
-          "height": 480,
-          "framerate": 30,
-          "pool_max_buffers": 20,
-          "stream_id": "VGA"
+        "width": 640,
+        "height": 480,
+        "framerate": 30,
+        "pool_max_buffers": 20,
+        "stream_id": "VGA"
       }
     ]
   },
@@ -48,14 +48,15 @@
   },
   "motion_detection": {
     "enabled": false,
+    "buffer_pool_size": 8,
     "resolution": {
       "width": 640,
       "height": 480,
       "framerate": 30
     },
     "roi": {
-      "x": 200,
-      "y": 200,
+      "x": 0,
+      "y": 0,
       "width": 640,
       "height": 480
     },

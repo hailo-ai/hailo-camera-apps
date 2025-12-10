@@ -207,7 +207,12 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
                       WEBSERVER_LOG_ERROR("Failed to extract powerline frequency from JSON: {}", ret_msg);
                       throw std::runtime_error(ret_msg);
                   }
-
+                  // When adaptive_ae is enabled, the anti-flicker setting will be overridden by its configuration.
+                  // Adaptive_ae includes a field that dictates the anti-flicker behavior, bypassing the ioctl-defined
+                  // value. If adaptive_ae is disabled, the ioctl setting will take effect. Therefore, both
+                  // configurations are updated to ensure consistency.
+                  automatic_algorithms_config_t config = m_isp_blender_ptr->get_current_automatic_algorithms_config();
+                  // update in v4l2 ctrl only if adaptive AE is disabled
                   WEBSERVER_LOG_DEBUG("Setting powerline frequency to: {}", freq);
                   ret = v4l2_ctrl::set<int>(v4l2_ctrl::Video0Ctrl::POWERLINE_FREQUENCY, (uint16_t)freq);
                   if (!ret)
@@ -215,6 +220,10 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
                       WEBSERVER_LOG_ERROR("Failed to set powerline frequency");
                       throw std::runtime_error("Failed to set powerline frequency");
                   }
+                  // update in 3a config if adaptive AE is enabled
+                  config.adaptive_ae.flicker_period = (u_int16_t)freq;
+                  m_isp_blender_ptr->set_automatic_algorithms_config(config);
+
                   nlohmann::json j_out;
                   j_out["powerline_freq"] = freq;
                   return j_out;
@@ -222,14 +231,23 @@ void IspResource::http_register(std::shared_ptr<HTTPServer> srv)
 
     srv->Get("/isp/powerline_frequency", std::function<nlohmann::json()>([this]() {
                  wait_safe_to_pull();
-                 int val;
-                 bool ret = v4l2_ctrl::get<int>(v4l2_ctrl::Video0Ctrl::POWERLINE_FREQUENCY, val);
-                 if (!ret)
+                 powerline_frequency_t freq;
+                 automatic_algorithms_config_t config = m_isp_blender_ptr->get_current_automatic_algorithms_config();
+                 if (!config.adaptive_ae.enabled)
                  {
-                     WEBSERVER_LOG_ERROR("Failed to get powerline frequency");
-                     throw std::runtime_error("Failed to get powerline frequency");
+                     int val;
+                     bool ret = v4l2_ctrl::get<int>(v4l2_ctrl::Video0Ctrl::POWERLINE_FREQUENCY, val);
+                     if (!ret)
+                     {
+                         WEBSERVER_LOG_ERROR("Failed to get powerline frequency");
+                         throw std::runtime_error("Failed to get powerline frequency");
+                     }
+                     freq = (powerline_frequency_t)val;
                  }
-                 auto freq = (powerline_frequency_t)val;
+                 else
+                 {
+                     freq = (powerline_frequency_t)config.adaptive_ae.flicker_period;
+                 }
                  nlohmann::json j_out;
                  j_out["powerline_freq"] = freq;
                  WEBSERVER_LOG_DEBUG("Got powerline frequency: {}", freq);

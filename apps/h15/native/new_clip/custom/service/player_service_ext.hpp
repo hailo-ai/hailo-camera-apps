@@ -191,23 +191,15 @@ std::shared_ptr<WebRTCStreamerExt> VideoStreamingServiceExt::get_webrtc_streamer
 
 void VideoStreamingServiceExt::on_frame(const RtpPacketData &frame)
 {
-
-    if (!m_is_streaming)
-    {
-        return;
-    }
-
     if (frame.sample != nullptr)
     {
-        // Send to WebRTC streamer
-        if (m_webrtc_streamer && m_webrtc_streamer->has_active_client())
+        if (m_is_streaming && m_webrtc_streamer && m_webrtc_streamer->has_active_client())
         {
-
             m_webrtc_streamer->send_rtp_packet(frame.sample);
         }
         else
         {
-            // Clean up sample if no active client
+            // Must free the sample if not being used
             gst_sample_unref(frame.sample);
         }
     }
