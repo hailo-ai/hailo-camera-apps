@@ -1,3 +1,5 @@
+REPOSITORY IS ARCHIVED
+=======================
 Hailo Camera Applications - Reference Pipelines for Video-Processing and AI
 ===========================================================================
 
